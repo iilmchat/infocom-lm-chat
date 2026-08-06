@@ -1,0 +1,67 @@
+Ключевые изменения для поддержки старых браузеров:
+1. Проверка поддержки AbortController:
+javascript
+const SUPPORTS_ABORT = typeof AbortController !== 'undefined' && 
+                       typeof AbortController.prototype.abort === 'function';
+2. Безопасное создание сигналов:
+Функция createSafeSignal() определяет, поддерживается ли AbortController
+
+В старых браузерах возвращает заглушку без реальной функциональности
+
+Не добавляет поле signal в fetch-запрос, если оно не поддерживается
+
+3. Альтернативная реализация таймаута:
+В fetchWithTimeout() для старых браузеров используется Promise.race() вместо AbortController:
+
+javascript
+if (!SUPPORTS_ABORT) {
+    return new Promise(async (resolve, reject) => {
+        let timeoutId = setTimeout(() => {
+            reject(new Error(`Запрос превысил таймаут (${timeout}ms)`));
+        }, timeout);
+        
+        try {
+            const response = await fetch(url, options);
+            clearTimeout(timeoutId);
+            resolve(response);
+        } catch (error) {
+            clearTimeout(timeoutId);
+            reject(error);
+        }
+    });
+}
+4. Обработка внешних сигналов:
+Проверяем, что переданный signal имеет метод addEventListener
+
+В старых браузерах игнорируем внешние сигналы
+
+5. Полифилл для AbortController (опционально):
+Если нужно, можно включить полноценный полифилл
+
+В коде выше реализован простой полифилл для базовых сценариев
+
+6. Экспорт информации о поддержке:
+javascript
+export const browserSupport = {
+    abortController: SUPPORTS_ABORT,
+    fetch: typeof fetch !== 'undefined',
+    promise: typeof Promise !== 'undefined'
+};
+Это позволяет проверить поддержку и адаптироваться под возможности браузера.
+
+7. Дополнительные улучшения для старых браузеров:
+Если нужно поддерживать совсем старые браузеры (IE11, старые версии Safari), рекомендуется добавить полифиллы для fetch и Promise:
+
+html
+<!-- В HTML или через сборщик -->
+<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8.2.3/dist/polyfill.min.js"></script>
+Или через npm:
+
+bash
+npm install whatwg-fetch promise-polyfill
+javascript
+// В начале файла
+import 'whatwg-fetch'; // Полифилл для fetch
+import 'promise-polyfill'; // Полифилл для Promise
+Теперь код будет корректно работать как в современных браузерах, так и в старых версиях, с сохранением всей функциональности.

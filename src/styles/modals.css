@@ -1,0 +1,593 @@
+/* src/styles/modals.css */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--modal-bg);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 700px;
+    width: 92%;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 16px 64px var(--shadow-color);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-content h2 {
+    margin-bottom: 16px;
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+.modal-content h3 {
+    margin: 16px 0 8px 0;
+    color: var(--text-primary);
+}
+
+.modal-content h4 {
+    margin: 12px 0 6px 0;
+    color: var(--text-accent);
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-content p,
+.modal-content li {
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.modal-content ul,
+.modal-content ol {
+    padding-left: 24px;
+    margin: 8px 0 12px 0;
+}
+
+.modal-content li {
+    margin-bottom: 4px;
+}
+
+.modal-content .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-accent);
+    color: var(--text-primary);
+    margin: 2px 4px 2px 0;
+}
+
+.modal-content .badge.success {
+    background: var(--success-color);
+    color: #fff;
+}
+
+.modal-content .badge.warning {
+    background: var(--warning-color);
+    color: #fff;
+}
+
+.modal-content .badge.error {
+    background: var(--error-color);
+    color: #fff;
+}
+
+.modal-content .badge.gold {
+    background: var(--gold-color);
+    color: #1a1a2e;
+}
+
+.modal-content .badge.version {
+    background: var(--text-accent);
+    color: var(--bg-primary);
+}
+
+.modal-content kbd {
+    background: var(--bg-primary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    color: var(--text-accent);
+}
+
+.modal-content .hotkey-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    margin: 8px 0 12px 0;
+}
+
+.modal-content .hotkey-grid .key {
+    color: var(--text-accent);
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.modal-content .hotkey-grid .desc {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.modal-content .divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 16px 0;
+}
+
+.modal-content .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    margin: 8px 0 12px 0;
+}
+
+.modal-content .feature-grid .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.modal-content .feature-grid .feature-item .icon {
+    font-size: 16px;
+}
+
+.modal-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.modal-tabs button {
+    padding: 8px 20px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+}
+
+.modal-tabs button:hover {
+    color: var(--text-primary);
+    background: var(--bg-accent);
+}
+
+.modal-tabs button.active {
+    color: var(--text-accent);
+    background: var(--bg-accent);
+    border-bottom: 2px solid var(--text-accent);
+}
+
+.modal-tab-content {
+    display: none;
+}
+
+.modal-tab-content.active {
+    display: block;
+}
+
+/* ===== Export Modal ===== */
+.export-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.export-options button {
+    padding: 10px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    text-align: left;
+}
+
+.export-options button:hover {
+    background: var(--bg-accent);
+}
+
+/* ===== Server Settings Modal ===== */
+.server-settings-modal .modal-content {
+    max-width: 500px;
+}
+
+.server-settings-modal .form-group {
+    margin-bottom: 16px;
+}
+
+.server-settings-modal .form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.server-settings-modal .form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border 0.2s;
+}
+
+.server-settings-modal .form-group input:focus {
+    border-color: var(--text-accent);
+    outline: none;
+}
+
+.server-settings-modal .form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+}
+
+.server-settings-modal .test-result {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: none;
+    font-size: 13px;
+}
+
+.server-settings-modal .test-result.success {
+    display: block;
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+}
+
+.server-settings-modal .test-result.error {
+    display: block;
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+}
+
+.server-settings-modal .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.server-settings-modal .modal-actions button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.server-settings-modal .modal-actions .btn-primary {
+    background: var(--send-btn-bg);
+    color: #fff;
+}
+
+.server-settings-modal .modal-actions .btn-primary:hover {
+    background: var(--send-btn-hover);
+}
+
+.server-settings-modal .modal-actions .btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.server-settings-modal .modal-actions .btn-secondary:hover {
+    background: var(--border-color);
+}
+
+/* ===== Share Modal ===== */
+.share-modal .modal-content {
+    max-width: 500px;
+}
+
+.share-method {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.share-method h4 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--text-accent);
+}
+
+.share-url-box {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.share-url-box input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.share-url-box button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--send-btn-bg);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+#qrCodeContainer {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0;
+}
+
+#qrCodeContainer img {
+    border-radius: 8px;
+    border: 4px solid #fff;
+}
+
+.active-user-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-accent);
+    border-radius: 16px;
+    font-size: 11px;
+    margin: 2px;
+}
+
+/* ===== Prompt Viewer ===== */
+.prompt-viewer {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.prompt-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+}
+
+/* ===== Custom Assistant Modal ===== */
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: var(--text-accent);
+    outline: none;
+}
+
+.form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.color-picker-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.color-preset {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-preset:hover {
+    transform: scale(1.15);
+}
+
+.color-preset.selected {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 8px currentColor;
+}
+
+/* ===== Error Boundary ===== */
+.error-boundary {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.error-boundary .error-item {
+    background: var(--bg-secondary);
+    border-left: 4px solid var(--error-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    animation: slideInRight 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.error-boundary .error-item .error-title {
+    font-weight: 600;
+    color: var(--error-color);
+    font-size: 14px;
+}
+
+.error-boundary .error-item .error-message {
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-top: 4px;
+}
+
+.error-boundary .error-item .error-stack {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 100px;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: none;
+}
+
+.error-boundary .error-item .error-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.error-boundary .error-item .error-actions button {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.error-boundary .error-item .error-actions .btn-dismiss {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.error-boundary .error-item .error-actions .btn-dismiss:hover {
+    background: var(--border-color);
+}
+
+.error-boundary .error-item .error-actions .btn-details {
+    background: var(--bg-accent);
+    color: var(--text-accent);
+}
+
+.error-boundary .error-item .error-actions .btn-details:hover {
+    background: var(--border-color);
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+    .server-settings-modal .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content .feature-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        max-width: 95%;
+        padding: 16px;
+    }
+}

@@ -1,0 +1,45 @@
+infocom-lm-chat/
+├── index.html                 # Точка входа
+├── src/                       # Исходный код
+│   ├── app.js                 # Главный контроллер
+│   ├── config.js              # Конфигурация
+│   ├── core/                  # Ядро
+│   │   ├── event-bus.js       # Шина событий
+│   │   ├── error-boundary.js  # Обработка ошибок
+│   │   └── storage.js         # Работа с localStorage
+│   ├── models/                # Модели данных
+│   │   ├── session-manager.js # Управление диалогами
+│   │   ├── rag-manager.js     # RAG документы
+│   │   ├── assistant-manager.js # Ассистенты
+│   │   ├── achievement-manager.js # Достижения
+│   │   ├── multi-user-manager.js # Пользователи
+│   │   └── ...
+│   ├── services/              # Сервисы
+│   │   ├── api-service.js     # Работа с API
+│   │   ├── sanitizer.js       # Безопасность
+│   │   └── syntax-highlighter.js # Подсветка кода
+│   ├── ui/                    # Интерфейс
+│   │   ├── components/        # Компоненты
+│   │   ├── views/             # Представления
+│   │   ├── renderers/         # Рендереры
+│   │   └── theme.js           # Темы
+│   ├── games/                 # Игры
+│   │   ├── game-2048.js
+│   │   ├── snake-game.js
+│   │   └── tetris-game.js
+│   ├── utils/                 # Утилиты
+│   │   ├── dom-helpers.js
+│   │   ├── file-helpers.js
+│   │   ├── string-helpers.js
+│   │   ├── network-helpers.js
+│   │   └── test-runner.js     # Unit-тесты
+│   └── styles/                # Стили
+│       ├── main.css
+│       ├── themes.css
+│       ├── sidebar.css
+│       ├── chat.css
+│       ├── modals.css
+│       └── games.css
+└── tests/                     # Тесты
+    ├── rag-manager.test.js
+    └── session-manager.test.js

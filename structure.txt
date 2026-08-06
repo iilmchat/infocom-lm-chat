@@ -1,0 +1,60 @@
+infocom-lm-chat/
+├── index.html
+├── src/
+│   ├── app.js
+│   ├── config.js
+│   ├── core/
+│   │   ├── event-bus.js
+│   │   ├── error-boundary.js
+│   │   └── storage.js
+│   ├── models/
+│   │   ├── session-manager.js
+│   │   ├── rag-manager.js
+│   │   ├── assistant-manager.js
+│   │   ├── achievement-manager.js
+│   │   ├── multi-user-manager.js
+│   │   ├── roadmap-tracker.js
+│   │   ├── rate-limiter.js
+│   │   ├── input-history.js
+│   │   └── embedding-cache.js
+│   ├── services/
+│   │   ├── api-service.js
+│   │   ├── sanitizer.js
+│   │   └── syntax-highlighter.js
+│   ├── ui/
+│   │   ├── components/
+│   │   │   ├── toast.js
+│   │   │   ├── modal.js
+│   │   │   └── virtual-scroll.js
+│   │   ├── views/
+│   │   │   ├── chat-view.js
+│   │   │   ├── sidebar.js
+│   │   │   ├── settings-view.js
+│   │   │   ├── info-view.js
+│   │   │   ├── share-view.js
+│   │   │   ├── game-view.js
+│   │   │   ├── export-view.js
+│   │   │   └── assistant-bar.js
+│   │   ├── renderers/
+│   │   │   └── message-renderer.js
+│   │   └── theme.js
+│   ├── games/
+│   │   ├── game-2048.js
+│   │   ├── snake-game.js
+│   │   └── tetris-game.js
+│   ├── utils/
+│   │   ├── dom-helpers.js
+│   │   ├── file-helpers.js
+│   │   ├── string-helpers.js
+│   │   ├── network-helpers.js
+│   │   └── test-runner.js
+│   └── styles/
+│       ├── main.css
+│       ├── themes.css
+│       ├── sidebar.css
+│       ├── chat.css
+│       ├── modals.css
+│       └── games.css
+└── tests/
+    ├── rag-manager.test.js
+    └── session-manager.test.js

@@ -1,0 +1,9 @@
+src/
+├── services/
+│   ├── syntax-highlighter.js
+│   ├── syntax-highlighter.worker.js
+│   └── syntax-highlighter-cache.js
+├── hooks/
+│   └── useSyntaxHighlight.js
+└── utils/
+    └── debounce.js
