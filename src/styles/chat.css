@@ -1,4 +1,5 @@
 /* src/styles/chat.css */
+    /* Основной контейнер приложения */
 .main-container {
     flex: 1;
     display: flex;
@@ -8,6 +9,289 @@
     position: relative;
     height: 100vh;
 }
+
+    /* ===== ПЕРЕТАСКИВАНИЕ ФАЙЛОВ ===== */
+
+    /* Оверлей для перетаскивания файлов */
+    .drag-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 20px;
+        backdrop-filter: blur(10px);
+        border: 4px dashed var(--text-accent);
+        margin: 10px;
+        border-radius: 20px;
+        animation: fadeInOverlay 0.3s ease;
+        aria-hidden: 'true';
+        aria-label: 'Зона загрузки файлов';        
+    }
+
+    /* Анимация появления оверлея */
+    @keyframes fadeInOverlay {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* Активное состояние оверлея */
+    .drag-overlay.active {
+        display: flex;
+        aria-hidden: 'false'; 
+    }
+
+    /* Иконка перетаскивания */
+    .drag-overlay .drag-icon {
+        font-size: 72px;
+        animation: bounce 1s infinite;
+        transition: transform 0.3s;
+    }
+
+    /* Анимация скакушки иконки */
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        
+        50% {
+            transform: translateY(-15px);
+        }
+    }
+
+    /* Основной текст оверлея */
+    .drag-overlay .drag-text {
+        font-size: 22px;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    /* Подтекст оверлея */
+    .drag-overlay .drag-subtext {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: -4px;
+    }
+
+    /* Стили для оверлея перетаскивания файлов */
+    .drag-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .drag-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Стили для текста подсказки */
+    .drag-overlay .drag-subtext {
+        font-size: 14px;
+        color: var(--text-primary);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    /* Стили для клавиш-кодов (kbd) в подсказке */
+    .drag-overlay .drag-subtext kbd {
+        background: var(--bg-primary);
+        padding: 2px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: monospace;
+        border: 1px solid var(--border-color);
+        margin: 0 2px;
+    }
+
+    /* Стили для селектора режимов перетаскивания */
+    .drag-overlay .drag-mode-selector {
+        display: flex;
+        gap: 20px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Стили для меток режимов (label) */
+    .drag-overlay .drag-mode-selector label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 24px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        font-size: 16px;
+        min-width: 180px;
+        justify-content: center;
+        position: relative;
+        user-select: none;
+    }
+
+    /* Hover эффект для режимов */
+    .drag-overlay .drag-mode-selector label:hover {
+        transform: scale(1.05);
+        border-color: var(--text-accent);
+        background: var(--bg-accent);
+        box-shadow: 0 0 30px rgba(126, 200, 227, 0.15);
+    }
+
+    /* Стили для выбранного режима */
+    .drag-overlay .drag-mode-selector label.selected {
+        border-color: var(--text-accent);
+        background: var(--bg-accent);
+        box-shadow: 0 0 30px rgba(126, 200, 227, 0.25);
+    }
+
+    /* Стили для горячих клавиш режимов */
+    .drag-overlay .drag-mode-selector label .mode-hotkey {
+        margin-left: 8px;
+        opacity: 0.5;
+        font-size: 12px;
+        transition: opacity 0.3s;
+    }
+
+    /* Активная горячая клавиша для выбранного режима */
+    .drag-overlay .drag-mode-selector label.selected .mode-hotkey {
+        opacity: 1;
+    }
+
+    /* Стили для клавиш-кодов (kbd) в режимах */
+    .drag-overlay .drag-mode-selector label kbd {
+        background: var(--bg-primary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-family: monospace;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Стили для иконок режимов */
+    .drag-overlay .drag-mode-selector label .mode-icon {
+        font-size: 28px;
+        transition: transform 0.3s;
+    }
+
+    /* Анимация увеличения иконки выбранного режима */
+    .drag-overlay .drag-mode-selector label.selected .mode-icon {
+        transform: scale(1.2);
+    }
+
+    /* Стили для названия режима */
+    .drag-overlay .drag-mode-selector label .mode-label {
+        font-weight: 600;
+    }
+
+    /* Стили для описания режима */
+    .drag-overlay .drag-mode-selector label .mode-desc {
+        font-size: 11px;
+        color: var(--text-secondary);
+        display: block;
+    }
+
+    /* Стили для предпросмотра файлов */
+    .drag-overlay .drag-files-preview {
+        max-width: 80%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 4px;
+        min-height: 30px;
+    }
+
+    /* Стили для элемента предпросмотра файла */
+    .drag-overlay .drag-files-preview .file-preview-item {
+        padding: 4px 12px;
+        background: var(--bg-accent);
+        border-radius: 12px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    /* Стили для размера файла в предпросмотре */
+    .drag-overlay .drag-files-preview .file-preview-item .file-size {
+        color: var(--text-secondary);
+        font-size: 10px;
+    }
+
+    /* Стили для прогрессбара загрузки */
+    .drag-overlay .drag-progress {
+        width: 60%;
+        max-width: 400px;
+        height: 6px;
+        background: var(--bg-primary);
+        border-radius: 3px;
+        overflow: hidden;
+        display: none;
+    }
+
+    /* Активное состояние прогрессбара */
+    .drag-overlay .drag-progress.active {
+        display: block;
+    }
+
+    /* Заполнение прогрессбара */
+    .drag-overlay .drag-progress .drag-progress-fill {
+        height: 100%;
+        background: var(--send-btn-bg);
+        width: 0%;
+        transition: width 0.3s;
+        border-radius: 3px;
+    }
+
+    /* Стили для текста статуса загрузки */
+    .drag-overlay .drag-status-text {
+        font-size: 14px;
+        color: var(--text-accent);
+        display: none;
+    }
+
+    /* Активное состояние текста статуса */
+    .drag-overlay .drag-status-text.active {
+        display: block;
+    }
+
+    /* Стили для индикатора режима */
+    .drag-overlay .drag-mode-indicator {
+        font-size: 13px;
+        color: var(--text-secondary);
+        padding: 4px 16px;
+        background: var(--bg-accent);
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+    }
+
 
 /* ===== Chat Header ===== */
 .chat-header {

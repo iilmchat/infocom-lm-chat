@@ -1,7 +1,7 @@
 // src/hooks/useSyntaxHighlight.js
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { syntaxHighlighter } from '../services/syntax-highlighter';
+import { SyntaxHighlighter } from '../services/syntax-highlighter';
 
 /**
  * React Hook для подсветки синтаксиса с управлением состоянием
@@ -27,7 +27,7 @@ export function useSyntaxHighlight(initialCode = '', initialLanguage = null) {
         setError(null);
 
         try {
-            const result = await syntaxHighlighter.highlight(codeToHighlight, lang);
+            const result = await SyntaxHighlighter.highlight(codeToHighlight, lang);
             
             if (isMountedRef.current) {
                 setHighlighted(result);
@@ -48,7 +48,7 @@ export function useSyntaxHighlight(initialCode = '', initialLanguage = null) {
 
     // Debounced версия подсветки
     const debouncedHighlight = useCallback(
-        syntaxHighlighter.highlightDebounced.bind(syntaxHighlighter),
+        SyntaxHighlighter.highlightDebounced.bind(SyntaxHighlighter),
         []
     );
 

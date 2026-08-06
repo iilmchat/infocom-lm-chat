@@ -1,7 +1,7 @@
 // src/services/syntax-highlighter.js
 
-import { highlightCache } from './syntax-highlighter-cache';
-import { highlightDebounce } from '../utils/debounce';
+import { highlightCache } from './syntax-highlighter-cache.js';
+import { highlightDebounce } from '../utils/debounce.js';
 
 /**
  * Сервис подсветки синтаксиса с поддержкой Web Worker и кэширования
@@ -285,7 +285,10 @@ class SyntaxHighlighterService {
 }
 
 // Экспортируем синглтон
-export const syntaxHighlighter = new SyntaxHighlighterService();
+//export const syntaxHighlighter = new SyntaxHighlighterService();
+
+// Экспортируем синглтон
+export const SyntaxHighlighter = new SyntaxHighlighterService();
 
 // Также экспортируем класс для тестирования
 export { SyntaxHighlighterService };

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useSyntaxHighlight } from '../hooks/useSyntaxHighlight';
-import { syntaxHighlighter } from '../services/syntax-highlighter';
+import { SyntaxHighlighter } from '../services/syntax-highlighter';
 
 export function CodeEditor({ initialCode, language, onChange }) {
     const {
@@ -30,7 +30,7 @@ export function CodeEditor({ initialCode, language, onChange }) {
     // Отображение статистики кэша (для отладки)
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') {
-            const stats = syntaxHighlighter.getCacheStats();
+            const stats = SyntaxHighlighter.getCacheStats();
             console.log('Кэш подсветки:', stats);
         }
     }, []);
