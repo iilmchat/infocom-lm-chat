@@ -455,7 +455,7 @@ export function runSessionManagerTests(runner) {
     // Тест 23: getModelForChat возвращает default при отсутствии модели
     runner.addTest('Session: getModelForChat возвращает default при отсутствии модели', () => {
         const sm = new SessionManager();
-        sm.defaultModel = 'default-model';
+        sm.defaultModel = 'local-model';
         sm.sessions = [
             { 
                 id: 1, 
@@ -469,8 +469,8 @@ export function runSessionManagerTests(runner) {
         
         const model = sm.getModelForChat();
         
-        if (model !== 'default-model') {
-            throw new Error(`Expected "default-model", got "${model}"`);
+        if (model !== 'local-model') {
+            throw new Error(`Expected "local-model", got "${model}"`);
         }
     });
 

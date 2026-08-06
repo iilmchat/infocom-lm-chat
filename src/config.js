@@ -79,6 +79,14 @@ export const CONFIG = {
         SIMULATED_USERS: true,
         USER_COUNT: 3
     },
+    DRAG_AND_DROP: {
+        ENABLED: true,
+        MAX_FILES: 20,
+        ALLOWED_MODES: ['rag', 'attachment'],
+        DEFAULT_MODE: 'rag',
+        PREVIEW_THUMBNAILS: true,
+        SHOW_PROGRESS: true
+    },    
     UI_CONFIG: {
         DEFAULT_THEME: 'dark',
         TYPING_DELAY: 300,

@@ -6389,6 +6389,8 @@ const eventBus = new EventBus();
 
         // Запоминаем общее количество чанков для дальнейшего использования
         this.totalChunks = this.chunks.length;
+        // Отмечаем, что индекс успешно построен
+        this._indexBuilt = true;        
     }
 
     /**

@@ -61,7 +61,7 @@ export class TestRunner {
             <div style="color:${allPassed ? 'var(--success-color)' : 'var(--warning-color)'};margin-bottom:4px;font-size:9px;">
                 ${passed}/${total} пройдено
             </div>
-            ${this.results.map(r => `
+            ${this.results.map(r => r.pass ? '' : `
                 <div class="test-result-item ${r.pass ? 'pass' : 'fail'}">
                     ${r.pass ? '✅' : '❌'} ${r.name}${!r.pass ? ` — ${r.error}` : ''}
                 </div>

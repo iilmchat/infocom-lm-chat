@@ -75,7 +75,44 @@
 
         <!-- ===== MAIN CONTAINER ===== -->
         <div class="main-container" id="mainContainer">
+            <!-- Drag-and-Drop Overlay -->
+            <div class="drag-overlay" id="dragOverlay">
+                <div class="drag-icon" id="dragIcon">📚</div>
+                <div class="drag-text">Отпустите файлы для загрузки</div>
+                <div class="drag-subtext">
+                    Выберите режимклавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
+                </div>
+
+                <div class="drag-mode-selector" id="dragModeSelector">
+                    <label class="selected" id="dragModeAttachment" data-mode="attachment">
+                        <span class="mode-icon">📎</span>
+                        <div>
+                            <div class="mode-label">Вложение</div>
+                            <span class="mode-desc">Прикрепить к сообщению</span>
+                        </div>
+                        <span class="mode-hotkey"><kbd>1</kbd></span>
+                    </label>
+                    <label id="dragModeRag" data-mode="rag">
+                        <span class="mode-icon">📚</span>
+                        <div>
+                            <div class="mode-label">RAG документ</div>
+                            <span class="mode-desc">Добавить в контекст</span>
+                        </div>
+                        <span class="mode-hotkey"><kbd>2</kbd></span>
+                    </label>
+                </div>
+
+                <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
+
+                <div class="drag-files-preview" id="dragFilesPreview"></div>
+
+                <div class="drag-progress" id="dragProgress">
+                    <div class="drag-progress-fill" id="dragProgressFill"></div>
+                </div>
+                <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
+            </div>            
             <!-- DRAG-DROP OVERLAY -->
+             <!-- 
             <div class="drag-overlay" id="dragOverlay">
                 <div class="drag-icon" id="dragIcon">📚</div>
                 <div class="drag-text">Отпустите файлы для загрузки</div>
@@ -99,6 +136,7 @@
                 </div>
                 <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
             </div>
+                -->
 
             <!-- MULTI-USER BAR -->
             <div class="collaboration-bar" id="collaborationBar">

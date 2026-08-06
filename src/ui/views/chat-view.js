@@ -319,6 +319,203 @@ export class ChatView {
         }
     }
 
+    setupDragAndDrop() {
+        // Поддержка перетаскивания в область чата
+        this.messagesEl.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.add('drop-zone-highlight');
+        });
+
+        this.messagesEl.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.remove('drop-zone-highlight');
+        });
+
+        this.messagesEl.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.remove('drop-zone-highlight');
+
+            const files = Array.from(e.dataTransfer?.files || []);
+            if (!files.length) return;
+
+            // Используем DropZone для обработки файлов
+            // Но сначала определяем режим по умолчанию
+            const mode = e.ctrlKey || e.metaKey ? 'rag' : 'attachment';
+
+            // Создаем временную DropZone для обработки
+            const validFiles = [];
+            for (const file of files) {
+                if (isFileAllowed(file) && isFileSizeValid(file, CONFIG.LIMITS.MAX_FILE_SIZE)) {
+                    try {
+                        const content = await getFileText(file);
+                        validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                    } catch (error) {
+                        this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                    }
+                }
+            }
+
+            if (!validFiles.length) {
+                this.app.toast.warning('Нет подходящих файлов');
+                return;
+            }
+
+            if (mode === 'attachment') {
+                // Обработка как вложение
+                const maxAttachments = CONFIG.LIMITS.MAX_ATTACHMENTS;
+                const currentCount = this.app.attachedFiles?.length || 0;
+                if (currentCount + validFiles.length > maxAttachments) {
+                    const available = maxAttachments - currentCount;
+                    this.app.toast.warning(`Максимум ${maxAttachments} файлов, можно добавить еще ${available}`);
+                    validFiles.splice(available);
+                }
+                if (validFiles.length) {
+                    this.app.attachedFiles = this.app.attachedFiles || [];
+                    this.app.attachedFiles.push(...validFiles);
+                    this.app.updateAttachedFilesUI();
+                    this.app.toast.success(`📎 Прикреплено ${validFiles.length} файлов`);
+                }
+            } else {
+                // Обработка как RAG
+                if (this.app.ragManager.isFull) {
+                    this.app.toast.error('❌ RAG достиг лимита (500 чанков)', 4000);
+                    return;
+                }
+                const available = this.app.ragManager.maxChunks - this.app.ragManager.chunkCount;
+                if (validFiles.length > available) {
+                    this.app.toast.warning(`⚠️ Можно загрузить только ${available} документов`, 4000);
+                    validFiles.splice(available);
+                }
+                if (validFiles.length) {
+                    this.progressBar.style.display = 'block';
+                    this.progressFill.style.width = '30%';
+                    const results = await this.app.ragManager.addDocuments(validFiles);
+                    this.app.achievementManager.incrementRag(results.length);
+                    this.app.achievementManager.checkAndUnlock('first_rag');
+                    this.app.sessionManager.setRAG(this.app.ragManager.toJSON());
+                    this.progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        this.progressBar.style.display = 'none';
+                        this.progressFill.style.width = '0%';
+                    }, 300);
+                    this.app.toast.success(`✅ Загружено ${validFiles.length} документов в RAG (${results.length} чанков)`);
+                    this.app.updateRagFilesUI();
+                    this.app.updateStats();
+                }
+            }
+        });
+    }    
+
+    setupFileHandlers() {
+        // Кнопка прикрепления файлов
+        const fileBtn = document.getElementById('fileBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        fileBtn?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        fileInput?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            const validFiles = [];
+            for (const file of files) {
+                if (!this.app.isFileAllowed(file)) {
+                    this.app.toast.error(`"${file.name}" не поддерживается`);
+                    continue;
+                }
+                if (file.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
+                    this.app.toast.error(`"${file.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
+                    continue;
+                }
+                try {
+                    const content = await this.app.getFileText(file);
+                    validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                } catch (error) {
+                    this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                }
+            }
+
+            if (validFiles.length) {
+                this.app.attachedFiles = this.app.attachedFiles || [];
+                this.app.attachedFiles.push(...validFiles);
+                this.app.updateAttachedFilesUI();
+                this.app.toast.success(`📎 Прикреплено ${validFiles.length} файлов`);
+                this.app.updateStats();
+            }
+
+            this.value = '';
+        });
+
+        // Кнопка RAG
+        const ragBtn = document.getElementById('ragBtn');
+        const ragInput = document.getElementById('ragInput');
+
+        ragBtn?.addEventListener('click', () => {
+            ragInput?.click();
+        });
+
+        ragInput?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            if (this.app.ragManager.isFull) {
+                this.app.toast.error('❌ RAG достиг лимита (500 чанков)', 4000);
+                this.value = '';
+                return;
+            }
+
+            const validFiles = [];
+            for (const file of files) {
+                if (!this.app.isFileAllowed(file)) {
+                    this.app.toast.error(`"${file.name}" не поддерживается`);
+                    continue;
+                }
+                if (file.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
+                    this.app.toast.error(`"${file.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
+                    continue;
+                }
+                try {
+                    const content = await this.app.getFileText(file);
+                    validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                } catch (error) {
+                    this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                }
+            }
+
+            if (validFiles.length) {
+                const available = this.app.ragManager.maxChunks - this.app.ragManager.chunkCount;
+                if (validFiles.length > available) {
+                    this.app.toast.warning(`⚠️ Можно загрузить только ${available} документов`, 4000);
+                    validFiles.splice(available);
+                }
+
+                if (validFiles.length) {
+                    this.progressBar.style.display = 'block';
+                    this.progressFill.style.width = '30%';
+                    const results = await this.app.ragManager.addDocuments(validFiles);
+                    this.app.achievementManager.incrementRag(results.length);
+                    this.app.achievementManager.checkAndUnlock('first_rag');
+                    this.app.sessionManager.setRAG(this.app.ragManager.toJSON());
+                    this.progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        this.progressBar.style.display = 'none';
+                        this.progressFill.style.width = '0%';
+                    }, 300);
+                    this.app.toast.success(`✅ Загружено ${results.length} чанков`);
+                    this.app.updateRagFilesUI();
+                    this.app.updateStats();
+                }
+            }
+
+            this.value = '';
+        });
+    }
+
     setupEventListeners() {
         // Отправка по Ctrl+Enter
         this.userInput.addEventListener('keydown', (e) => {
@@ -402,7 +599,7 @@ export class ChatView {
             }
             this.sendMessage('test');
         });
-
+/*
         // Файловый ввод
         document.getElementById('fileBtn')?.addEventListener('click', () => {
             document.getElementById('fileInput')?.click();
@@ -498,7 +695,7 @@ export class ChatView {
             }
             this.value = '';
         });
-
+*/
         // Быстрые кнопки
         document.querySelectorAll('.quick-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -558,6 +755,12 @@ export class ChatView {
                 return;
             }
         });
+
+        // Настройка обработчиков файлов
+        this.setupFileHandlers();
+
+        // Настройка Drag-and-Drop
+        this.setupDragAndDrop();        
     }
 
     startEditing(div, content) {

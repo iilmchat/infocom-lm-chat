@@ -14,6 +14,10 @@ export class ApiService {
         this.isConnected = false;
         this._connectionAttempts = 0;
         this._maxAccumulatedSize = 1000000;
+
+        // DOM элементы
+        this.statusDisplay = document.getElementById('statusDisplay');    
+        this.errorMsg = document.getElementById('errorMsg');            
     }
 
     /**
@@ -48,6 +52,11 @@ export class ApiService {
                 this.isConnected = true;
                 this._connectionAttempts = 0;
                 
+                // Сервер доступен - обновляем отображение статуса
+                this.statusDisplay.textContent = '● Сервер доступен';
+                this.statusDisplay.style.color = 'var(--text-accent)';
+                this.errorMsg.style.display = 'none';
+
                 console.log(`✅ Сервер доступен (ответ за ${responseTime}мс)`);
                 
                 if (this.eventBus) {
@@ -81,7 +90,12 @@ export class ApiService {
         }
 
         this.isConnected = false;
-        
+
+        // В случае ошибки или неуспешного ответа - обновляем отображение статуса
+        this.statusDisplay.textContent = '● Сервер НЕ ДОСТУПЕН';
+        this.statusDisplay.style.color = 'var(--error-color)';
+        this.errorMsg.style.display = 'block';        
+
         if (this.eventBus) {
             this.eventBus.emit('server:disconnected', { 
                 error: result.error,

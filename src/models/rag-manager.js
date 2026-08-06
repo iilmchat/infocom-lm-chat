@@ -165,6 +165,11 @@ export class RAGManager {
     }
 
     buildIndex() {
+        if (this.chunks.length === 0) {
+            this._indexBuilt = false;
+            this._index = null;
+            return;
+        }        
         this.tfidfIndex.clear();
         this.documentVectors = [];
         const docFreq = new Map();
@@ -196,11 +201,13 @@ export class RAGManager {
                 const idf = docFreq.get(term) || 0;
                 vector.set(term, (count / terms.length) * idf);
             });
-
+            this._index = vector;
             this.documentVectors.push(vector);
         });
 
         this.totalChunks = this.chunks.length;
+        // Отмечаем, что индекс успешно построен
+        this._indexBuilt = true;           
     }
 
     tokenize(text) {

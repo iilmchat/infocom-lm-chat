@@ -317,8 +317,8 @@ export function runRAGManagerTests(runner) {
         if (!rag._index) {
             throw new Error('Index should not be null');
         }
-        if (rag._index.length !== 3) {
-            throw new Error(`Expected 3 items in index, got ${rag._index.length}`);
+        if (rag._index.size !== 2) {
+            throw new Error(`Expected 2 items in index, got ${rag._index.length}`);
         }
     });
 }

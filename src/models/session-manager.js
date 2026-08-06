@@ -208,7 +208,7 @@ export class SessionManager {
 
     getModelForChat(id = null) {
         const session = id ? this.sessions.find(s => s.id === id) : this.getCurrent();
-        return session ? session.model : this.defaultModel;
+        return session ? (session.model? session.model: this.defaultModel) : this.defaultModel;
     }
 
     setModelForChat(model, id = null) {

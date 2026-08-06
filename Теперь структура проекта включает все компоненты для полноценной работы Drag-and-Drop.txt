@@ -1,0 +1,18 @@
+infocom-lm-chat/
+├── index.html                     # Добавлен оверлей Drag-and-Drop
+├── src/
+│   ├── app.js                     # Инициализация DropZone
+│   ├── config.js                  # Добавлены настройки DRAG_AND_DROP
+│   ├── ui/
+│   │   ├── components/
+│   │   │   ├── toast.js
+│   │   │   ├── modal.js
+│   │   │   ├── virtual-scroll.js
+│   │   │   └── drop-zone.js       # ✅ НОВЫЙ файл
+│   │   └── views/
+│   │       └── chat-view.js       # ✅ Обновлен (добавлена поддержка DnD)
+│   └── styles/
+│       └── chat.css               # ✅ Обновлен (добавлены стили DnD)
+└── tests/
+    ├── rag-manager.test.js
+    └── session-manager.test.js

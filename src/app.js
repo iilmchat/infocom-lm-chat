@@ -22,6 +22,7 @@ import { GameView } from './ui/views/game-view.js';
 import { ExportView } from './ui/views/export-view.js';
 import { renderAssistantBar, updateActiveIndicator, viewPrompt, deleteAssistant, openCustomAssistantModal } from './ui/views/assistant-bar.js';
 import { runAllTests } from './utils/test-runner.js';
+import { DropZone } from './ui/components/drop-zone.js';
 
 class App {
     constructor() {
@@ -67,6 +68,9 @@ class App {
         this.gameView = new GameView(this);
         this.exportView = new ExportView(this);
 
+        // Инициализация DropZone
+        this.dropZone = new DropZone(this);
+                
         // Загрузка и инициализация
         this.init();
     }
