@@ -408,8 +408,9 @@ export class ChatView {
             document.getElementById('fileInput')?.click();
         });
 
-        document.getElementById('fileInput')?.addEventListener('change', async function() {
-            const files = Array.from(this.files);
+                // Обработчик изменения файла
+        document.getElementById('fileInput')?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
             if (!files.length) return;
 
             const valid = [];
@@ -445,8 +446,8 @@ export class ChatView {
             document.getElementById('ragInput')?.click();
         });
 
-        document.getElementById('ragInput')?.addEventListener('change', async function() {
-            const files = Array.from(this.files);
+        document.getElementById('ragInput')?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
             if (!files.length) return;
 
             if (this.app.ragManager.isFull) {
