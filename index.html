@@ -31,7 +31,7 @@
                 <h3>💬 Диалоги</h3>
                 <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
             </div>
-
+            <!--
             <div class="sidebar-section">
                 <div class="section-header collapsed" onclick="toggleSection('statsPanel')"><span>📊 Статистика</span><span>▼</span></div>
                 <div class="section-content stats-panel collapsed" id="statsPanel">
@@ -63,9 +63,74 @@
                     <div id="milestoneList"></div>
                 </div>
             </div>
+            -->
+
+            <!-- ===== STATS PANEL ===== -->
+            <div class="sidebar-section collapsed"">
+                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
+                    <span class="section-icon">📊</span>
+                    <span class="section-title">Статистика</span>
+                    <span class="section-arrow">▶</span>
+                </div>
+                <div class="section-content collapsed" id="statsPanel">
+                    <div style="padding:8px 16px;font-size:11px;">
+                        <div class="stat-row">
+                            <span class="stat-label">💬 Сообщения</span>
+                            <span class="stat-value" id="statMessages">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">📎 Файлы</span>
+                            <span class="stat-value" id="statFiles">0</span>
+                        </div>   
+                        <div class="stat-row">
+                            <span class="stat-label">📚 RAG чанки</span>
+                            <span class="stat-value" id="statRagChunks">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">📊 RAG статус</span>
+                            <span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🏆 Достижения</span>
+                            <span class="stat-value" id="statAchievements">0</span>
+                        </div>
+                        <div class="rag-progress" id="ragProgress">
+                            <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== USERS ONLINE ===== -->
+            <div class="sidebar-section collapsed"">
+                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="usersOnlinePanel">
+                    <span class="section-icon">👥</span>
+                    <span class="section-title">Пользователи</span>
+                    <span class="section-arrow">▶</span>
+                </div>
+                <div class="section-content users-online-panel collapsed"" id="usersOnlinePanel">
+                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+                        <span class="user-badge self">
+                            <span class="user-avatar">👤</span> Вы
+                        </span>                  
+                    </div>        
+                </div>
+            </div>
+
+            <!-- ===== ROADMAP ===== -->
+            <div class="sidebar-section collapsed"">
+                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="roadmapPanel">
+                    <span class="section-icon">📊</span>
+                    <span class="section-title">Прогресс развития</span>
+                    <span class="section-arrow">▶</span>
+                </div>         
+                <div class="section-content collapsed"" id="roadmapPanel">
+                    <div id="milestoneList"></div>
+                </div>
+            </div>
 
             <div class="test-panel" id="testPanel">
-                <h4>🧪 Тесты <button onclick="window.__APP?.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
+                <h4>🧪 Тесты <button onclick="window.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
                 <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
             </div>
 

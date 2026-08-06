@@ -12,11 +12,77 @@ export class Sidebar {
         this.newChatBtn = document.getElementById('newChatBtn');
         
         this.setupEventListeners();
+        this.setupSectionToggles();        
     }
 
     render() {
         this.renderChatList();
         this.updateStats();
+        // Обновляем состояния секций после рендеринга
+        this.updateSectionStates();        
+    }
+
+    /**
+     * Обновляет UI секций в соответствии с сохраненными состояниями
+     */
+    updateSectionStates() {
+        const sections = ['statsPanel', 'usersOnlinePanel', 'roadmapPanel'];
+        sections.forEach(id => {
+            const content = document.getElementById(id);
+            if (content) {
+                const header = content.previousElementSibling;
+                if (header && header.classList.contains('section-header')) {
+                    sectionToggle.updateSectionUI(id);
+                }
+            }
+        });
+    }
+        
+    /**
+     * Настраивает переключатели секций
+     */
+    setupSectionToggles() {
+        // Находим все заголовки секций с onclick атрибутом
+        const headers = document.querySelectorAll('.section-header[onclick]');
+        headers.forEach(header => {
+            // Сохраняем оригинальный onclick, если он был
+            const originalOnClick = header.getAttribute('onclick');
+            
+            // Добавляем наш обработчик
+            header.addEventListener('click', (e) => {
+                // Проверяем, есть ли data-section атрибут
+                const sectionId = header.dataset.section;
+                if (sectionId) {
+                    sectionToggle.toggle(sectionId);
+                    e.preventDefault();
+                } else {
+                    // Если нет data-section, пытаемся найти по ID в onclick
+                    const match = originalOnClick?.match(/toggleSection\('([^']+)'\)/);
+                    if (match && match[1]) {
+                        const id = match[1];
+                        sectionToggle.toggle(id);
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+
+        // Добавляем data-section атрибуты для существующих секций
+        const sectionMap = {
+            'statsPanel': 'statsPanel',
+            'usersOnlinePanel': 'usersOnlinePanel',
+            'roadmapPanel': 'roadmapPanel'
+        };
+
+        Object.entries(sectionMap).forEach(([id, dataId]) => {
+            const content = document.getElementById(id);
+            if (content) {
+                const header = content.previousElementSibling;
+                if (header && header.classList.contains('section-header')) {
+                    header.dataset.section = dataId;
+                }
+            }
+        });
     }
 
     renderChatList() {

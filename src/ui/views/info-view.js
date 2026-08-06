@@ -114,5 +114,21 @@ export class InfoView {
                 this.close();
             }
         });
+
+        // Обработка вкладок
+        document.querySelectorAll('#infoModalTabs button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                if (window.app && window.app.infoView) {
+                    window.app.infoView.switchTab(tab);
+                }
+                
+                // Обновляем aria-атрибуты
+                document.querySelectorAll('#infoModalTabs button').forEach(b => {
+                    b.setAttribute('aria-selected', 'false');
+                });
+                this.setAttribute('aria-selected', 'true');
+            });
+        });        
     }
 }

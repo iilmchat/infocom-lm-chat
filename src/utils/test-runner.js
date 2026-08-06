@@ -200,6 +200,10 @@ export function runAllTests() {
     });
 
     runner.runAll();
+
+    const toast = new ToastManager();    
+    toast.success(`🎉 Тесты запущены были. Результат на экране!`); // Сообщение о запуске тестов
+
 }
 
 // Автозапуск тестов при загрузке

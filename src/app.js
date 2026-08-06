@@ -23,6 +23,8 @@ import { ExportView } from './ui/views/export-view.js';
 import { renderAssistantBar, updateActiveIndicator, viewPrompt, deleteAssistant, openCustomAssistantModal } from './ui/views/assistant-bar.js';
 import { runAllTests } from './utils/test-runner.js';
 import { DropZone } from './ui/components/drop-zone.js';
+import sectionToggle from './ui/components/section-toggle.js';
+import { SectionHelpers } from './utils/section-helpers.js';
 
 class App {
     constructor() {
@@ -71,6 +73,9 @@ class App {
         // Инициализация DropZone
         this.dropZone = new DropZone(this);
                 
+        // Инициализация секций
+        this.initSections();
+
         // Загрузка и инициализация
         this.init();
     }
@@ -469,6 +474,88 @@ class App {
     validateLength(text) {
         return text.length <= CONFIG.LIMITS.MAX_INPUT_LENGTH;
     }
+
+    // Определяем все секции
+    initSections() {
+        // Определяем все секции
+        const sectionConfigs = [
+            { id: 'statsPanel', headerSelector: '[data-section="statsPanel"]' },
+            { id: 'usersOnlinePanel', headerSelector: '[data-section="usersOnlinePanel"]' },
+            { id: 'roadmapPanel', headerSelector: '[data-section="roadmapPanel"]' }
+        ];
+
+        sectionConfigs.forEach(({ id, headerSelector }) => {
+            const header = document.querySelector(headerSelector);
+            const content = document.getElementById(id);
+            
+            if (header && content) {
+                // Устанавливаем data-атрибут, если его нет
+                if (!header.dataset.section) {
+                    header.dataset.section = id;
+                }
+                
+                // Инициализируем секцию
+                sectionToggle.initSection(id, header, content);
+                
+                // Добавляем обработчик клика, если его нет
+                if (!header._toggleHandler) {
+                    header._toggleHandler = true;
+                    header.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        sectionToggle.toggle(id);
+                    });
+                }
+            }
+        });
+
+        // Делаем функции доступными глобально для обратной совместимости
+        window.toggleSection = SectionHelpers.toggleSection;
+        window.sectionToggle = sectionToggle;
+
+        SectionHelpers.collapseAllSections();
+    }    
+
+    /*
+    initSections() {
+        // Находим все секции и инициализируем их
+        const sections = {
+            statsPanel: {
+                header: document.querySelector('.section-header[onclick*="statsPanel"]') || 
+                        document.querySelector('#statsPanel')?.previousElementSibling,
+                content: document.getElementById('statsPanel')
+            },
+            usersOnlinePanel: {
+                header: document.querySelector('.section-header[onclick*="usersOnlinePanel"]') ||
+                        document.querySelector('#usersOnlinePanel')?.previousElementSibling,
+                content: document.getElementById('usersOnlinePanel')
+            },
+            roadmapPanel: {
+                header: document.querySelector('.section-header[onclick*="roadmapPanel"]') ||
+                        document.querySelector('#roadmapPanel')?.previousElementSibling,
+                content: document.getElementById('roadmapPanel')
+            }
+        };
+
+        // Инициализируем каждую секцию, которая существует
+        Object.entries(sections).forEach(([id, { header, content }]) => {
+            if (header && content) {
+                // Добавляем data-атрибуты для идентификации
+                header.dataset.section = id;
+                sectionToggle.initSection(id, header, content);
+            }
+        });
+
+        // Альтернативный способ: инициализация через data-атрибуты
+        document.querySelectorAll('[data-section]').forEach(header => {
+            const id = header.dataset.section;
+            const content = document.getElementById(id);
+            if (content) {
+                sectionToggle.initSection(id, header, content);
+            }
+        });
+    }
+
+    */
 }
 
 // Запуск приложения

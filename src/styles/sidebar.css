@@ -183,7 +183,7 @@
     opacity: 0.9;
 }
 
-.stats-panel .stat-row {
+.section-content .stat-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -191,35 +191,35 @@
     font-size: 12px;
 }
 
-.stats-panel .stat-label {
+.section-content .stat-label {
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-.stats-panel .stat-value {
+.section-content .stat-value {
     color: var(--text-primary);
     font-weight: 600;
 }
 
-.stats-panel .stat-value.rag-status {
+.section-content .stat-value.rag-status {
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 11px;
 }
 
-.stats-panel .stat-value.rag-status.active {
+.section-content .stat-value.rag-status.active {
     background: var(--success-color);
     color: #fff;
 }
 
-.stats-panel .stat-value.rag-status.full {
+.section-content .stat-value.rag-status.full {
     background: var(--warning-color);
     color: #fff;
 }
 
-.stats-panel .stat-value.rag-status.inactive {
+.section-content .stat-value.rag-status.inactive {
     background: var(--text-secondary);
     color: #fff;
 }
@@ -323,23 +323,23 @@
     overflow-y: auto;
 }
 
-.roadmap-panel h4 {
+.section-content h4 {
     font-size: 12px;
     margin-bottom: 6px;
     color: var(--text-accent);
 }
 
-.roadmap-panel .overall-progress {
+.section-content .overall-progress {
     margin-bottom: 6px;
 }
 
-.roadmap-panel .progress-label {
+.section-content .progress-label {
     font-size: 10px;
     color: var(--text-secondary);
     margin-bottom: 3px;
 }
 
-.roadmap-panel .progress-bar-small {
+.section-content .progress-bar-small {
     width: 100%;
     height: 5px;
     background: var(--bg-primary);
@@ -347,17 +347,17 @@
     overflow: hidden;
 }
 
-.roadmap-panel .progress-fill {
+.section-content .progress-fill {
     height: 100%;
     background: var(--text-accent);
     transition: width 0.5s;
 }
 
-.roadmap-panel .milestone {
+.section-contentl .milestone {
     margin-bottom: 4px;
 }
 
-.roadmap-panel .milestone-header {
+.section-content .milestone-header {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -366,22 +366,22 @@
     padding: 3px 0;
 }
 
-.roadmap-panel .milestone-progress {
+.section-content .milestone-progress {
     margin-left: auto;
     font-size: 9px;
     color: var(--text-secondary);
 }
 
-.roadmap-panel .milestone-tasks {
+.section-content .milestone-tasks {
     padding-left: 16px;
     display: none;
 }
 
-.roadmap-panel .milestone.expanded .milestone-tasks {
+.section-content .milestone.expanded .milestone-tasks {
     display: block;
 }
 
-.roadmap-panel .task-item {
+.section-content .task-item {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -391,7 +391,7 @@
     cursor: pointer;
 }
 
-.roadmap-panel .task-item .done {
+.section-content .task-item .done {
     text-decoration: line-through;
     opacity: 0.6;
 }
@@ -482,6 +482,123 @@
 
 .sidebar-overlay.active {
     display: block;
+}
+
+/* ===== Collapsible Sections ===== */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.section-header:hover {
+    background: var(--bg-accent);
+}
+
+.section-header:focus-visible {
+    outline: 2px solid var(--text-accent);
+    outline-offset: -2px;
+}
+
+.section-header .section-icon {
+    margin-right: 4px;
+}
+
+.section-header .section-title {
+    flex: 1;
+}
+
+.section-header .section-arrow {
+    transition: transform 0.3s ease;
+    font-size: 12px;
+}
+
+.section-header.collapsed .section-arrow {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+    padding: 0;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Специальные стили для stats-panel */
+.stats-panel {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-accent);
+    opacity: 0.9;
+}
+
+.stats-panel.collapsed {
+    padding: 0 16px;
+}
+
+/* Специальные стили для users-online-panel */
+.users-online-panel {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.users-online-panel.collapsed {
+    padding: 0 16px;
+}
+
+/* Специальные стили для roadmap-panel */
+.roadmap-panel {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.roadmap-panel.collapsed {
+    padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+}
+
+/* Анимация плавного появления */
+@keyframes sectionSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.section-content:not(.collapsed) {
+    animation: sectionSlideDown 0.3s ease;
+}
+
+/* Поддержка Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .section-content,
+    .section-header .section-arrow {
+        transition: none !important;
+        animation: none !important;
+    }
 }
 
 /* ===== Mobile ===== */
