@@ -1,0 +1,19 @@
+Изменения
+Добавлена функция copyToClipboard в src/utils/dom-helpers.js с:
+
+Использованием navigator.clipboard.writeText если доступно
+
+Fallback через document.execCommand('copy')
+
+Визуальное уведомление при ошибке
+
+Обновлен chat-view.js - все вызовы navigator.clipboard.writeText заменены на copyToClipboard
+
+Обновлен message-renderer.js - копирование кода также использует copyToClipboard
+
+Добавлены вспомогательные функции:
+
+isClipboardAvailable() - проверка доступности Clipboard API
+
+isSecureContext() - проверка защищенного контекста
+

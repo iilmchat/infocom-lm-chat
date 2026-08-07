@@ -8,6 +8,15 @@
 // Импортируем основной модуль (в реальном проекте используйте importScripts или модули)
 // Для простоты скопируем необходимые функции
 
+// Список поддерживаемых языков
+const SUPPORTED_LANGUAGES = [
+    'javascript', 'js', 'typescript', 'ts', 'python', 'py', 
+    'c', 'cpp', 'c++', 'java', 'csharp', 'cs', 'sql', 
+    'html', 'css', 'bash', 'sh', 'go', 'rust', 'rs', 
+    'php', 'text', 'dart', 'json', 'xml', 'yaml', 'yml',
+    'markdown', 'md', 'ruby', 'rb', 'swift', 'kotlin', 'kt'
+];
+
 function escapeHTML(str) {
     return str
         .replace(/&/g, '&amp;')

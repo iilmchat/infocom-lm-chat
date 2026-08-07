@@ -7352,7 +7352,9 @@ const eventBus = new EventBus();
         if (!a) return;
         document.getElementById('promptContent').textContent = a.systemPrompt;
         document.getElementById('promptModal').classList.add('active');
-        document.getElementById('copyPromptBtn').onclick = () => { navigator.clipboard.writeText(a.systemPrompt).then(() => toast.success('Промт скопирован!')); };
+        document.getElementById('copyPromptBtn').onclick = () => { 
+            navigator.clipboard.writeText(a.systemPrompt).then(() => toast.success('Промт скопирован!')); 
+        };
     }
     function deleteAssistant(id) {
         if (confirm('Удалить этого ассистента?')) {

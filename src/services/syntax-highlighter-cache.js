@@ -112,3 +112,47 @@ class SyntaxHighlighterCache {
 
 // Экспортируем синглтон
 export const highlightCache = new SyntaxHighlighterCache(150);
+/*
+class HighlightCache {
+    constructor(maxSize = 100) {
+        this.cache = new Map();
+        this.maxSize = maxSize;
+    }
+
+    get(code, language) {
+        const key = this.getKey(code, language);
+        if (this.cache.has(key)) {
+            const entry = this.cache.get(key);
+            return entry;
+        }
+        return null;
+    }
+
+    set(code, language, result) {
+        const key = this.getKey(code, language);
+        // Если кэш переполнен, удаляем старые записи
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        this.cache.set(key, { result, timestamp: Date.now() });
+    }
+
+    getKey(code, language) {
+        return `${language}:${code.substring(0, 100)}_${code.length}`;
+    }
+
+    clear() {
+        this.cache.clear();
+    }
+
+    getStats() {
+        return {
+            size: this.cache.size,
+            maxSize: this.maxSize
+        };
+    }
+}
+
+export const highlightCache = new HighlightCache();
+*/

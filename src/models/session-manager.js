@@ -1,5 +1,6 @@
 // src/models/session-manager.js
 import { CONFIG } from '../config.js';
+import { syntaxHighlighter } from '../services/syntax-highlighter.js';
 
 /**
  * Управление диалогами (сессиями чата)
@@ -12,7 +13,7 @@ export class SessionManager {
         this.defaultModel = 'local-model';
         this.load();
     }
-
+   
     load() {
         try {
             const storedData = localStorage.getItem('chat_sessions_v5');
@@ -20,6 +21,9 @@ export class SessionManager {
                 const parsedData = JSON.parse(storedData);
                 this.sessions = parsedData.sessions || [];
                 this.currentId = parsedData.currentId || null;
+
+                // Обновляем сообщения в сессиях для поддержки подсветки синтаксиса
+                this.upgradeSessions();
             }
             if (!this.sessions.length) {
                 this.create('Новый диалог');
@@ -28,6 +32,146 @@ export class SessionManager {
             console.warn('Ошибка при загрузке данных чатов:', error);
             this.create('Новый диалог');
         }
+    }
+
+    /**
+     * Обновление сессий для поддержки подсветки синтаксиса
+     */
+    upgradeSessions() {
+        let needsSave = false;
+        
+        for (const session of this.sessions) {
+            if (session.messages) {
+                for (const message of session.messages) {
+                    if (message.role === 'assistant' && message.content) {
+                        // Проверяем, есть ли в сообщении блоки кода
+                        const codeBlocks = this.extractCodeBlocks(message.content);
+                        if (codeBlocks.length > 0) {
+                            // Сохраняем оригинальное содержимое, если ещё не сохранено
+                            if (!message._rawContent) {
+                                message._rawContent = message.content;
+                                needsSave = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (needsSave) {
+            this.save();
+        }
+    }
+
+    /**
+     * Извлечение блоков кода из текста
+     */
+    extractCodeBlocks(content) {
+        const blocks = [];
+        const regex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        while ((match = regex.exec(content)) !== null) {
+            blocks.push({
+                language: match[1] || 'text',
+                code: match[2]
+            });
+        }
+        return blocks;
+    }
+
+    /**
+     * Подсветка синтаксиса для сообщения
+     */
+    highlightMessage(content) {
+        if (!content || typeof content !== 'string') return content;
+        
+        // Проверяем, есть ли блоки кода
+        const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        let result = content;
+        let lastIndex = 0;
+        const parts = [];
+        
+        while ((match = codeRegex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push({
+                    type: 'text',
+                    content: content.substring(lastIndex, match.index)
+                });
+            }
+            
+            const language = match[1] || 'text';
+            const code = match[2];
+            
+            // Подсвечиваем код
+            let highlighted;
+            try {
+                highlighted = syntaxHighlighter.highlightSync(code, language);
+            } catch (e) {
+                // Fallback при ошибке
+                const escaped = code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                highlighted = `<code class="hljs language-${language}">${escaped}</code>`;
+            }
+            
+            parts.push({
+                type: 'code',
+                language: language,
+                content: code,
+                highlighted: highlighted
+            });
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < content.length) {
+            parts.push({
+                type: 'text',
+                content: content.substring(lastIndex)
+            });
+        }
+        
+        // Если нет блоков кода, возвращаем исходный текст
+        if (parts.length === 0 || (parts.length === 1 && parts[0].type === 'text' && parts[0].content === content)) {
+            return content;
+        }
+        
+        // Собираем результат с подсветкой
+        let highlightedContent = '';
+        for (const part of parts) {
+            if (part.type === 'text') {
+                highlightedContent += part.content;
+            } else if (part.type === 'code') {
+                highlightedContent += part.highlighted;
+            }
+        }
+        
+        return highlightedContent;
+    }
+
+    /**
+     * Получение сообщений с подсветкой синтаксиса
+     */
+    getMessagesWithHighlight() {
+        const session = this.getCurrent();
+        if (!session) return [];
+        
+        return session.messages.map(msg => {
+            if (msg.role === 'assistant' && msg.content) {
+                // Если есть сохранённый сырой контент, используем его для подсветки
+                const rawContent = msg._rawContent || msg.content;
+                const highlighted = this.highlightMessage(rawContent);
+                
+                return {
+                    ...msg,
+                    content: highlighted,
+                    _rawContent: rawContent
+                };
+            }
+            return msg;
+        });
     }
 
     save() {
@@ -96,7 +240,11 @@ export class SessionManager {
         if (!session) return;
 
         const sanitized = this.sanitizeMessage(content);
-        const message = { role, content: sanitized };
+        const message = { 
+            role, 
+            content: sanitized,
+            _rawContent: content // Сохраняем оригинал для возможной переподсветки
+        };
         if (replyTo) {
             message.replyTo = replyTo;
         }
@@ -137,7 +285,8 @@ export class SessionManager {
         const lastMessages = userMessages.slice(-20);
         const summaryMessage = {
             role: 'assistant',
-            content: `[Пропущено ${userMessages.length - 25} сообщений для экономии контекста]`
+            content: `[Пропущено ${userMessages.length - 25} сообщений для экономии контекста]`,
+            _rawContent: `[Пропущено ${userMessages.length - 25} сообщений для экономии контекста]`
         };
 
         session.messages = [
@@ -240,5 +389,32 @@ export class SessionManager {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    /**
+     * Очистка сессий с удалением старых
+     */
+    cleanup(maxSessions = 50) {
+        if (this.sessions.length <= maxSessions) return;
+        
+        // Сортируем по дате создания (новые первые)
+        const sorted = [...this.sessions].sort((a, b) => {
+            return new Date(b.created) - new Date(a.created);
+        });
+        
+        // Оставляем только maxSessions последних
+        const keep = sorted.slice(0, maxSessions);
+        const toRemove = sorted.slice(maxSessions);
+        
+        // Проверяем, не удаляем ли текущую сессию
+        const currentInKeep = keep.some(s => s.id === this.currentId);
+        if (!currentInKeep) {
+            this.currentId = keep[0].id;
+        }
+        
+        this.sessions = keep;
+        this.save();
+        
+        return toRemove.length;
     }
 }

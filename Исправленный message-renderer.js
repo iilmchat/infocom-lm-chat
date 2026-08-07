@@ -47,7 +47,6 @@ export class MessageRenderer {
             editBtn.setAttribute('aria-label', 'Редактировать сообщение');
             editBtn.onclick = (e) => {
                 e.stopPropagation();
-                // Передаём управление в ChatView
                 const messageDiv = e.target.closest('.message');
                 if (messageDiv && window.app?.chatView) {
                     const content = messageDiv.querySelector('.bubble')?.textContent || '';
@@ -112,57 +111,46 @@ export class MessageRenderer {
 
         // Основное содержимое
         if (role === 'bot' && typeof content === 'string' && content) {
-            // Проверяем, не содержит ли контент уже HTML-разметку подсветки
-            if (content.includes('<span class="hljs-') || content.includes('<code class="hljs')) {
-                // Контент уже подсвечен, просто вставляем
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = content;
-                // Обрабатываем переносы строк
-                wrapper.innerHTML = wrapper.innerHTML.replace(/\n/g, '<br>');
-                bubble.appendChild(wrapper);
-            } else {
-                // Контент не подсвечен, используем обычную обработку
-                const parts = this.formatMessage(content);
-                parts.forEach(p => {
-                    if (p.type === 'text') {
-                        const textDiv = document.createElement('div');
-                        // Если текст пустой, показываем плейсхолдер
-                        const textContent = p.content || '...';
-                        textDiv.innerHTML = sanitizeHTML(textContent).replace(/\n/g, '<br>');
-                        bubble.appendChild(textDiv);
-                    } else if (p.type === 'code') {
-                        const pre = document.createElement('pre');
-                        pre.setAttribute('tabindex', '0');
-                        // Используем async highlight
-                        const lang = p.language || 'text';
-                        try {
-                            // Синхронная подсветка для простоты (или можно сделать асинхронную)
-                            const highlighted = syntaxHighlighter.highlightSync(p.content, lang);
-                            pre.innerHTML = highlighted;
-                        } catch (e) {
-                            console.warn('Ошибка подсветки:', e);
-                            // Fallback
-                            const escaped = p.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            pre.innerHTML = `<code class="hljs language-${lang}">${escaped}</code>`;
-                        }
-                        
-                        const copyBtn = document.createElement('button');
-                        copyBtn.className = 'copy-btn';
-                        copyBtn.textContent = '📋 Копировать';
-                        copyBtn.setAttribute('aria-label', 'Копировать код');
-                        copyBtn.onclick = () => {
-                            copyToClipboard(p.content, () => {
-                                copyBtn.textContent = '✅ Скопировано!';
-                                setTimeout(() => {
-                                    copyBtn.textContent = '📋 Копировать';
-                                }, 2000);
-                            });
-                        };
-                        pre.appendChild(copyBtn);
-                        bubble.appendChild(pre);
+            const parts = this.formatMessage(content);
+            parts.forEach(p => {
+                if (p.type === 'text') {
+                    const textDiv = document.createElement('div');
+                    // Если текст пустой, показываем плейсхолдер
+                    const textContent = p.content || '...';
+                    textDiv.innerHTML = sanitizeHTML(textContent).replace(/\n/g, '<br>');
+                    bubble.appendChild(textDiv);
+                } else if (p.type === 'code') {
+                    const pre = document.createElement('pre');
+                    pre.setAttribute('tabindex', '0');
+                    // Используем async highlight
+                    const lang = p.language || 'text';
+                    try {
+                        // Синхронная подсветка для простоты (или можно сделать асинхронную)
+                        const highlighted = syntaxHighlighter.highlightSync(p.content, lang);
+                        pre.innerHTML = highlighted;
+                    } catch (e) {
+                        console.warn('Ошибка подсветки:', e);
+                        // Fallback
+                        const escaped = p.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        pre.innerHTML = `<code class="hljs language-${lang}">${escaped}</code>`;
                     }
-                });
-            }
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = '📋 Копировать';
+                    copyBtn.setAttribute('aria-label', 'Копировать код');
+                    copyBtn.onclick = () => {
+                        copyToClipboard(p.content, () => {
+                            copyBtn.textContent = '✅ Скопировано!';
+                            setTimeout(() => {
+                                copyBtn.textContent = '📋 Копировать';
+                            }, 2000);
+                        });
+                    };
+                    pre.appendChild(copyBtn);
+                    bubble.appendChild(pre);
+                }
+            });
 
             // Источники RAG
             if (ragSources && ragSources.length) {
@@ -226,7 +214,7 @@ export class MessageRenderer {
                 if (textContent) {
                     parts.push({
                         type: 'text',
-                            content: textContent
+                        content: textContent
                     });
                 }
             }
