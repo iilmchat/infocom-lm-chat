@@ -1,7 +1,7 @@
 // src/ui/views/chat-view.js
 import { CONFIG } from '../../config.js';
 import { sanitizeHTML, validateInput, validateLength } from '../../services/sanitizer.js';
-import { SyntaxHighlighter } from '../../services/syntax-highlighter.js';
+import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
 import { MessageRenderer } from '../renderers/message-renderer.js';
 import { copyToClipboard } from '../../utils/dom-helpers.js';
 
@@ -42,15 +42,17 @@ export class ChatView {
 
     loadMessages() {
         this.messagesEl.innerHTML = '';
-        const messages = this.app.sessionManager.getMessages();
+        // Используем getMessagesWithHighlight для получения подсвеченных сообщений
+        const messages = this.app.sessionManager.getMessagesWithHighlight();
         
         messages.forEach(msg => {
             if (msg.role !== 'system') {
                 const replyTo = msg.replyTo ? { content: msg.replyTo.content, role: msg.replyTo.role } : null;
                 const msgData = {
                     role: msg.role,
-                    content: msg.content,
-                    replyTo: replyTo
+                    content: msg.content, // Уже с подсветкой
+                    replyTo: replyTo,
+                    isEdit: msg.isEdit || false
                 };
                 const el = this.messageRenderer.render(msgData);
                 this.messagesEl.appendChild(el);
@@ -63,6 +65,45 @@ export class ChatView {
         }
 
         this.scrollToBottom();
+        
+        // Добавляем кнопки копирования для уже загруженных блоков кода
+        this.addCopyButtonsToCodeBlocks();
+    }
+
+    /**
+     * Добавляет кнопки копирования ко всем блокам кода
+     * Вызывается после загрузки сообщений
+     */
+    addCopyButtonsToCodeBlocks() {
+        const preElements = this.messagesEl.querySelectorAll('pre:not(.has-copy-btn)');
+        
+        preElements.forEach(pre => {
+            // Проверяем, есть ли уже кнопка копирования
+            if (pre.querySelector('.copy-btn')) return;
+            
+            const codeElement = pre.querySelector('code');
+            if (!codeElement) return;
+            
+            const codeText = codeElement.textContent || '';
+            
+            // Создаём кнопку копирования
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = '📋 Копировать';
+            copyBtn.setAttribute('aria-label', 'Копировать код');
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                copyToClipboard(codeText, () => {
+                    copyBtn.textContent = '✅ Скопировано!';
+                    setTimeout(() => {
+                        copyBtn.textContent = '📋 Копировать';
+                    }, 2000);
+                });
+            };
+            
+            pre.appendChild(copyBtn);
+            pre.classList.add('has-copy-btn');
+        });
     }
 
     addMessage(role, content, messageId = null, files = null, ragSources = null, isEdit = false, replyTo = null) {
@@ -70,38 +111,78 @@ export class ChatView {
         const el = this.messageRenderer.render(msgData);
         this.messagesEl.appendChild(el);
         this.scrollToBottom();
+        
+        // Добавляем кнопки копирования для новых блоков кода
+        setTimeout(() => {
+            const preElements = el.querySelectorAll('pre:not(.has-copy-btn)');
+            preElements.forEach(pre => {
+                const codeElement = pre.querySelector('code');
+                if (!codeElement) return;
+                
+                const codeText = codeElement.textContent || '';
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = '📋 Копировать';
+                copyBtn.setAttribute('aria-label', 'Копировать код');
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(codeText, () => {
+                        copyBtn.textContent = '✅ Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = '📋 Копировать';
+                        }, 2000);
+                    });
+                };
+                pre.appendChild(copyBtn);
+                pre.classList.add('has-copy-btn');
+            });
+        }, 50);
+        
         return el;
     }
 
-    updateStreamMessage(el, content, ragSources = null) {
+    /**
+     * Обновление стримингового сообщения с асинхронной подсветкой
+     */
+    async updateStreamMessage(el, content, ragSources = null) {
         const bubble = el.querySelector('.bubble');
         if (!bubble) return;
 
         bubble.innerHTML = '';
         const parts = this.messageRenderer.formatMessage(content);
         
-        parts.forEach(p => {
+        // Создаём контейнер для частей
+        const container = document.createElement('div');
+        
+        for (const p of parts) {
             if (p.type === 'text') {
                 const td = document.createElement('div');
                 td.innerHTML = sanitizeHTML(p.content).replace(/\n/g, '<br>');
-                bubble.appendChild(td);
+                container.appendChild(td);
             } else if (p.type === 'code') {
+                // Создаём pre с индикатором загрузки
                 const pre = document.createElement('pre');
-                pre.innerHTML = SyntaxHighlighter.highlight(p.content, p.language);
-                const btn = document.createElement('button');
-                btn.className = 'copy-btn';
-                btn.textContent = '📋 Копировать';
-                btn.onclick = () => {
-                    copyToClipboard(p.content, () => {
-                        btn.textContent = '✅ Скопировано!';
-                        setTimeout(() => { btn.textContent = '📋 Копировать'; }, 2000);
-                    });
-                };
-                pre.appendChild(btn);
-                bubble.appendChild(pre);
+                pre.setAttribute('tabindex', '0');
+                pre.dataset.language = p.language || 'text';
+                pre.dataset.code = p.content;
+                pre.dataset.highlighting = 'pending';
+                
+                // Показываем индикатор загрузки
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'code-loading';
+                loadingDiv.textContent = '⏳ Подсветка кода...';
+                pre.appendChild(loadingDiv);
+                
+                container.appendChild(pre);
             }
-        });
-
+        }
+        
+        bubble.appendChild(container);
+        
+        // Асинхронно подсвечиваем все блоки кода
+        await this.highlightCodeBlocks(container);
+        
+        // Добавляем источники RAG
         if (ragSources && ragSources.length) {
             const rd = document.createElement('div');
             rd.className = 'rag-sources';
@@ -112,6 +193,71 @@ export class ChatView {
         }
 
         this.scrollToBottom();
+    }
+
+    /**
+     * Асинхронная подсветка всех блоков кода в контейнере
+     */
+    async highlightCodeBlocks(container) {
+        const pres = container.querySelectorAll('pre[data-highlighting="pending"]');
+        
+        for (const pre of pres) {
+            const code = pre.dataset.code || '';
+            const language = pre.dataset.language || 'text';
+            
+            try {
+                // Используем асинхронную подсветку с кэшированием
+                const highlighted = await syntaxHighlighter.highlight(code, language);
+                
+                // Заменяем содержимое pre
+                pre.innerHTML = highlighted;
+                
+                // Добавляем кнопку копирования
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = '📋 Копировать';
+                copyBtn.setAttribute('aria-label', 'Копировать код');
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const codeText = pre.querySelector('code')?.textContent || code;
+                    copyToClipboard(codeText, () => {
+                        copyBtn.textContent = '✅ Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = '📋 Копировать';
+                        }, 2000);
+                    });
+                };
+                pre.appendChild(copyBtn);
+                pre.classList.add('has-copy-btn');
+                
+                // Убираем статус загрузки
+                pre.dataset.highlighting = 'done';
+                
+            } catch (error) {
+                console.warn('Ошибка подсветки кода в стриме:', error);
+                // Fallback - показать исходный код без подсветки
+                const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                pre.innerHTML = `<code class="hljs language-${language}">${escaped}</code>`;
+                pre.dataset.highlighting = 'error';
+                
+                // Всё равно добавляем кнопку копирования
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = '📋 Копировать';
+                copyBtn.setAttribute('aria-label', 'Копировать код');
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(code, () => {
+                        copyBtn.textContent = '✅ Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = '📋 Копировать';
+                        }, 2000);
+                    });
+                };
+                pre.appendChild(copyBtn);
+                pre.classList.add('has-copy-btn');
+            }
+        }
     }
 
     async sendMessage(action = null, extraText = null) {
@@ -260,22 +406,22 @@ export class ChatView {
         try {
             const result = await this.app.apiService.sendMessage(
                 payload,
-                (chunk) => {
+                async (chunk) => {
                     accumulated = chunk;
-                    this.updateStreamMessage(botEl, accumulated, ragSourcesUsed);
+                    await this.updateStreamMessage(botEl, accumulated, ragSourcesUsed);
                 },
-                (final, aborted) => {
+                async (final, aborted) => {
                     if (final && !aborted) {
                         this.app.sessionManager.addMessage('assistant', final);
                         this.app.sessionManager.save();
-                        this.updateStreamMessage(botEl, final, ragSourcesUsed);
+                        await this.updateStreamMessage(botEl, final, ragSourcesUsed);
                         this.app.achievementManager.incrementMessage();
                         this.app.achievementManager.checkAndUnlock('first_message');
                     } else if (aborted && accumulated) {
                         const stopMsg = accumulated + '\n\n_[Прервано]_';
                         this.app.sessionManager.addMessage('assistant', stopMsg);
                         this.app.sessionManager.save();
-                        this.updateStreamMessage(botEl, stopMsg, ragSourcesUsed);
+                        await this.updateStreamMessage(botEl, stopMsg, ragSourcesUsed);
                         this.app.toast.warning('Генерация прервана');
                     } else if (aborted) {
                         this.app.sessionManager.getMessages().pop();
@@ -320,8 +466,197 @@ export class ChatView {
         }
     }
 
+    setupDragAndDrop() {
+        // Поддержка перетаскивания в область чата
+        this.messagesEl.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.add('drop-zone-highlight');
+        });
+
+        this.messagesEl.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.remove('drop-zone-highlight');
+        });
+
+        this.messagesEl.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.messagesEl.classList.remove('drop-zone-highlight');
+
+            const files = Array.from(e.dataTransfer?.files || []);
+            if (!files.length) return;
+
+            const mode = e.ctrlKey || e.metaKey ? 'rag' : 'attachment';
+
+            const validFiles = [];
+            for (const file of files) {
+                if (this.app.isFileAllowed(file) && file.size <= CONFIG.LIMITS.MAX_FILE_SIZE) {
+                    try {
+                        const content = await this.app.getFileText(file);
+                        validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                    } catch (error) {
+                        this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                    }
+                }
+            }
+
+            if (!validFiles.length) {
+                this.app.toast.warning('Нет подходящих файлов');
+                return;
+            }
+
+            if (mode === 'attachment') {
+                const maxAttachments = CONFIG.LIMITS.MAX_ATTACHMENTS;
+                const currentCount = this.app.attachedFiles?.length || 0;
+                if (currentCount + validFiles.length > maxAttachments) {
+                    const available = maxAttachments - currentCount;
+                    this.app.toast.warning(`Максимум ${maxAttachments} файлов, можно добавить еще ${available}`);
+                    validFiles.splice(available);
+                }
+                if (validFiles.length) {
+                    this.app.attachedFiles = this.app.attachedFiles || [];
+                    this.app.attachedFiles.push(...validFiles);
+                    this.app.updateAttachedFilesUI();
+                    this.app.toast.success(`📎 Прикреплено ${validFiles.length} файлов`);
+                }
+            } else {
+                if (this.app.ragManager.isFull) {
+                    this.app.toast.error('❌ RAG достиг лимита (500 чанков)', 4000);
+                    return;
+                }
+                const available = this.app.ragManager.maxChunks - this.app.ragManager.chunkCount;
+                if (validFiles.length > available) {
+                    this.app.toast.warning(`⚠️ Можно загрузить только ${available} документов`, 4000);
+                    validFiles.splice(available);
+                }
+                if (validFiles.length) {
+                    this.progressBar.style.display = 'block';
+                    this.progressFill.style.width = '30%';
+                    const results = await this.app.ragManager.addDocuments(validFiles);
+                    this.app.achievementManager.incrementRag(results.length);
+                    this.app.achievementManager.checkAndUnlock('first_rag');
+                    this.app.sessionManager.setRAG(this.app.ragManager.toJSON());
+                    this.progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        this.progressBar.style.display = 'none';
+                        this.progressFill.style.width = '0%';
+                    }, 300);
+                    this.app.toast.success(`✅ Загружено ${validFiles.length} документов в RAG (${results.length} чанков)`);
+                    this.app.updateRagFilesUI();
+                    this.app.updateStats();
+                }
+            }
+        });
+    }
+
+    setupFileHandlers() {
+        const fileBtn = document.getElementById('fileBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        fileBtn?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        fileInput?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            const validFiles = [];
+            for (const file of files) {
+                if (!this.app.isFileAllowed(file)) {
+                    this.app.toast.error(`"${file.name}" не поддерживается`);
+                    continue;
+                }
+                if (file.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
+                    this.app.toast.error(`"${file.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
+                    continue;
+                }
+                try {
+                    const content = await this.app.getFileText(file);
+                    validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                } catch (error) {
+                    this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                }
+            }
+
+            if (validFiles.length) {
+                this.app.attachedFiles = this.app.attachedFiles || [];
+                this.app.attachedFiles.push(...validFiles);
+                this.app.updateAttachedFilesUI();
+                this.app.toast.success(`📎 Прикреплено ${validFiles.length} файлов`);
+                this.app.updateStats();
+            }
+
+            this.value = '';
+        });
+
+        const ragBtn = document.getElementById('ragBtn');
+        const ragInput = document.getElementById('ragInput');
+
+        ragBtn?.addEventListener('click', () => {
+            ragInput?.click();
+        });
+
+        ragInput?.addEventListener('change', async (event) => {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            if (this.app.ragManager.isFull) {
+                this.app.toast.error('❌ RAG достиг лимита (500 чанков)', 4000);
+                this.value = '';
+                return;
+            }
+
+            const validFiles = [];
+            for (const file of files) {
+                if (!this.app.isFileAllowed(file)) {
+                    this.app.toast.error(`"${file.name}" не поддерживается`);
+                    continue;
+                }
+                if (file.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
+                    this.app.toast.error(`"${file.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
+                    continue;
+                }
+                try {
+                    const content = await this.app.getFileText(file);
+                    validFiles.push({ content, name: file.name, size: file.size, type: file.type });
+                } catch (error) {
+                    this.app.toast.error(`Ошибка чтения: ${file.name}`);
+                }
+            }
+
+            if (validFiles.length) {
+                const available = this.app.ragManager.maxChunks - this.app.ragManager.chunkCount;
+                if (validFiles.length > available) {
+                    this.app.toast.warning(`⚠️ Можно загрузить только ${available} документов`, 4000);
+                    validFiles.splice(available);
+                }
+
+                if (validFiles.length) {
+                    this.progressBar.style.display = 'block';
+                    this.progressFill.style.width = '30%';
+                    const results = await this.app.ragManager.addDocuments(validFiles);
+                    this.app.achievementManager.incrementRag(results.length);
+                    this.app.achievementManager.checkAndUnlock('first_rag');
+                    this.app.sessionManager.setRAG(this.app.ragManager.toJSON());
+                    this.progressFill.style.width = '100%';
+                    setTimeout(() => {
+                        this.progressBar.style.display = 'none';
+                        this.progressFill.style.width = '0%';
+                    }, 300);
+                    this.app.toast.success(`✅ Загружено ${results.length} чанков`);
+                    this.app.updateRagFilesUI();
+                    this.app.updateStats();
+                }
+            }
+
+            this.value = '';
+        });
+    }
+
     setupEventListeners() {
-        // Отправка по Ctrl+Enter
         this.userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -337,7 +672,6 @@ export class ChatView {
                 this.app.toast.info('Ответ отменён', 1000);
             }
 
-            // История сообщений (Ctrl+↑ / Ctrl+↓)
             if (e.key === 'ArrowUp' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 const currentText = this.userInput.value;
@@ -363,7 +697,6 @@ export class ChatView {
             }
         });
 
-        // Обновление счетчика символов
         this.userInput.addEventListener('input', () => {
             this.updateCharCounter();
             const len = this.userInput.value.length;
@@ -375,7 +708,6 @@ export class ChatView {
             }
         });
 
-        // Кнопка отправки
         this.sendBtn.addEventListener('click', () => {
             if (this.sendBtn.classList.contains('stop-btn') && this.app.streamAbortController) {
                 this.app.streamAbortController.abort();
@@ -384,7 +716,6 @@ export class ChatView {
             this.sendMessage();
         });
 
-        // Кнопка Code Review
         document.getElementById('reviewBtn')?.addEventListener('click', () => {
             const text = this.userInput.value.trim();
             if (!text && !this.app.attachedFiles.length) {
@@ -394,7 +725,6 @@ export class ChatView {
             this.sendMessage('review');
         });
 
-        // Кнопка генерации тестов
         document.getElementById('testBtn')?.addEventListener('click', () => {
             const text = this.userInput.value.trim();
             if (!text && !this.app.attachedFiles.length) {
@@ -404,102 +734,9 @@ export class ChatView {
             this.sendMessage('test');
         });
 
-        // Файловый ввод
-        document.getElementById('fileBtn')?.addEventListener('click', () => {
-            document.getElementById('fileInput')?.click();
-        });
+        this.setupFileHandlers();
+        this.setupDragAndDrop();
 
-        document.getElementById('fileInput')?.addEventListener('change', async function() {
-            const files = Array.from(this.files);
-            if (!files.length) return;
-
-            const valid = [];
-            for (const f of files) {
-                if (!this.app.isFileAllowed(f)) {
-                    this.app.toast.error(`"${f.name}" не поддерживается`);
-                    continue;
-                }
-                if (f.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
-                    this.app.toast.error(`"${f.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
-                    continue;
-                }
-                if (this.app.attachedFiles.length + valid.length >= CONFIG.LIMITS.MAX_ATTACHMENTS) {
-                    this.app.toast.warning(`Максимум ${CONFIG.LIMITS.MAX_ATTACHMENTS} файлов`);
-                    break;
-                }
-                try {
-                    const content = await this.app.getFileText(f);
-                    valid.push({ content, name: f.name, size: f.size, type: f.type });
-                } catch {
-                    this.app.toast.error(`Ошибка чтения "${f.name}"`);
-                }
-            }
-
-            this.app.attachedFiles.push(...valid);
-            this.app.updateAttachedFilesUI();
-            this.value = '';
-            if (valid.length) this.app.toast.success(`Загружено ${valid.length} файлов`);
-        });
-
-        // RAG ввод
-        document.getElementById('ragBtn')?.addEventListener('click', () => {
-            document.getElementById('ragInput')?.click();
-        });
-
-        document.getElementById('ragInput')?.addEventListener('change', async function() {
-            const files = Array.from(this.files);
-            if (!files.length) return;
-
-            if (this.app.ragManager.isFull) {
-                this.app.toast.error('❌ RAG достиг лимита (500 чанков). Очистите перед загрузкой.', 4000);
-                this.value = '';
-                return;
-            }
-
-            const valid = [];
-            for (const f of files) {
-                if (!this.app.isFileAllowed(f)) {
-                    this.app.toast.error(`"${f.name}" не поддерживается`);
-                    continue;
-                }
-                if (f.size > CONFIG.LIMITS.MAX_FILE_SIZE) {
-                    this.app.toast.error(`"${f.name}" > ${CONFIG.LIMITS.MAX_FILE_SIZE/1024/1024}MB`);
-                    continue;
-                }
-                try {
-                    const content = await this.app.getFileText(f);
-                    valid.push({ content, name: f.name, size: f.size, type: f.type });
-                } catch {
-                    this.app.toast.error(`Ошибка чтения "${f.name}"`);
-                }
-            }
-
-            if (valid.length) {
-                const available = this.app.ragManager.maxChunks - this.app.ragManager.chunkCount;
-                if (valid.length > available) {
-                    this.app.toast.warning(`⚠️ Можно загрузить только ${available} документов`, 4000);
-                }
-                this.progressBar.style.display = 'block';
-                this.progressFill.style.width = '30%';
-                const results = await this.app.ragManager.addDocuments(valid);
-                this.app.achievementManager.incrementRag(results.length);
-                this.app.achievementManager.checkAndUnlock('first_rag');
-                this.app.sessionManager.setRAG(this.app.ragManager.toJSON());
-                this.progressFill.style.width = '100%';
-                setTimeout(() => {
-                    this.progressBar.style.display = 'none';
-                    this.progressFill.style.width = '0%';
-                }, 300);
-                this.app.toast.success(`✅ Загружено ${results.length} чанков`);
-                this.addMessage('bot', `✅ Загружено ${results.length} чанков (${valid.length} документов) в RAG контекст.`);
-                this.app.updateRagFilesUI();
-                document.getElementById('ragBtn').style.color = 'var(--success-color)';
-                this.app.updateStats();
-            }
-            this.value = '';
-        });
-
-        // Быстрые кнопки
         document.querySelectorAll('.quick-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.userInput.value = btn.dataset.text;
@@ -509,12 +746,10 @@ export class ChatView {
             });
         });
 
-        // Делегирование событий для сообщений
         this.messagesEl.addEventListener('click', (e) => {
             const target = e.target.closest('button');
             if (!target) return;
 
-            // Копирование кода
             if (target.classList.contains('copy-btn')) {
                 const pre = target.closest('pre');
                 if (pre) {
@@ -527,7 +762,6 @@ export class ChatView {
                 return;
             }
 
-            // Редактирование
             if (target.textContent === '✏️') {
                 const messageDiv = target.closest('.message');
                 if (messageDiv) {
@@ -537,7 +771,6 @@ export class ChatView {
                 return;
             }
 
-            // Ответ
             if (target.textContent === '↩️') {
                 const messageDiv = target.closest('.message');
                 if (messageDiv) {
@@ -548,7 +781,6 @@ export class ChatView {
                 return;
             }
 
-            // Перегенерация
             if (target.textContent === '↻') {
                 const messageDiv = target.closest('.message');
                 if (messageDiv) {

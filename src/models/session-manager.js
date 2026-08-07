@@ -82,6 +82,7 @@ export class SessionManager {
     /**
      * Подсветка синтаксиса для сообщения (синхронная, с кэшированием)
      * Используется для быстрой загрузки истории
+     * Возвращает HTML с подсветкой и включает кнопки копирования
      */
     highlightMessageSync(content) {
         if (!content || typeof content !== 'string') return content;
@@ -155,6 +156,7 @@ export class SessionManager {
     /**
      * Получение сообщений с подсветкой синтаксиса (синхронно)
      * Используется при загрузке истории
+     * Возвращает HTML с подсветкой и включает кнопки копирования
      */
     getMessagesWithHighlight() {
         const session = this.getCurrent();
@@ -190,10 +192,12 @@ export class SessionManager {
 
     /**
      * Асинхронная подсветка сообщения (для новых сообщений)
+     * Возвращает HTML с подсветкой и включает кнопки копирования
      */
     async highlightMessageAsync(content) {
         if (!content || typeof content !== 'string') return content;
         
+        // Проверяем, есть ли блоки кода
         const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
         let match;
         let lastIndex = 0;

@@ -270,6 +270,10 @@ export class MessageRenderer {
         }
     }
 
+    /**
+     * Форматирование сообщения с разбивкой на текст и код
+     * Используется в chat-view для стриминга
+     */    
     formatMessage(content) {
         const parts = [];
         if (!content || typeof content !== 'string') {

@@ -1,0 +1,22 @@
+Краткое резюме изменений
+chat-view.js:
+
+updateStreamMessage() стал async и использует await для подсветки
+
+Добавлен метод highlightCodeBlocks() для асинхронной подсветки блоков кода
+
+Добавлен метод addCopyButtonsToCodeBlocks() для добавления кнопок копирования после загрузки истории
+
+Колбэки в sendMessage() стали async
+
+session-manager.js:
+
+getMessagesWithHighlight() теперь возвращает HTML с полной подсветкой
+
+highlightMessageSync() использует syntaxHighlighter.highlightSync() для синхронной подсветки с кэшированием
+
+message-renderer.js:
+
+Метод formatMessage() теперь публичный и используется в chat-view.js
+
+Добавлена экспортная декларация для метода

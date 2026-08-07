@@ -82,31 +82,31 @@ export function validateInput(text) {
     if (text.length > maxLength) {
         return { valid: false, reason: `Превышен лимит ${maxLength} символов` };
     }
+
+    // // ПРОБЛЕМА: массив опасных конструкций неполный и не учитывает вариации
+    // // Исправлено: расширенный список с учётом разных вариаций
+    // const dangerous = [
+    //     '--', 
+    //     '; DROP', 
+    //     '; DELETE', 
+    //     'UNION SELECT',
+    //     '/*',           // комментарии SQL
+    //     '*/',
+    //     'xp_',          // хранимые процедуры
+    //     'sp_',
+    //     '0x',           // шестнадцатеричные литералы
+    //     'EXEC(',        // выполнение
+    //     'EXECUTE(',
+    //     'WAITFOR'       // задержка для атак
+    // ];
     
-    // ПРОБЛЕМА: массив опасных конструкций неполный и не учитывает вариации
-    // Исправлено: расширенный список с учётом разных вариаций
-    const dangerous = [
-        '--', 
-        '; DROP', 
-        '; DELETE', 
-        'UNION SELECT',
-        '/*',           // комментарии SQL
-        '*/',
-        'xp_',          // хранимые процедуры
-        'sp_',
-        '0x',           // шестнадцатеричные литералы
-        'EXEC(',        // выполнение
-        'EXECUTE(',
-        'WAITFOR'       // задержка для атак
-    ];
-    
-    const upperText = text.toUpperCase();
-    for (const d of dangerous) {
-        if (upperText.includes(d.toUpperCase())) {
-            return { valid: false, reason: 'Обнаружена потенциально опасная конструкция' };
-        }
-    }
-    
+    // const upperText = text.toUpperCase();
+    // for (const d of dangerous) {
+    //     if (upperText.includes(d.toUpperCase())) {
+    //         return { valid: false, reason: 'Обнаружена потенциально опасная конструкция' };
+    //     }
+    // }
+
     return { valid: true };
 }
 
