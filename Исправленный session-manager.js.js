@@ -105,8 +105,6 @@ export class SessionManager {
 
     /**
      * Подсветка синтаксиса для сообщения (синхронная, с кэшированием)
-     * Используется для быстрой загрузки истории
-     * Возвращает HTML с подсветкой и включает кнопки копирования
      * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
      */
     highlightMessageSync(content) {
@@ -115,7 +113,6 @@ export class SessionManager {
         // Проверяем, есть ли блоки кода
         const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
         let match;
-        //let result = content;
         let lastIndex = 0;
         const parts = [];
         
@@ -126,7 +123,7 @@ export class SessionManager {
                 if (textContent) {
                     parts.push({
                         type: 'text',
-                            content: textContent
+                        content: textContent
                     });
                 }
             }
@@ -134,24 +131,10 @@ export class SessionManager {
             // Добавляем блок кода с полной структурой
             const language = match[1] || 'text';
             const code = match[2];
-            /*
-            // Используем синхронную подсветку с кэшированием
-            let highlighted;
-            try {
-                highlighted = syntaxHighlighter.highlightSync(code, language);
-            } catch (e) {
-                // Fallback при ошибке
-                const escaped = code
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                highlighted = `<code class="hljs language-${language}">${escaped}</code>`;
-            }
-            */
             
             // Создаём полный HTML для блока кода
-            const codeBlockHTML = this.createCodeBlockHTML(code, language);   
-                     
+            const codeBlockHTML = this.createCodeBlockHTML(code, language);
+            
             parts.push({
                 type: 'code',
                 language: language,
@@ -168,7 +151,7 @@ export class SessionManager {
             if (textContent) {
                 parts.push({
                     type: 'text',
-                        content: textContent
+                    content: textContent
                 });
             }
         }
@@ -194,7 +177,6 @@ export class SessionManager {
     /**
      * Получение сообщений с подсветкой синтаксиса (синхронно)
      * Используется при загрузке истории
-     * Возвращает HTML с подсветкой и включает кнопки копирования
      * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
      */
     getMessagesWithHighlight() {
@@ -243,7 +225,6 @@ export class SessionManager {
 
     /**
      * Асинхронная подсветка сообщения (для новых сообщений)
-     * Возвращает HTML с подсветкой и включает кнопки копирования
      * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
      */
     async highlightMessageAsync(content) {
@@ -271,7 +252,6 @@ export class SessionManager {
             try {
                 highlighted = await syntaxHighlighter.highlight(code, language);
             } catch (e) {
-                // Fallback
                 const escaped = code
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
@@ -285,12 +265,12 @@ export class SessionManager {
     <button class="copy-btn" aria-label="Копировать код">📋 Копировать</button>
 </pre>`;
             
-                parts.push({
-                    type: 'code',
-                    language: language,
-                    content: code,
+            parts.push({
+                type: 'code',
+                language: language,
+                content: code,
                 html: codeBlockHTML
-                });
+            });
             
             lastIndex = match.index + match[0].length;
         }
@@ -317,7 +297,7 @@ export class SessionManager {
         
         return result;
     }
-        
+
     save() {
         try {
             const dataToSave = {
@@ -541,16 +521,13 @@ export class SessionManager {
     cleanup(maxSessions = 50) {
         if (this.sessions.length <= maxSessions) return;
         
-        // Сортируем по дате создания (новые первые)
         const sorted = [...this.sessions].sort((a, b) => {
             return new Date(b.created) - new Date(a.created);
         });
         
-        // Оставляем только maxSessions последних
         const keep = sorted.slice(0, maxSessions);
         const toRemove = sorted.slice(maxSessions);
         
-        // Проверяем, не удаляем ли текущую сессию
         const currentInKeep = keep.some(s => s.id === this.currentId);
         if (!currentInKeep) {
             this.currentId = keep[0].id;

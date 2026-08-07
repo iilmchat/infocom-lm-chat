@@ -1,102 +1,6 @@
 // src/ui/renderers/message-renderer.js
-import { sanitizeHTML } from '../../services/sanitizer.js';
-import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
-import { copyToClipboard } from '../../utils/dom-helpers.js';
+// ... остальной код ...
 
-/**
- * Рендеринг сообщений чата
- */
-export class MessageRenderer {
-    render(msgData) {
-        const { role, content, messageId, files, ragSources, isEdit, replyTo } = msgData;
-        const div = document.createElement('div');
-        div.className = `message ${role}`;
-        if (messageId) div.dataset.messageId = messageId;
-        div.setAttribute('role', 'article');
-        div.setAttribute('aria-label', `${role === 'user' ? 'Ваше сообщение' : 'Ответ ассистента'}`);
-
-        // Метка
-        const label = this.renderLabel(role);
-        div.appendChild(label);
-
-        // Баббл
-        const bubble = this.renderBubble(role, content, files, ragSources, isEdit, replyTo);
-        div.appendChild(bubble);
-
-        return div;
-    }
-
-    renderLabel(role) {
-        const label = document.createElement('div');
-        label.className = 'label';
-
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = role === 'user' ? '👤 Вы' : '💻 Infocom_LM_Chat';
-        label.appendChild(nameSpan);
-
-        const actions = document.createElement('span');
-        actions.className = 'message-actions';
-        actions.setAttribute('role', 'toolbar');
-        actions.setAttribute('aria-label', 'Действия с сообщением');
-
-        // Кнопка редактирования (только для пользователя)
-        if (role === 'user') {
-            const editBtn = document.createElement('button');
-            editBtn.textContent = '✏️';
-            editBtn.title = 'Редактировать';
-            editBtn.setAttribute('aria-label', 'Редактировать сообщение');
-            editBtn.onclick = (e) => {
-                e.stopPropagation();
-                // Передаём управление в ChatView
-                const messageDiv = e.target.closest('.message');
-                if (messageDiv && window.app?.chatView) {
-                    const content = messageDiv.querySelector('.bubble')?.textContent || '';
-                    window.app.chatView.startEditing(messageDiv, content);
-                }
-            };
-            actions.appendChild(editBtn);
-        }
-
-        // Кнопка ответа (для всех сообщений)
-        const replyBtn = document.createElement('button');
-        replyBtn.textContent = '↩️';
-        replyBtn.title = 'Ответить на это сообщение';
-        replyBtn.setAttribute('aria-label', 'Ответить на это сообщение');
-        replyBtn.onclick = (e) => {
-            e.stopPropagation();
-            const messageDiv = e.target.closest('.message');
-            if (messageDiv && window.app) {
-                const content = messageDiv.querySelector('.bubble')?.textContent || '';
-                const role = messageDiv.classList.contains('user') ? 'user' : 'bot';
-                window.app.setReplyTarget(messageDiv, content, role);
-            }
-        };
-        actions.appendChild(replyBtn);
-
-        // Кнопка перегенерации (только для бота)
-        if ((role === 'bot' || role === 'assistant')) {
-            const regenBtn = document.createElement('button');
-            regenBtn.textContent = '↻';
-            regenBtn.title = 'Перегенерировать';
-            regenBtn.setAttribute('aria-label', 'Перегенерировать ответ');
-            regenBtn.onclick = (e) => {
-                e.stopPropagation();
-                const messageDiv = e.target.closest('.message');
-                if (messageDiv && window.app?.chatView) {
-                    const content = messageDiv.querySelector('.bubble')?.textContent || '';
-                    window.app.chatView.regenerateMessage(messageDiv, content);
-                }
-            };
-            actions.appendChild(regenBtn);
-        }
-
-        label.appendChild(actions);
-        return label;
-    }
-
-    /**
-     * Рендеринг баббла с асинхронной подсветкой кода
-     */
     renderBubble(role, content, files, ragSources, isEdit, replyTo) {
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
@@ -114,7 +18,7 @@ export class MessageRenderer {
         }
 
         // Основное содержимое
-        if ((role === 'bot' || role === 'assistant') && typeof content === 'string' && content) {
+        if (role === 'bot' && typeof content === 'string' && content) {
             // Проверяем, не содержит ли контент уже HTML-разметку подсветки
             // Ищем как span.hljs-* так и pre.hljs-pre
             const hasHighlighting = content.includes('<span class="hljs-') || 
@@ -125,9 +29,6 @@ export class MessageRenderer {
                 // Контент уже подсвечен (с pre или без), вставляем как есть
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = content;
-                // Обрабатываем переносы строк
-                //МОЖЕТ и НАДО
-                //wrapper.innerHTML = wrapper.innerHTML.replace(/\n/g, '<br>');
                 bubble.appendChild(wrapper);
                 
                 // Если есть pre без кнопок копирования - добавляем их
@@ -136,7 +37,6 @@ export class MessageRenderer {
             } else {
                 // Контент не подсвечен, разбираем на части и подсвечиваем асинхронно
                 const parts = this.formatMessage(content);
-                // Создаём контейнер для частей
                 const container = document.createElement('div');
                 container.dataset.parts = 'pending';
                 
@@ -144,7 +44,6 @@ export class MessageRenderer {
                 for (const p of parts) {
                     if (p.type === 'text') {
                         const textDiv = document.createElement('div');
-                        // Если текст пустой, показываем плейсхолдер
                         const textContent = p.content || '...';
                         textDiv.innerHTML = sanitizeHTML(textContent).replace(/\n/g, '<br>');
                         container.appendChild(textDiv);
@@ -152,8 +51,7 @@ export class MessageRenderer {
                         // Создаём pre с placeholder
                         const pre = document.createElement('pre');
                         pre.setAttribute('tabindex', '0');
-                        // Используем async highlight
-                        pre.dataset.language = p.language || 'text';                        
+                        pre.dataset.language = p.language || 'text';
                         pre.dataset.code = p.content;
                         pre.dataset.highlighting = 'pending';
                         pre.className = 'hljs-pre';
@@ -196,7 +94,6 @@ export class MessageRenderer {
             td.textContent = content || '';
             bubble.appendChild(td);
         } else if (content) {
-            // Fallback для других случаев
             const td = document.createElement('div');
             td.textContent = typeof content === 'string' ? content : JSON.stringify(content);
             bubble.appendChild(td);
@@ -256,7 +153,7 @@ export class MessageRenderer {
             pre.classList.add('has-copy-btn');
             pre.classList.add('hljs-pre');
         }
-    }    
+    }
 
     /**
      * Асинхронная подсветка всех блоков кода в контейнере
@@ -269,7 +166,6 @@ export class MessageRenderer {
             const language = pre.dataset.language || 'text';
             
             try {
-                // Используем асинхронную подсветку с кэшированием
                 const highlighted = await syntaxHighlighter.highlight(code, language);
                 
                 // Заменяем содержимое pre
@@ -292,18 +188,15 @@ export class MessageRenderer {
                 };
                 pre.appendChild(copyBtn);
                 pre.classList.add('has-copy-btn');
-                pre.className = 'hljs-pre';                
-             
-                // Убираем статус загрузки
+                pre.className = 'hljs-pre';
                 pre.dataset.highlighting = 'done';
                 
             } catch (error) {
                 console.warn('Ошибка подсветки кода:', error);
-                // Fallback - показать исходный код без подсветки
                 const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 pre.innerHTML = `<code class="hljs language-${language}">${escaped}</code>`;
                 pre.dataset.highlighting = 'error';
-                pre.className = 'hljs-pre';     
+                pre.className = 'hljs-pre';
                 
                 // Добавляем кнопку копирования даже при ошибке
                 const copyBtn = document.createElement('button');
@@ -325,77 +218,4 @@ export class MessageRenderer {
         }
     }
 
-    /**
-     * Синхронная версия для быстрого рендеринга (использует кэш)
-     */
-    renderCodeBlockSync(code, language) {
-        try {
-            // Используем синхронную версию (с кэшированием)
-            return syntaxHighlighter.highlightSync(code, language);
-        } catch (e) {
-            console.warn('Ошибка синхронной подсветки:', e);
-            const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return `<code class="hljs language-${language}">${escaped}</code>`;
-        }
-    }
-
-    /**
-     * Форматирование сообщения с разбивкой на текст и код
-     * Используется в chat-view для стриминга
-     */    
-    formatMessage(content) {
-        const parts = [];
-        if (!content || typeof content !== 'string') {
-            return [{ type: 'text', content: content || '' }];
-        }
-        
-        let last = 0;
-        const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
-        let match;
-
-        while ((match = codeRegex.exec(content)) !== null) {
-            if (match.index > last) {
-                const textContent = content.substring(last, match.index);
-                if (textContent) {
-                    parts.push({
-                        type: 'text',
-                            content: textContent
-                    });
-                }
-            }
-            parts.push({
-                type: 'code',
-                language: match[1] || 'text',
-                content: match[2]
-            });
-            last = match.index + match[0].length;
-        }
-
-        if (last < content.length) {
-            const textContent = content.substring(last);
-            if (textContent) {
-                parts.push({
-                    type: 'text',
-                    content: textContent
-                });
-            }
-        }
-
-        // Если нет частей, возвращаем весь контент как текст
-        if (parts.length === 0) {
-            parts.push({
-                type: 'text',
-                content: content
-            });
-        }
-
-        return parts;
-    }
-
-    renderWelcome() {
-        return this.render({
-            role: 'bot',
-            content: '👋 Начните новый диалог!'
-        });
-    }
-}
+// ... остальной код ...

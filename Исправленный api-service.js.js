@@ -6,66 +6,24 @@ import { fetchWithRetry } from '../utils/network-helpers.js';
  * Сервис для взаимодействия с API сервера
  * Обрабатывает все сетевые запросы, управляет моделями и потоковыми ответами
  */
-
-/**
- * Сервис для работы с API сервера
- */
 export class ApiService {
     constructor(eventBus) {
         this.eventBus = eventBus;
-        //this.SERVER_CONFIG = { ...SERVER_CONFIG };        
         this.availableModels = [];
         this.currentModel = CONFIG.UI_CONFIG.DEFAULT_MODEL;
         this.isConnected = false;
-        //this.lastCheck = 0;
-        //this.pendingRequests = new Map();        
         this._connectionAttempts = 0;
         this._maxAccumulatedSize = 1000000;
-
+        
         // Хранилище активных AbortController для возможности отмены извне
         this._activeControllers = new Map();
         this._requestIdCounter = 0;
-
-        // DOM элементы
-        this.statusDisplay = document.getElementById('statusDisplay');    
-        this.errorMsg = document.getElementById('errorMsg'); 
-        
-        // Загружаем конфигурацию
-        //loadServerConfig();
-        //this.loadConfig();                   
     }
 
-    loadConfig() {
-        try {
-            const saved = localStorage.getItem('server_config');
-            if (saved) {
-                const config = JSON.parse(saved);
-                Object.assign(this.SERVER_CONFIG, config);
-            }
-        } catch (e) {
-            console.warn('Не удалось загрузить конфиг сервера:', e);
-        }
-    }
-
-    saveConfig() {
-        try {
-            localStorage.setItem('server_config', JSON.stringify(this.SERVER_CONFIG));
-        } catch (e) {
-            console.warn('Не удалось сохранить конфиг сервера:', e);
-        }
-    }
-
-    get baseUrl() {
-        return `http://${this.SERVER_CONFIG.ip}:${this.SERVER_CONFIG.port}`;
-    }
-    
     /**
      * Проверка доступности сервера с расширенной диагностикой
      * @returns {Promise<{status: boolean, error?: string}>}
      */
-    /**
-     * Проверка доступности сервера
-     */    
     async checkServer() {
         const result = { status: false, error: null };
         this._connectionAttempts++;
@@ -94,11 +52,6 @@ export class ApiService {
                 this.isConnected = true;
                 this._connectionAttempts = 0;
                 
-                // Сервер доступен - обновляем отображение статуса
-                this.statusDisplay.textContent = '● Сервер доступен';
-                this.statusDisplay.style.color = 'var(--text-accent)';
-                this.errorMsg.style.display = 'none';
-
                 console.log(`✅ Сервер доступен (ответ за ${responseTime}мс)`);
                 
                 if (this.eventBus) {
@@ -132,12 +85,7 @@ export class ApiService {
         }
 
         this.isConnected = false;
-
-        // В случае ошибки или неуспешного ответа - обновляем отображение статуса
-        this.statusDisplay.textContent = '● Сервер НЕ ДОСТУПЕН';
-        this.statusDisplay.style.color = 'var(--error-color)';
-        this.errorMsg.style.display = 'block';        
-
+        
         if (this.eventBus) {
             this.eventBus.emit('server:disconnected', { 
                 error: result.error,
@@ -330,15 +278,14 @@ export class ApiService {
             // Сохраняем cleanup для вызова в finally
             combinedSignal._cleanup = cleanup;
         }
-        
-        //const controller = new AbortController();
+
         let timeoutId = null;
         let isAborted = false;
 
         try {
             timeoutId = setTimeout(() => {
                 console.warn(`⏱️ Таймаут запроса ${requestId}`);
-                console.warn('⏱️ Превышено время ожидания ответа');
+                console.warn('⏱️ Превышено время ожидания ответа');                
                 internalController.abort();
                 if (onError) {
                     onError(new Error('⏱️ Превышено время ожидания ответа от сервера'));
