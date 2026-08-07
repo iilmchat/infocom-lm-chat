@@ -47,6 +47,8 @@ class SyntaxHighlighterService {
         this.isWorkerSupported = typeof Worker !== 'undefined';
         this.ready = false;
         this.listeners = [];
+        this.workerInitialized = false;
+        this.workerInitPromise = null;
         
         this.initWorker();
     }
@@ -61,14 +63,27 @@ class SyntaxHighlighterService {
             return;
         }
 
+        if (this.workerInitPromise) {
+            return this.workerInitPromise;
+        }
+
+        this.workerInitPromise = new Promise((resolve) => {
         try {
-            // Создание worker из строки (для совместимости с модулями)
-            //const workerCode = this.getWorkerCode();
-            //const blob = new Blob([workerCode], { type: 'application/javascript' });
-            //const workerUrl = URL.createObjectURL(blob);
-            
-            //this.worker = new Worker(workerUrl);
-            this.worker = new Worker('src/services/syntax-highlighter.worker.js');
+                // Определяем путь к worker (с учётом разных окружений)
+                let workerUrl;
+                
+                // Пробуем разные способы определения пути
+                try {
+                    // В браузере с модулями
+                    const scriptUrl = import.meta.url;
+                    const basePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
+                    workerUrl = new URL('syntax-highlighter.worker.js', basePath).href;
+                } catch (e) {
+                    // Fallback
+                    workerUrl = 'src/services/syntax-highlighter.worker.js';
+                }
+                
+                this.worker = new Worker(workerUrl);
             
             this.worker.addEventListener('message', (event) => {
                 this.handleWorkerMessage(event);
@@ -80,21 +95,19 @@ class SyntaxHighlighterService {
             });
             
             this.ready = true;
-            console.log('Web Worker инициализирован');
+                this.workerInitialized = true;
+                console.log('✅ Web Worker инициализирован');
+                resolve(true);
+                
         } catch (error) {
             console.error('Ошибка инициализации Worker:', error);
             this.ready = true;
-        }
-    }
+                this.workerInitialized = false;
+                resolve(false);
+            }
+        });
 
-    /**
-     * Получение кода Worker (встроенный для простоты)
-     * В реальном проекте лучше использовать отдельный файл с importScripts
-     */
-    getWorkerCode() {
-        // Здесь должен быть код из syntax-highlighter.worker.js
-        // Для краткости я оставлю placeholder
-        importScripts('syntax-highlighter.worker.js');
+        return this.workerInitPromise;
     }
 
     /**
@@ -111,15 +124,15 @@ class SyntaxHighlighterService {
         
         // Сохраняем в кэш при успехе
         if (success && request.code) {
-            //highlightCache.set(request.code, language || 'text', result);
-            highlightCache.set(request.code, request.language || 'text', result);            
+            const lang = normalizeLanguage(request.language || 'text');
+            highlightCache.set(request.code, lang, result);
         }
         
         // Вызываем колбэк
         if (success) {
             request.resolve(result);
         } else {
-            request.reject(new Error(error));
+            request.reject(new Error(error || 'Неизвестная ошибка'));
         }
     }
 
@@ -129,13 +142,14 @@ class SyntaxHighlighterService {
     handleWorkerError(error) {
         // Отклоняем все ожидающие запросы
         for (const [id, request] of this.pendingRequests) {
-            request.reject(new Error('Worker error: ' + error.message));
+request.reject(new Error('Worker error: ' + (error.message || 'Неизвестная ошибка')));
             this.pendingRequests.delete(id);
         }
     }
 
     /**
      * Синхронная подсветка (fallback для worker)
+     * Используется как синхронная альтернатива с кэшированием
      */
     highlightSync(code, language) {
         // Базовая реализация для fallback
@@ -143,6 +157,13 @@ class SyntaxHighlighterService {
 
         const lang = normalizeLanguage(language);     
 
+        // Проверяем кэш
+        const cached = highlightCache.get(code, lang);
+        if (cached) {
+            return cached.result;
+        }
+
+        // Базовая синхронная подсветка
         const escaped = code
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -150,6 +171,7 @@ class SyntaxHighlighterService {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
         
+        // Ключевые слова для подсветки            
         // Базовая подсветка для ключевых слов
         const keywords = [
             'function', 'return', 'var', 'let', 'const', 'if', 'else', 'for', 'while',
@@ -196,7 +218,12 @@ class SyntaxHighlighterService {
             });
         }
         
-        return `<code class="hljs language-${lang}">${result}</code>`;
+        const finalResult = `<code class="hljs language-${lang}">${result}</code>`;
+        
+        // Сохраняем в кэш
+        highlightCache.set(code, lang, finalResult);
+        
+        return finalResult;
     }
 
     /**
@@ -232,12 +259,16 @@ class SyntaxHighlighterService {
                 return cached.result;
             }
 
-            // Если Worker не поддерживается или не готов
-            if (!this.isWorkerSupported || !this.ready) {
-                const result = this.highlightSync(code, normalizedLang);
-                //highlightCache.set(code, language || 'text', result);
-                highlightCache.set(code, normalizedLang, result);         
-                return result;
+            // Если Worker не поддерживается или не готов, используем синхронный fallback
+            if (!this.isWorkerSupported || !this.workerInitialized) {
+                // Ждём инициализацию worker
+                if (this.workerInitPromise) {
+                    await this.workerInitPromise;
+                }
+                // Если всё ещё не готов, используем синхронный режим
+                if (!this.workerInitialized) {
+                    return this.highlightSync(code, normalizedLang);
+                }
             }
 
             // Отправка задачи в Worker
@@ -264,12 +295,24 @@ class SyntaxHighlighterService {
                     setTimeout(() => {
                         if (this.pendingRequests.has(id)) {
                             this.pendingRequests.delete(id);
+                            // При таймауте используем синхронный fallback
+                            try {
+                                const fallbackResult = this.highlightSync(code, normalizedLang);
+                                resolve(fallbackResult);
+                            } catch (e) {
                             reject(new Error('Timeout при подсветке кода'));
                         }
-                    }, 500000);
+                        }
+                    }, 50000);
                 } catch (error) {
                     this.pendingRequests.delete(id);
+                    // При ошибке используем синхронный fallback
+                    try {
+                        const fallbackResult = this.highlightSync(code, normalizedLang);
+                        resolve(fallbackResult);
+                    } catch (e) {
                     reject(error);
+                    }
                 }
             });
         } catch (error) {
@@ -346,6 +389,8 @@ class SyntaxHighlighterService {
         this.pendingRequests.clear();
         this.listeners = [];
         this.ready = false;
+        this.workerInitialized = false;
+        this.workerInitPromise = null;
     }
 
     /**

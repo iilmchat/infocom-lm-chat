@@ -1,7 +1,7 @@
 // src/services/syntax-highlighter.js
 
-import { highlightCache } from './syntax-highlighter-cache';
-import { highlightDebounce } from '../utils/debounce';
+import { highlightCache } from './syntax-highlighter-cache.js';
+import { highlightDebounce } from '../utils/debounce.js';
 
 // Список поддерживаемых языков
 const SUPPORTED_LANGUAGES = [
@@ -47,6 +47,8 @@ class SyntaxHighlighterService {
         this.isWorkerSupported = typeof Worker !== 'undefined';
         this.ready = false;
         this.listeners = [];
+        this.workerInitialized = false;
+        this.workerInitPromise = null;
         
         this.initWorker();
     }
@@ -61,153 +63,103 @@ class SyntaxHighlighterService {
             return;
         }
 
-        try {
-            const workerCode = this.getWorkerCode();
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            const workerUrl = URL.createObjectURL(blob);
-            
-            this.worker = new Worker(workerUrl);
-            
-            this.worker.addEventListener('message', (event) => {
-                this.handleWorkerMessage(event);
-            });
-            
-            this.worker.addEventListener('error', (error) => {
-                console.error('Worker ошибка:', error);
-                this.handleWorkerError(error);
-            });
-            
-            this.ready = true;
-            console.log('Web Worker инициализирован');
-        } catch (error) {
-            console.error('Ошибка инициализации Worker:', error);
-            this.ready = true;
+        if (this.workerInitPromise) {
+            return this.workerInitPromise;
         }
-    }
 
-    getWorkerCode() {
-        return `
-            // Простая подсветка синтаксиса в Worker
-            const SUPPORTED_LANGUAGES = ${JSON.stringify(SUPPORTED_LANGUAGES)};
-            
-            function normalizeLanguage(lang) {
-                if (!lang) return 'text';
-                const normalized = lang.toLowerCase().trim();
-                const aliases = {
-                    'js': 'javascript',
-                    'ts': 'typescript',
-                    'py': 'python',
-                    'cpp': 'c++',
-                    'c++': 'cpp',
-                    'cs': 'csharp',
-                    'sh': 'bash',
-                    'rs': 'rust',
-                    'rb': 'ruby',
-                    'kt': 'kotlin',
-                    'md': 'markdown',
-                    'yml': 'yaml'
-                };
-                return aliases[normalized] || normalized;
-            }
-
-            function highlightSync(code, language) {
-                const lang = normalizeLanguage(language);
-                const escaped = code
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
+        this.workerInitPromise = new Promise((resolve) => {
+            try {
+                // Определяем путь к worker (с учётом разных окружений)
+                let workerUrl;
                 
-                // Базовая подсветка для ключевых слов
-                const keywords = [
-                    'function', 'return', 'var', 'let', 'const', 'if', 'else', 'for', 'while',
-                    'class', 'interface', 'extends', 'implements', 'import', 'export', 'default',
-                    'async', 'await', 'try', 'catch', 'throw', 'finally', 'new', 'this', 'super',
-                    'typeof', 'instanceof', 'void', 'delete', 'switch', 'case', 'break', 'continue',
-                    'do', 'in', 'of', 'from', 'as', 'type', 'enum', 'implements', 'public', 'private',
-                    'protected', 'static', 'readonly', 'abstract', 'override', 'final', 'dynamic',
-                    'base', 'const', 'factory', 'operator', 'part', 'required', 'typedef'
-                ];
-                
-                const keywordPattern = new RegExp('\\\\b(' + keywords.join('|') + ')\\\\b', 'g');
-                
-                let result = escaped;
-                
-                // Подсветка строк
-                result = result.replace(/(["'])((?:(?!\x01).)*?)\x01/g, (match, quote, content) => {
-                    return \`<span class="hljs-string">\${match}</span>\`;
-                });
-                
-                // Подсветка комментариев
-                result = result.replace(/\/\/.*$/gm, (match) => {
-                    return \`<span class="hljs-comment">\${match}</span>\`;
-                });
-                
-                result = result.replace(/\/\*[\s\S]*?\*\//g, (match) => {
-                    return \`<span class="hljs-comment">\${match}</span>\`;
-                });
-                
-                // Подсветка ключевых слов
-                result = result.replace(keywordPattern, (match) => {
-                    return \`<span class="hljs-keyword">\${match}</span>\`;
-                });
-                
-                // Подсветка чисел
-                result = result.replace(/\\b(\\d+\\.?\\d*)\\b/g, (match) => {
-                    return \`<span class="hljs-number">\${match}</span>\`;
-                });
-                
-                // Подсветка функций (только для некоторых языков)
-                if (lang !== 'text' && lang !== 'html' && lang !== 'css') {
-                    result = result.replace(/\\b([a-zA-Z_$][a-zA-Z0-9_$]*)\\s*\\(/g, (match, name) => {
-                        return \`<span class="hljs-function">\${name}</span>(\`;
-                    });
-                }
-                
-                return \`<code class="hljs language-\${lang}">\${result}</code>\`;
-            }
-
-            self.addEventListener('message', (event) => {
-                const { id, code, language } = event.data;
+                // Пробуем разные способы определения пути
                 try {
-                    const result = highlightSync(code, language);
-                    self.postMessage({ id, success: true, result });
-                } catch (error) {
-                    self.postMessage({ id, success: false, error: error.message });
+                    // В браузере с модулями
+                    const scriptUrl = import.meta.url;
+                    const basePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
+                    workerUrl = new URL('syntax-highlighter.worker.js', basePath).href;
+                } catch (e) {
+                    // Fallback
+                    workerUrl = 'src/services/syntax-highlighter.worker.js';
                 }
-            });
-        `;
+                
+                this.worker = new Worker(workerUrl);
+                
+                this.worker.addEventListener('message', (event) => {
+                    this.handleWorkerMessage(event);
+                });
+                
+                this.worker.addEventListener('error', (error) => {
+                    console.error('Worker ошибка:', error);
+                    this.handleWorkerError(error);
+                });
+                
+                this.ready = true;
+                this.workerInitialized = true;
+                console.log('✅ Web Worker инициализирован');
+                resolve(true);
+                
+            } catch (error) {
+                console.error('Ошибка инициализации Worker:', error);
+                this.ready = true;
+                this.workerInitialized = false;
+                resolve(false);
+            }
+        });
+
+        return this.workerInitPromise;
     }
 
+    /**
+     * Обработка сообщений от Worker
+     */
     handleWorkerMessage(event) {
         const { id, success, result, error } = event.data;
-        
+
         const request = this.pendingRequests.get(id);
         if (!request) return;
         
         this.pendingRequests.delete(id);
         
+        // Сохраняем в кэш при успехе
         if (success && request.code) {
-            highlightCache.set(request.code, request.language || 'text', result);
+            const lang = normalizeLanguage(request.language || 'text');
+            highlightCache.set(request.code, lang, result);
         }
         
+        // Вызываем колбэк
         if (success) {
             request.resolve(result);
         } else {
-            request.reject(new Error(error));
+            request.reject(new Error(error || 'Unknown error'));
         }
     }
 
+    /**
+     * Обработка ошибок Worker
+     */
     handleWorkerError(error) {
+        // Отклоняем все ожидающие запросы
         for (const [id, request] of this.pendingRequests) {
-            request.reject(new Error('Worker error: ' + error.message));
+            request.reject(new Error('Worker error: ' + (error.message || 'Unknown error')));
             this.pendingRequests.delete(id);
         }
     }
 
+    /**
+     * Синхронная подсветка (fallback для worker)
+     * Используется как синхронная альтернатива с кэшированием
+     */
     highlightSync(code, language) {
         const lang = normalizeLanguage(language);
+        
+        // Проверяем кэш
+        const cached = highlightCache.get(code, lang);
+        if (cached) {
+            return cached.result;
+        }
+
+        // Базовая синхронная подсветка
         const escaped = code
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -215,7 +167,7 @@ class SyntaxHighlighterService {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
         
-        // Базовая подсветка для ключевых слов
+        // Ключевые слова для подсветки
         const keywords = [
             'function', 'return', 'var', 'let', 'const', 'if', 'else', 'for', 'while',
             'class', 'interface', 'extends', 'implements', 'import', 'export', 'default',
@@ -261,22 +213,26 @@ class SyntaxHighlighterService {
             });
         }
         
-        return `<code class="hljs language-${lang}">${result}</code>`;
+        const finalResult = `<code class="hljs language-${lang}">${result}</code>`;
+        
+        // Сохраняем в кэш
+        highlightCache.set(code, lang, finalResult);
+        
+        return finalResult;
     }
 
+    /**
+     * Асинхронная подсветка с использованием Worker или fallback
+     */
     async highlight(code, language = null) {
         try {
+            // Валидация входных данных
             if (!code || typeof code !== 'string') {
                 throw new Error('Неверный код для подсветки');
             }
 
             // Нормализация языка
             const normalizedLang = normalizeLanguage(language);
-            
-            // Проверка языка (просто предупреждение, но не блокируем)
-            if (language && !SUPPORTED_LANGUAGES.includes(normalizedLang)) {
-                console.warn(`Неизвестный язык "${language}", используется автоопределение`);
-            }
 
             // Проверка кэша
             const cached = highlightCache.get(code, normalizedLang);
@@ -284,11 +240,16 @@ class SyntaxHighlighterService {
                 return cached.result;
             }
 
-            // Если Worker не поддерживается или не готов
-            if (!this.isWorkerSupported || !this.ready) {
-                const result = this.highlightSync(code, normalizedLang);
-                highlightCache.set(code, normalizedLang, result);
-                return result;
+            // Если Worker не поддерживается или не готов, используем синхронный fallback
+            if (!this.isWorkerSupported || !this.workerInitialized) {
+                // Ждём инициализацию worker
+                if (this.workerInitPromise) {
+                    await this.workerInitPromise;
+                }
+                // Если всё ещё не готов, используем синхронный режим
+                if (!this.workerInitialized) {
+                    return this.highlightSync(code, normalizedLang);
+                }
             }
 
             // Отправка задачи в Worker
@@ -310,34 +271,55 @@ class SyntaxHighlighterService {
                         language: normalizedLang
                     });
 
+                    // Таймаут для предотвращения зависаний
                     setTimeout(() => {
                         if (this.pendingRequests.has(id)) {
                             this.pendingRequests.delete(id);
-                            reject(new Error('Timeout при подсветке кода'));
+                            // При таймауте используем синхронный fallback
+                            try {
+                                const fallbackResult = this.highlightSync(code, normalizedLang);
+                                resolve(fallbackResult);
+                            } catch (e) {
+                                reject(new Error('Timeout при подсветке кода'));
+                            }
                         }
                     }, 5000);
                 } catch (error) {
                     this.pendingRequests.delete(id);
-                    reject(error);
+                    // При ошибке используем синхронный fallback
+                    try {
+                        const fallbackResult = this.highlightSync(code, normalizedLang);
+                        resolve(fallbackResult);
+                    } catch (e) {
+                        reject(error);
+                    }
                 }
             });
         } catch (error) {
             console.error('Ошибка подсветки:', error);
+            // Fallback
             return this.highlightSync(code, language);
         }
     }
 
+    /**
+     * Debounced версия подсветки для интерактивного использования
+     */
     highlightDebounced = highlightDebounce((code, language, callback) => {
         this.highlight(code, language)
             .then(result => callback(null, result))
             .catch(error => callback(error, null));
     }, 300);
 
+    /**
+     * Массовая подсветка с оптимизацией
+     */
     async highlightBatch(items) {
         if (!Array.isArray(items) || items.length === 0) {
             return [];
         }
 
+        // Разделяем на кэшированные и нет
         const results = [];
         const toProcess = [];
 
@@ -355,6 +337,7 @@ class SyntaxHighlighterService {
             }
         }
 
+        // Обрабатываем остальные
         if (toProcess.length > 0) {
             const promises = toProcess.map(item => 
                 this.highlight(item.code, item.language)
@@ -372,6 +355,9 @@ class SyntaxHighlighterService {
         return results;
     }
 
+    /**
+     * Очистка ресурсов
+     */
     destroy() {
         if (this.worker) {
             this.worker.terminate();
@@ -381,12 +367,20 @@ class SyntaxHighlighterService {
         this.pendingRequests.clear();
         this.listeners = [];
         this.ready = false;
+        this.workerInitialized = false;
+        this.workerInitPromise = null;
     }
 
+    /**
+     * Получение статистики кэша
+     */
     getCacheStats() {
         return highlightCache.getStats();
     }
 
+    /**
+     * Подписка на события
+     */
     on(event, callback) {
         if (!this.listeners[event]) {
             this.listeners[event] = [];
@@ -394,6 +388,9 @@ class SyntaxHighlighterService {
         this.listeners[event].push(callback);
     }
 
+    /**
+     * Отписка от событий
+     */
     off(event, callback) {
         if (!this.listeners[event]) return;
         this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);

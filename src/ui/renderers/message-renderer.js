@@ -94,6 +94,9 @@ export class MessageRenderer {
         return label;
     }
 
+    /**
+     * Рендеринг баббла с асинхронной подсветкой кода
+     */
     renderBubble(role, content, files, ragSources, isEdit, replyTo) {
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
@@ -121,47 +124,43 @@ export class MessageRenderer {
                 wrapper.innerHTML = wrapper.innerHTML.replace(/\n/g, '<br>');
                 bubble.appendChild(wrapper);
             } else {
-                // Контент не подсвечен, используем обычную обработку
+                // Контент не подсвечен, разбираем на части и подсвечиваем асинхронно
                 const parts = this.formatMessage(content);
+                // Создаём контейнер для частей
+                const container = document.createElement('div');
+                container.dataset.parts = 'pending';
+                
+                // Для каждой части создаём элемент
                 parts.forEach(p => {
                     if (p.type === 'text') {
                         const textDiv = document.createElement('div');
                         // Если текст пустой, показываем плейсхолдер
                         const textContent = p.content || '...';
                         textDiv.innerHTML = sanitizeHTML(textContent).replace(/\n/g, '<br>');
-                        bubble.appendChild(textDiv);
+                        container.appendChild(textDiv);
                     } else if (p.type === 'code') {
+                        // Создаём pre с placeholder
                         const pre = document.createElement('pre');
                         pre.setAttribute('tabindex', '0');
                         // Используем async highlight
-                        const lang = p.language || 'text';
-                        try {
-                            // Синхронная подсветка для простоты (или можно сделать асинхронную)
-                            const highlighted = syntaxHighlighter.highlightSync(p.content, lang);
-                            pre.innerHTML = highlighted;
-                        } catch (e) {
-                            console.warn('Ошибка подсветки:', e);
-                            // Fallback
-                            const escaped = p.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            pre.innerHTML = `<code class="hljs language-${lang}">${escaped}</code>`;
-                        }
+                        pre.dataset.language = p.language || 'text';                        
+                        pre.dataset.code = p.content;
+                        pre.dataset.highlighting = 'pending';
                         
-                        const copyBtn = document.createElement('button');
-                        copyBtn.className = 'copy-btn';
-                        copyBtn.textContent = '📋 Копировать';
-                        copyBtn.setAttribute('aria-label', 'Копировать код');
-                        copyBtn.onclick = () => {
-                            copyToClipboard(p.content, () => {
-                                copyBtn.textContent = '✅ Скопировано!';
-                                setTimeout(() => {
-                                    copyBtn.textContent = '📋 Копировать';
-                                }, 2000);
-                            });
-                        };
-                        pre.appendChild(copyBtn);
-                        bubble.appendChild(pre);
+                        // Показываем индикатор загрузки
+                        const loadingDiv = document.createElement('div');
+                        loadingDiv.className = 'code-loading';
+                        loadingDiv.textContent = '⏳ Подсветка кода...';
+                        pre.appendChild(loadingDiv);
+                        
+                        container.appendChild(pre);
                     }
                 });
+                
+                bubble.appendChild(container);
+                
+                // Запускаем асинхронную подсветку всех блоков кода
+                this.highlightCodeBlocks(container);
             }
 
             // Источники RAG
@@ -208,6 +207,67 @@ export class MessageRenderer {
         }
 
         return bubble;
+    }
+
+    /**
+     * Асинхронная подсветка всех блоков кода в контейнере
+     */
+    async highlightCodeBlocks(container) {
+        const pres = container.querySelectorAll('pre[data-highlighting="pending"]');
+        
+        for (const pre of pres) {
+            const code = pre.dataset.code || '';
+            const language = pre.dataset.language || 'text';
+            
+            try {
+                // Используем асинхронную подсветку с кэшированием
+                const highlighted = await syntaxHighlighter.highlight(code, language);
+                
+                // Заменяем содержимое pre
+                pre.innerHTML = highlighted;
+                
+                // Добавляем кнопку копирования
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = '📋 Копировать';
+                copyBtn.setAttribute('aria-label', 'Копировать код');
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const codeText = pre.querySelector('code')?.textContent || code;
+                    copyToClipboard(codeText, () => {
+                        copyBtn.textContent = '✅ Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.textContent = '📋 Копировать';
+                        }, 2000);
+                    });
+                };
+                pre.appendChild(copyBtn);
+                
+                // Убираем статус загрузки
+                pre.dataset.highlighting = 'done';
+                
+            } catch (error) {
+                console.warn('Ошибка подсветки кода:', error);
+                // Fallback - показать исходный код без подсветки
+                const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                pre.innerHTML = `<code class="hljs language-${language}">${escaped}</code>`;
+                pre.dataset.highlighting = 'error';
+            }
+        }
+    }
+
+    /**
+     * Синхронная версия для быстрого рендеринга (использует кэш)
+     */
+    renderCodeBlockSync(code, language) {
+        try {
+            // Используем синхронную версию (с кэшированием)
+            return syntaxHighlighter.highlightSync(code, language);
+        } catch (e) {
+            console.warn('Ошибка синхронной подсветки:', e);
+            const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<code class="hljs language-${language}">${escaped}</code>`;
+        }
     }
 
     formatMessage(content) {

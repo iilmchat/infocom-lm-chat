@@ -1,0 +1,28 @@
+Краткое резюме изменений syntaxHighlighter
+message-renderer.js:
+
+Заменён вызов syntaxHighlighter.highlight() (асинхронный) с syntaxHighlighter.highlightSync() (синхронный с кэшированием)
+
+Добавлена асинхронная подсветка с индикатором загрузки
+
+Кнопка копирования добавляется после подсветки
+
+syntax-highlighter.js:
+
+Добавлена инициализация Worker с Promise
+
+Улучшена обработка ошибок и таймаутов
+
+При таймауте используется синхронный fallback
+
+session-manager.js:
+
+Добавлен метод highlightMessageSync() для синхронной подсветки при загрузке истории
+
+getMessagesWithHighlight() теперь использует синхронную подсветку
+
+syntax-highlighter.worker.js:
+
+Добавлено сообщение о готовности { type: 'ready' }
+
+Улучшена обработка ошибок
