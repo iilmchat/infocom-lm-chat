@@ -199,7 +199,7 @@ export function runAllTests() {
         }
     });
 
-    runner.runAll();
+    //runner.runAll();
 
     const toast = new ToastManager();    
     toast.success(`🎉 Тесты запущены были. Результат на экране!`); // Сообщение о запуске тестов

@@ -12,7 +12,7 @@ export class ChatView {
     constructor(app) {
         this.app = app;
         this.messageRenderer = new MessageRenderer();
-        this.replyTarget = null;
+        //this.replyTarget = null;
         this.editingMessageId = null;
         this.editingOriginalContent = '';
         this.lastBotMessageEl = null;
@@ -307,14 +307,14 @@ export class ChatView {
 
         // Подготовка контекста ответа
         let replyContext = null;
-        if (this.replyTarget) {
+        if (this.app.replyTarget) {
             replyContext = {
-                content: this.replyTarget.content,
-                role: this.replyTarget.role
+                content: this.app.replyTarget.content,
+                role: this.app.replyTarget.role
             };
             this.app.achievementManager.incrementReply();
             this.app.toast.success('💬 Ответ на сообщение', 1500);
-            this.clearReplyTarget();
+            this.app.clearReplyTarget();
         }
 
         // RAG контекст
@@ -765,7 +765,7 @@ export class ChatView {
                 this.userInput.value += '\n';
                 this.updateCharCounter();
             }
-            if (e.key === 'Escape' && this.replyTarget) {
+            if (e.key === 'Escape' && this.app.replyTarget) {
                 this.clearReplyTarget();
                 this.app.toast.info('Ответ отменён', 1000);
             }
@@ -1153,7 +1153,7 @@ export class ChatView {
     }
 
     clearReplyTarget() {
-        this.replyTarget = null;
+        //this.replyTarget = null;
         this.app.clearReplyTarget();
     }
 

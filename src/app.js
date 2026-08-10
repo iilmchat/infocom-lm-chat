@@ -100,15 +100,18 @@ class App {
             }
         }
 
+        // Проверка сервера
+        await this.apiService.checkServer();
+
+        // Перерисовываем выпадающий список моделей
+        this.renderModelDropdown(this);
+
         // Загрузка модели для текущего чата
         const model = this.sessionManager.getModelForChat();
         if (model) {
             this.currentModel = model;
-            this.updateModelUI();
+            this.updateModelUI();            
         }
-
-        // Проверка сервера
-        await this.apiService.checkServer();
 
         // Рендеринг UI
         this.sidebar.render();
@@ -263,7 +266,23 @@ class App {
                 this.stopGeneration();
                 e.preventDefault();
             }
-        });           
+        });  
+
+        // Глобальная обработка смены модели
+        document.getElementById('modelBadge').onclick = function(e) {
+            e.stopPropagation();
+            document.getElementById('modelDropdown').classList.toggle('active');
+        };
+
+        // Глобальный обработчик для кнопки смена тем
+        const themeBtn = document.getElementById('themeBtn')
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                cycleTheme();
+            });
+        }
+        
+        document.addEventListener('click', () => document.getElementById('modelDropdown').classList.remove('active'));        
     }
 
     handleGlobalKeys(e) {
@@ -321,6 +340,46 @@ class App {
             currentModelLabel.textContent = `Модель: ${display}`;
         }
     }
+
+     renderModelDropdown(object) {
+        const modelDropdown = document.getElementById('modelDropdown');
+        const currentModelLabel = document.getElementById('currentModelLabel');                
+        if (!object.apiService.availableModels.length) {
+            modelDropdown.innerHTML = `<div class="model-item" style="color:var(--text-secondary);">Модели не найдены</div>`;
+            return;
+        }
+        let html = '';
+        object.apiService.availableModels.forEach(m => {
+            const active = m === object.currentModel;
+            html += `<div class="model-item ${active ? 'active-model' : ''}" data-model="${object.sanitizeHTML(m)}" role="option" aria-selected="${active}">
+            <span>${object.sanitizeHTML(m)}</span>${active ? '<span class="check">✔</span>' : ''}
+        </div>`;
+        });
+        modelDropdown.innerHTML = html;
+        document.querySelectorAll('.model-item').forEach(el => {
+            el.onclick = function(e) {
+                e.stopPropagation();
+                const name = this.dataset.model;
+                if (name && name !== object.currentModel) {                    
+                    object.currentModel = name;
+                    // Сохраняем модель для текущего чата
+                    object.sessionManager.setModelForChat(object.currentModel);
+                    object.updateModelUI();
+                    object.renderModelDropdown(object);
+                    //-------------------------------------------
+                    //БЫЛО УДАЛЕНО в 3.0, ЗАЧЕМ
+                    //const s = sessionManager.getCurrent();
+                    //if (s) s.model = currentModel;
+                    //sessionManager.save();
+                    //-------------------------------------------
+                    object.toast.success(`Модель: ${object.currentModel}`);
+                }
+                modelDropdown.classList.remove('active');
+            };
+        });
+    }
+
+
 
     updateStats() {
         const messagesCount = this.sessionManager.getMessages()

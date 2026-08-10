@@ -68,8 +68,8 @@ export function escapeHtml(text) {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
+        '"': '&quot;'/*,
+        "'": '&#039;'*/
     };
     return String(text).replace(/[&<>"']/g, m => map[m]);
 }

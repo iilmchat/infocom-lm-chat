@@ -169,7 +169,7 @@ request.reject(new Error('Worker error: ' + (error.message || 'Неизвест�
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+           /*.replace(/'/g, '&#039;')*/;
         
         // Ключевые слова для подсветки            
         // Базовая подсветка для ключевых слов

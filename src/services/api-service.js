@@ -29,7 +29,8 @@ export class ApiService {
         // DOM элементы
         this.statusDisplay = document.getElementById('statusDisplay');    
         this.errorMsg = document.getElementById('errorMsg'); 
-        
+       
+   
         // Загружаем конфигурацию
         //loadServerConfig();
         //this.loadConfig();                   
