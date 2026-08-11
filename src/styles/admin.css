@@ -1,0 +1,231 @@
+/* src/styles/admin.css */
+.admin-panel {
+    padding: 16px;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.admin-tab {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+}
+
+.admin-tab:hover {
+    background: var(--bg-accent);
+    color: var(--text-primary);
+}
+
+.admin-tab.active {
+    color: var(--text-accent);
+    background: var(--bg-accent);
+    border-bottom: 2px solid var(--text-accent);
+}
+
+.admin-user-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.2s;
+}
+
+.admin-user-card:hover {
+    border-color: var(--text-accent);
+}
+
+.admin-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-user-avatar {
+    font-size: 28px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-user-name {
+    font-weight: 600;
+}
+
+.admin-user-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.admin-user-status {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.admin-user-status.online {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success-color);
+}
+
+.admin-user-status.offline {
+    background: rgba(136, 136, 136, 0.2);
+    color: var(--text-secondary);
+}
+
+.admin-user-status.banned {
+    background: rgba(255, 107, 107, 0.2);
+    color: var(--error-color);
+}
+
+.admin-user-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.admin-user-actions button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: var(--bg-accent);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.admin-user-actions button:hover {
+    background: var(--border-color);
+    transform: scale(1.05);
+}
+
+.admin-user-actions .btn-mute { background: var(--warning-color); color: #1a1a2e; }
+.admin-user-actions .btn-kick { background: #ff6b6b; color: #fff; }
+.admin-user-actions .btn-ban { background: #d32f2f; color: #fff; }
+.admin-user-actions .btn-unban { background: var(--success-color); color: #fff; }
+
+.admin-search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.admin-search input {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.admin-search button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background: var(--bg-accent);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.admin-room-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.admin-room-name {
+    font-weight: 600;
+}
+
+.admin-room-stats {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.admin-room-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.admin-room-actions button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: var(--bg-accent);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.admin-room-actions .btn-delete { background: #d32f2f; color: #fff; }
+.admin-room-actions .btn-clear { background: var(--warning-color); color: #1a1a2e; }
+
+.admin-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setting-item label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.setting-item input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.admin-log-list {
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 12px;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.admin-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.admin-log-entry .time {
+    color: var(--text-accent);
+}
+
+.admin-log-entry .level-error { color: var(--error-color); }
+.admin-log-entry .level-warning { color: var(--warning-color); }
+.admin-log-entry .level-info { color: var(--success-color); }

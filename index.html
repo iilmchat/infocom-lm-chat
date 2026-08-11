@@ -251,8 +251,13 @@
                     </span>
                     <span class="perf-indicator" id="perfIndicator"></span>
                 </div>
+
                 <!-- Кнопка подключения в шапке -->                
                 <div class="header-actions">
+
+                    <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
+                    <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button>
+
                     <button id="gameBtn" title="Игры">🎮</button>
                     <!-- Существующие кнопки -->
                     <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
@@ -295,6 +300,165 @@
             </div>           
             
             <!-- MODALS -->
+            <!-- ===== USER MODAL (идентификация) ===== -->
+            <div class="modal-overlay" id="userModal">
+                <div class="modal-content" style="max-width:450px;">
+                    <button class="modal-close" id="userModalClose">✕</button>
+                    <h2>👤 Ваш профиль</h2>
+                    
+                    <div class="user-preview" id="userPreview" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--text-accent);margin-bottom:16px;">
+                        <span id="userPreviewAvatar" style="font-size:48px;">👤</span>
+                        <div>
+                            <div id="userPreviewName" style="font-size:18px;font-weight:600;">Пользователь</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Ваш профиль</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Имя пользователя</label>
+                        <input type="text" id="userNameInput" placeholder="Введите имя..." maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Аватар (эмодзи)</label>
+                        <div class="avatar-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😊</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😎</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🤖</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🦊</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐱</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐶</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐼</span>
+                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🦁</span>
+                        </div>
+                        <input type="text" id="userAvatarInput" placeholder="👤" maxlength="2" style="width:60px;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Цвет</label>
+                        <div class="color-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                            <span class="color-preset-option selected" data-color="#7ec8e3" style="width:28px;height:28px;border-radius:50%;background:#7ec8e3;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#4caf50" style="width:28px;height:28px;border-radius:50%;background:#4caf50;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#9b4dca" style="width:28px;height:28px;border-radius:50%;background:#9b4dca;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#f0db4f" style="width:28px;height:28px;border-radius:50%;background:#f0db4f;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#dd0031" style="width:28px;height:28px;border-radius:50%;background:#dd0031;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#ff69b4" style="width:28px;height:28px;border-radius:50%;background:#ff69b4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#ff9800" style="width:28px;height:28px;border-radius:50%;background:#ff9800;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                            <span class="color-preset-option" data-color="#00bcd4" style="width:28px;height:28px;border-radius:50%;background:#00bcd4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
+                        </div>
+                        <input type="color" id="userColorInput" value="#7ec8e3" style="width:60px;height:40px;border:none;border-radius:8px;cursor:pointer;">
+                    </div>
+                    
+                    <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
+                        <button class="btn-secondary" id="userCancelBtn">Отмена</button>
+                        <button class="btn-primary" id="userSaveBtn">💾 Сохранить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PRIVATE CHAT MODAL ===== -->
+            <div class="modal-overlay" id="privateChatModal">
+                <div class="modal-content" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
+                    <button class="modal-close" id="privateChatClose">✕</button>
+                    <h2 id="privateChatTitle">💬 Приватный чат</h2>
+                    
+                    <div class="private-messages" id="privateMessages" style="flex:1;overflow-y:auto;padding:12px 0;min-height:300px;max-height:400px;">
+                        <!-- Сообщения будут здесь -->
+                    </div>
+                    
+                    <div class="private-input-area" style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);">
+                        <textarea id="privateMessageInput" placeholder="Введите сообщение..." rows="2" style="flex:1;padding:8px 12px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);resize:none;font-family:inherit;"></textarea>
+                        <button id="privateSendBtn" style="padding:8px 20px;border:none;border-radius:12px;background:var(--send-btn-bg);color:#fff;cursor:pointer;font-weight:600;">Отправить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ADMIN MODAL ===== -->
+            <div class="modal-overlay" id="adminModal">
+                <div class="modal-content" style="max-width:600px;max-height:80vh;overflow-y:auto;">
+                    <button class="modal-close" id="adminModalClose">✕</button>
+                    <h2>🛡️ Панель модерации</h2>
+                    
+                    <div style="display:flex;gap:12px;margin-bottom:12px;">
+                        <button id="adminRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+                    </div>
+                    
+                    <h3>👥 Пользователи</h3>
+                    <div id="adminUsersList" style="margin-bottom:16px;"></div>
+                    
+                    <h3>💬 Комнаты</h3>
+                    <div id="adminRoomsList"></div>
+                </div>
+            </div>
+
+            <!-- Панель администрирования -->
+            <div class="admin-panel">
+                <!-- Вкладки -->
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="users">👥 Пользователи</button>
+                    <button class="admin-tab" data-tab="rooms">💬 Комнаты</button>
+                    <button class="admin-tab" data-tab="messages">📝 Сообщения</button>
+                    <button class="admin-tab" data-tab="settings">⚙️ Настройки</button>
+                    <button class="admin-tab" data-tab="logs">📋 Логи</button>
+                </div>
+
+                <!-- Вкладка Пользователи -->
+                <div class="admin-tab-content" id="tab-users">
+                    <div class="admin-search">
+                        <input type="text" id="adminUserSearch" placeholder="🔍 Поиск пользователей...">
+                        <button id="adminUserRefresh">🔄</button>
+                    </div>
+                    <div class="admin-user-list" id="adminUserList">
+                        <!-- Карточки пользователей -->
+                    </div>
+                </div>
+
+                <!-- Вкладка Комнаты -->
+                <div class="admin-tab-content" id="tab-rooms" style="display:none;">
+                    <div class="admin-room-list" id="adminRoomList">
+                        <!-- Список комнат -->
+                    </div>
+                </div>
+
+                <!-- Вкладка Сообщения -->
+                <div class="admin-tab-content" id="tab-messages" style="display:none;">
+                    <div class="admin-search">
+                        <input type="text" id="adminMsgSearch" placeholder="🔍 Поиск сообщений...">
+                        <button id="adminMsgSearchBtn">🔍</button>
+                    </div>
+                    <div class="admin-message-list" id="adminMessageList">
+                        <!-- Результаты поиска -->
+                    </div>
+                </div>
+
+                <!-- Вкладка Настройки -->
+                <div class="admin-tab-content" id="tab-settings" style="display:none;">
+                    <div class="admin-settings-grid">
+                        <div class="setting-item">
+                            <label>Макс. длина сообщения</label>
+                            <input type="number" id="settingMaxLength" value="10000">
+                        </div>
+                        <div class="setting-item">
+                            <label>Макс. пользователей в комнате</label>
+                            <input type="number" id="settingMaxUsers" value="50">
+                        </div>
+                        <div class="setting-item">
+                            <label>Таймаут неактивности (мин)</label>
+                            <input type="number" id="settingInactiveTimeout" value="5">
+                        </div>
+                        <button id="settingSaveBtn">💾 Сохранить</button>
+                    </div>
+                </div>
+
+                <!-- Вкладка Логи -->
+                <div class="admin-tab-content" id="tab-logs" style="display:none;">
+                    <div class="admin-log-list" id="adminLogList">
+                        <!-- Логи системы -->
+                    </div>
+                    <button id="adminLogClear">🗑️ Очистить логи</button>
+                </div>
+            </div>
+
             <!-- Server Settings Modal -->
             <div class="modal-overlay server-settings-modal" id="serverSettingsModal">
                 <div class="modal-content">

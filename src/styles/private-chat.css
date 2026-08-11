@@ -1,0 +1,174 @@
+/* src/styles/private-chat.css */
+
+.private-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.private-message {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+}
+
+.private-message.own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.private-message-avatar {
+    font-size: 28px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.private-message-content {
+    background: var(--bg-bubble-bot);
+    padding: 8px 14px;
+    border-radius: 12px;
+    max-width: 100%;
+}
+
+.private-message.own .private-message-content {
+    background: var(--bg-bubble-user);
+}
+
+.private-message-header {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.private-message-name {
+    font-weight: 600;
+    color: var(--text-accent);
+}
+
+.private-message-time {
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+
+.private-message-text {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.private-message-read {
+    font-size: 10px;
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 2px;
+}
+
+/* Admin styles */
+.admin-user-item,
+.admin-room-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.admin-user-info,
+.admin-room-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-user-avatar {
+    font-size: 24px;
+}
+
+.admin-user-name {
+    font-weight: 500;
+}
+
+.admin-user-status {
+    font-size: 11px;
+}
+
+.admin-user-status.online {
+    color: var(--success-color);
+}
+
+.admin-user-status.offline {
+    color: var(--text-secondary);
+}
+
+.admin-user-actions,
+.admin-room-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.admin-user-actions button,
+.admin-room-actions button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.admin-user-actions button:hover,
+.admin-room-actions button:hover {
+    background: var(--bg-accent);
+    color: var(--text-primary);
+}
+
+.admin-badge {
+    background: var(--gold-color);
+    color: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* User preview */
+.user-preview {
+    transition: all 0.3s;
+}
+
+.avatar-preset {
+    transition: all 0.2s;
+}
+
+.avatar-preset:hover {
+    transform: scale(1.2);
+    border-color: var(--text-accent);
+}
+
+.avatar-preset.selected {
+    border-color: var(--text-accent);
+    background: var(--bg-accent);
+}
+
+.color-preset-option {
+    transition: all 0.2s;
+}
+
+.color-preset-option:hover {
+    transform: scale(1.15);
+}
+
+.color-preset-option.selected {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 12px currentColor;
+}
