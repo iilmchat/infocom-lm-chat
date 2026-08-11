@@ -1,0 +1,56 @@
+<!-- В sidebar -->
+<div class="sidebar-section">
+    <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
+        <span class="section-icon">👥</span>
+        <span class="section-title">Пользователи</span>
+        <span class="section-arrow">▶</span>
+    </div>
+    <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
+        <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+            <span class="user-badge self">
+                <span class="user-avatar">👤</span> Вы
+            </span>
+        </div>
+        <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
+            <span id="userCountDisplay">👥 1 онлайн</span>
+        </div>
+    </div>
+</div>
+
+<!-- Collaboration Bar (под шапкой) -->
+<div class="collaboration-bar" id="collaborationBar">
+    <span>👥 Совместная работа:</span>
+    <div class="collab-users" id="collabUsers"></div>
+    <div class="typing-notification" id="typingNotification"></div>
+</div>
+
+<!-- Кнопка подключения в шапке -->
+<div class="header-actions">
+    <!-- Существующие кнопки -->
+    <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
+        🌐<span class="tooltip">Подключиться</span>
+    </button>
+    <button id="roomInfoBtn" title="Информация о комнате" aria-label="Информация о комнате">
+        ℹ️<span class="tooltip">Комната</span>
+    </button>
+    <!-- ... остальные кнопки -->
+</div>
+
+<!-- Room Info Modal -->
+<div class="modal-overlay" id="roomInfoModal">
+    <div class="modal-content" style="max-width:400px;">
+        <button class="modal-close" id="roomInfoModalClose">✕</button>
+        <h2>ℹ️ Информация о комнате</h2>
+        <div id="roomInfoContent">
+            <p><strong>ID:</strong> <span id="roomInfoId">—</span></p>
+            <p><strong>Название:</strong> <span id="roomInfoName">—</span></p>
+            <p><strong>Пользователей:</strong> <span id="roomInfoUsers">0</span></p>
+            <p><strong>Сообщений:</strong> <span id="roomInfoMessages">0</span></p>
+            <p><strong>Статус:</strong> <span id="roomInfoStatus">Отключен</span></p>
+        </div>
+        <div class="modal-actions" style="margin-top:12px;">
+            <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+            <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
+        </div>
+    </div>
+</div>

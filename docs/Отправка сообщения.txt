@@ -1,0 +1,7 @@
+User → ChatView → ApiService → [HTTP] → Server (ChatController) → LM Studio
+                                            ↓
+                                       RoomManager (сохранение)
+                                            ↓
+                                       SignalR / Long Polling
+                                            ↓
+                                       [HTTP] → Клиент (все пользователи)

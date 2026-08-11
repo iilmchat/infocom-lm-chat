@@ -1,0 +1,34 @@
+src/
+├── app.js                    # Ядро приложения
+├── config.js                 # Конфигурация
+├── core/
+│   ├── event-bus.js          # Шина событий
+│   ├── error-boundary.js     # Глобальный перехват ошибок
+│   └── storage.js            # Работа с localStorage
+├── models/
+│   ├── session-manager.js    # Управление диалогами
+│   ├── rag-manager.js        # RAG (векторный поиск)
+│   ├── assistant-manager.js  # Ассистенты
+│   ├── achievement-manager.js # Достижения
+│   ├── multi-user-manager.js # Многопользовательский режим
+│   ├── rate-limiter.js       # Ограничение запросов
+│   └── input-history.js      # История ввода
+├── services/
+│   ├── api-service.js        # HTTP + Streaming
+│   ├── http-client.js        # HTTP клиент
+│   ├── long-polling-client.js # Long Polling
+│   ├── syntax-highlighter.js # Подсветка кода
+│   └── sanitizer.js          # XSS защита
+├── ui/
+│   ├── views/
+│   │   ├── chat-view.js      # Отображение чата
+│   │   ├── sidebar.js        # Боковая панель
+│   │   └── ...
+│   └── components/
+│       ├── modal.js          # Модальные окна
+│       ├── toast.js          # Уведомления
+│       └── drop-zone.js      # Drag & Drop
+└── utils/
+    ├── dom-helpers.js
+    ├── network-helpers.js
+    └── section-helpers.js

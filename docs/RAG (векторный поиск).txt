@@ -1,0 +1,11 @@
+User → Drag & Drop → RAGManager
+                         ↓
+                   Split into chunks
+                         ↓
+                   Get embedding (API)
+                         ↓
+                   Cache (IndexedDB)
+                         ↓
+                   Build TF-IDF index
+                         ↓
+                   Query → Find relevant → Context

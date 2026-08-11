@@ -64,6 +64,7 @@
                 </div>
             </div>
             -->
+            <!-- В sidebar -->
 
             <!-- ===== STATS PANEL ===== -->
             <div class="sidebar-section collapsed"">
@@ -102,6 +103,7 @@
             </div>
 
             <!-- ===== USERS ONLINE ===== -->
+             <!-- 
             <div class="sidebar-section collapsed"">
                 <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="usersOnlinePanel">
                     <span class="section-icon">👥</span>
@@ -114,6 +116,24 @@
                             <span class="user-avatar">👤</span> Вы
                         </span>                  
                     </div>        
+                </div>
+            </div>
+            -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
+                    <span class="section-icon">👥</span>
+                    <span class="section-title">Пользователи</span>
+                    <span class="section-arrow">▶</span>
+                </div>
+                <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
+                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+                        <span class="user-badge self">
+                            <span class="user-avatar">👤</span> Вы
+                        </span>
+                    </div>
+                    <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
+                        <span id="userCountDisplay">👥 1 онлайн</span>
+                    </div>
                 </div>
             </div>
 
@@ -204,6 +224,7 @@
                 -->
 
             <!-- MULTI-USER BAR -->
+            <!-- Collaboration Bar (под шапкой) -->             
             <div class="collaboration-bar" id="collaborationBar">
                 <span>👥 Совместная работа:</span>
                 <div class="collab-users" id="collabUsers"></div>
@@ -230,8 +251,17 @@
                     </span>
                     <span class="perf-indicator" id="perfIndicator"></span>
                 </div>
+                <!-- Кнопка подключения в шапке -->                
                 <div class="header-actions">
                     <button id="gameBtn" title="Игры">🎮</button>
+                    <!-- Существующие кнопки -->
+                    <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
+                        🌐<span class="tooltip">Подключиться</span>
+                    </button>
+                    <button id="roomInfoBtn" title="Информация о комнате" aria-label="Информация о комнате">
+                        ℹ️<span class="tooltip">Комната</span>
+                    </button>
+                    <!-- ... остальные кнопки -->                               
                     <button id="shareBtn" title="Поделиться">🔗</button>
                     <button class="info-btn" id="wikiBtn" title="Вики" aria-label="Открыть вики">📖</button>
                     <button class="info-btn" id="suggestionsBtn" title="Предложения" aria-label="Предложения">💡</button>
@@ -240,10 +270,30 @@
                     <button id="clearRagBtn" class="clear-rag-btn" title="Очистить RAG контекст" aria-label="Очистить RAG">🗑️ RAG</button>
                     <button id="exportBtn" title="Экспорт" aria-label="Экспорт (Ctrl+E)">💾<span class="tooltip">Экспорт (Ctrl+E)</span></button>
                     <button id="serverSettingsBtn" title="Настройки сервера" aria-label="Настройки сервера">⚙️<span class="tooltip">Настройки сервера</span></button>
+    
                     <span class="status" id="statusDisplay">● Подключение...</span>
                 </div>
             </div>
 
+            <!-- Room Info Modal -->
+            <div class="modal-overlay" id="roomInfoModal">
+                <div class="modal-content" style="max-width:400px;">
+                    <button class="modal-close" id="roomInfoModalClose">✕</button>
+                    <h2>ℹ️ Информация о комнате</h2>
+                    <div id="roomInfoContent">
+                        <p><strong>ID:</strong> <span id="roomInfoId">—</span></p>
+                        <p><strong>Название:</strong> <span id="roomInfoName">—</span></p>
+                        <p><strong>Пользователей:</strong> <span id="roomInfoUsers">0</span></p>
+                        <p><strong>Сообщений:</strong> <span id="roomInfoMessages">0</span></p>
+                        <p><strong>Статус:</strong> <span id="roomInfoStatus">Отключен</span></p>
+                    </div>
+                    <div class="modal-actions" style="margin-top:12px;">
+                        <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+                        <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
+                    </div>
+                </div>
+            </div>           
+            
             <!-- MODALS -->
             <!-- Server Settings Modal -->
             <div class="modal-overlay server-settings-modal" id="serverSettingsModal">

@@ -1,0 +1,30 @@
+InfocomChat.Server/
+├── Controllers/
+│   ├── ChatController.cs
+│   ├── RoomController.cs
+│   └── SyncController.cs          ← Обновлен (Long Polling)
+├── Services/
+│   ├── RoomManager.cs             ← Добавлены уведомления
+│   ├── MessageHistoryService.cs   ← Добавлены методы
+│   └── UserPresenceService.cs
+├── Models/
+│   ├── ChatMessage.cs
+│   ├── RoomInfo.cs
+│   └── UserInfo.cs
+├── Startup.cs
+├── Program.cs
+├── appsettings.json
+└── web.config
+
+client/
+├── src/
+│   ├── app.js                     ← Обновлен
+│   ├── config.js                  ← Обновлены порты
+│   ├── models/
+│   │   └── multi-user-manager.js  ← Полная реализация
+│   ├── services/
+│   │   └── http-client.js         ← Добавлены методы
+│   └── ui/
+│       └── views/
+│           └── chat-view.js       ← Интеграция с MultiUserManager
+└── index.html                     ← Обновлен (UI элементы)
