@@ -25,6 +25,11 @@ import { runAllTests } from './utils/test-runner.js';
 import { DropZone } from './ui/components/drop-zone.js';
 import sectionToggle from './ui/components/section-toggle.js';
 import { SectionHelpers } from './utils/section-helpers.js';
+import { UserModal } from './ui/views/user-modal.js';
+import { AdminPanel } from './ui/views/admin-panel.js';
+import { PrivateChat } from './ui/views/private-chat.js';
+
+
 
 class App {
     constructor() {
@@ -70,6 +75,10 @@ class App {
         this.gameView = new GameView(this);
         this.exportView = new ExportView(this);
 
+        this.userModal = new UserModal(this);
+        this.adminPanel = new AdminPanel(this);
+        this.privateChat = new PrivateChat(this);
+
         // Инициализация DropZone
         this.dropZone = new DropZone(this);
                 
@@ -112,6 +121,23 @@ class App {
             });
         }
 
+ 
+        // Кнопка открытия Администрирования
+        document.getElementById('adminBtn')?.addEventListener('click', () => {
+            this.openAdmin();
+        });
+        
+        // Кнопка открытия приватного чата
+        document.getElementById('privateChatBtn')?.addEventListener('click', () => {
+            this.openPrivateChat();
+        });
+
+
+        // Кнопка информации о пользователе
+        document.getElementById('userProfileBtn')?.addEventListener('click', () => {
+            this.openProfileInfo();
+        });
+        
         // Кнопка информации о комнате
         document.getElementById('roomInfoBtn')?.addEventListener('click', () => {
             this.openRoomInfo();
@@ -159,6 +185,21 @@ class App {
         document.getElementById('roomInfoStatus').style.color = status.isConnected ? 'var(--success-color)' : 'var(--text-secondary)';
     }
 
+    openProfileInfo() {
+        this.userModal.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    }    
+
+    openPrivateChat() {
+        this.privateChat.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    } 
+
+    openAdmin() {
+        this.adminPanel.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    } 
+
     openRoomInfo() {
         this.updateRoomInfoUI();
         document.getElementById('roomInfoModal').classList.add('active');
@@ -196,7 +237,7 @@ class App {
             document.getElementById('connectBtn').style.color = '';
         });
     }
-        
+
     async init() {
         // Загрузка конфигурации сервера
         loadServerConfig();
@@ -328,6 +369,8 @@ class App {
     setupEventListeners(app) {
         // Глобальные обработчики клавиш
         document.addEventListener('keydown', this.handleGlobalKeys.bind(this));
+
+        //this.userModal.setupEventListeners();
 
         // События от менеджеров
         this.eventBus.on('session:switched', () => {

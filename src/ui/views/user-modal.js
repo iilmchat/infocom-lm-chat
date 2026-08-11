@@ -70,6 +70,8 @@ export class UserModal {
     }
 
     setupEventListeners() {
+        // Открытие
+        document.getElementById('userModal')?.addEventListener('click', () => this.open());
         // Превью при вводе
         document.getElementById('userNameInput')?.addEventListener('input', () => this.updatePreview());
         document.getElementById('userAvatarInput')?.addEventListener('input', () => this.updatePreview());
