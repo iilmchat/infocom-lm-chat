@@ -152,7 +152,7 @@ class App {
         setInterval(() => this.updateStats(), CONFIG.DEBOUNCE.STATS);
 
         // Подписка на события
-        this.setupEventListeners();
+        this.setupEventListeners(this);
 
         this.toast.info(`🚀 Infocom LM Chat Pro v${CONFIG.VERSION}`, 2000);
         this.toast.info('💡 Используйте Ctrl+↑ и Ctrl+↓ для истории сообщений', 3000);
@@ -208,7 +208,7 @@ class App {
     /**
      * Настройка глобальных обработчиков событий
      */    
-    setupEventListeners() {
+    setupEventListeners(app) {
         // Глобальные обработчики клавиш
         document.addEventListener('keydown', this.handleGlobalKeys.bind(this));
 
@@ -282,7 +282,133 @@ class App {
             });
         }
         
+
+        // === ОБЩИЕ ПОДПИСКИ НА СОБЫТИЯ ДЛЯ МОДАЛЬНЫХ ОКЕН ===
+
+        // Открытие модального окна "Поделиться"
+        document.getElementById('shareBtn').onclick = app.openShareModal;
+
+        // Закрытие модального окна "Поделиться" по кнопке закрытия
+        document.getElementById('shareModalClose').onclick = () => {
+            document.getElementById('shareModal').classList.remove('active');
+        };
+
+        // Закрытие модального окна "Поделиться" при клике вне области модалки
+        document.getElementById('shareModal').onclick = (e) => {
+            if (e.target === document.getElementById('shareModal')) {
+                document.getElementById('shareModal').classList.remove('active');
+            }
+        };
+
+        // Закрытие модального окна "Промт" по кнопке закрытия
+        document.getElementById('promptModalClose').onclick = () => {
+            document.getElementById('promptModal').classList.remove('active');
+        };
+
+        // Закрытие модального окна "Промт" при клике вне области модалки
+        document.getElementById('promptModal').onclick = (e) => {
+            if (e.target === document.getElementById('promptModal')) {
+                document.getElementById('promptModal').classList.remove('active');
+            }
+        };
+
+        // Закрытие модального окна "Пользовательский ассистент" по кнопке закрытия
+        document.getElementById('customAssistantModalClose').onclick = () => {
+            document.getElementById('customAssistantModal').classList.remove('active');
+        };
+
+        // Закрытие модального окна "Пользовательский ассистент" при клике вне области модалки
+        document.getElementById('customAssistantModal').onclick = (e) => {
+            if (e.target === document.getElementById('customAssistantModal')) {
+                document.getElementById('customAssistantModal').classList.remove('active');
+            }
+        };
+
+        // Отмена создания ассистента в модальном окне
+        document.getElementById('caCancelBtn').onclick = () => {
+            document.getElementById('customAssistantModal').classList.remove('active');
+        };
+
+        // === ВЫБОР ЦВЕТА ДЛЯ АССИСТЕНТА ===
+
+        // Обработка выбора цвета из палитры
+        document.querySelectorAll('.color-preset').forEach(el => {
+            el.onclick = function () {
+                // Убираем выделение у всех элементов палитры
+                document.querySelectorAll('.color-preset').forEach(e => e.classList.remove('selected'));
+                // Добавляем выделение к выбранному элементу
+                this.classList.add('selected');
+            };
+        });
+
+        // === СОЗДАНИЕ ПОЛЬЗОВАТЕЛЬСКОГО АССИСТЕНТА ===
+
+        // Сохранение нового пользовательского ассистента
+        document.getElementById('caSaveBtn').onclick = () => {
+            // Получаем значения из полей формы
+            const name = document.getElementById('caName').value.trim();
+            const icon = document.getElementById('caIcon').value.trim() || '🤖';
+            const desc = document.getElementById('caDesc').value.trim();
+            const prompt = document.getElementById('caPrompt').value.trim();
+
+            // Получаем выбранный цвет (или используем цвет по умолчанию)
+            const color = document.querySelector('.color-preset.selected')?.dataset.color || '#7ec8e3';
+
+            //const am = new AssistantManager();
+            //const toast = new ToastManager();
+            // Проверка обязательных полей
+            if (!name || !prompt) {
+                app.toast.warning('Название и промт обязательны');
+                return;
+            }
+
+            // Добавляем нового ассистента через менеджер
+            app.assistantManager.addCustom(name, icon, desc, color, prompt);
+
+            // Закрываем модальное окно
+            document.getElementById('customAssistantModal').classList.remove('active');
+
+            // Обновляем отображение панели ассистентов
+            app.renderAssistantBar();
+
+            // Показываем уведомление об успешном создании
+            app.toast.success(`✅ Ассистент "${name}" создан!`);
+        };
+
         document.addEventListener('click', () => document.getElementById('modelDropdown').classList.remove('active'));        
+    }
+
+
+    openShareModal() {
+        // Генерируем случайный ID комнаты (6 символов в base36)
+        const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // Формируем URL для совместного доступа
+        const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+
+        // Устанавливаем URL в поле ввода
+        document.getElementById('shareUrl').value = shareUrl;
+
+        // Создаем QR-код и отображаем его
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        qrCodeContainer.innerHTML = `QR`;
+
+        // Собираем HTML для отображения активных пользователей
+        let shareHtml = `${multiUserManager.localUser.avatar} ${sanitizeHTML(multiUserManager.localUser.name)} (Вы)`;
+
+        // Добавляем каждого подключенного пользователя в список
+        multiUserManager.peers.forEach(peer => {
+            shareHtml += `${peer.avatar} ${sanitizeHTML(peer.name)}`;
+        });
+
+        // Отображаем список пользователей в модальном окне
+        document.getElementById('activeUsers').innerHTML = shareHtml;
+
+        // Показываем модальное окно
+        document.getElementById('shareModal').classList.add('active');
+
+        // Проверяем и разблокируем достижение за первое деление доступом
+        achievements.checkAndUnlock('share_first', showAchievement);
     }
 
     handleGlobalKeys(e) {
