@@ -229,3 +229,105 @@
 .admin-log-entry .level-error { color: var(--error-color); }
 .admin-log-entry .level-warning { color: var(--warning-color); }
 .admin-log-entry .level-info { color: var(--success-color); }
+
+.private-chat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.private-chat-item:hover {
+    background: var(--bg-accent);
+}
+
+.private-chat-avatar {
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.private-chat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.private-chat-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.private-chat-last {
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.private-chat-time {
+    font-size: 10px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.unread-badge {
+    background: var(--error-color);
+    color: #fff;
+    border-radius: 50%;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Admin Stats */
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.stat-card {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-accent);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.user-select-item {
+    transition: background 0.2s;
+}
+
+.user-select-item:hover {
+    background: var(--bg-accent);
+}
+
+@media (max-width: 768px) {
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

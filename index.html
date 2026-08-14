@@ -104,6 +104,23 @@
                 </div>
             </div>
 
+            <!-- Приватные чаты -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
+                    <span class="section-icon">💬</span>
+                    <span class="section-title">Приватные чаты</span>
+                    <span class="section-arrow">▶</span>
+                    <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
+                </div>
+                <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
+                    <div id="privateChatsList" style="padding:4px 8px;">
+                        <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
+                            Загрузка...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== USERS ONLINE ===== -->
              <!-- 
             <div class="sidebar-section collapsed"">
@@ -141,7 +158,7 @@
 
             <!-- ===== ROADMAP ===== -->
             <div class="sidebar-section collapsed"">
-                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="roadmapPanel">
+                <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
                     <span class="section-icon">📊</span>
                     <span class="section-title">Прогресс развития</span>
                     <span class="section-arrow">▶</span>
@@ -392,9 +409,10 @@
                             <button class="admin-tab active" data-tab="users">👥 Пользователи</button>
                             <button class="admin-tab" data-tab="rooms">💬 Комнаты</button>
                             <button class="admin-tab" data-tab="messages">📝 Сообщения</button>
-                            <button class="admin-tab" data-tab="settings">⚙️ Настройки</button>
+                            <button class="admin-tab" data-tab="stats">📊 Статистика</button>
                             <button class="admin-tab" data-tab="logs">📋 Логи</button>
-                        </div>
+                            <button class="admin-tab" data-tab="settings">⚙️ Настройки</button>
+                        </div>                         
 
                         <!-- Вкладка Пользователи -->
                         <div class="admin-tab-content" id="tab-users">
@@ -444,13 +462,24 @@
                             </div>
                         </div>
 
-                        <!-- Вкладка Логи -->
+                        <!-- Вкладка Логи в админ-панели -->
                         <div class="admin-tab-content" id="tab-logs" style="display:none;">
                             <div class="admin-log-list" id="adminLogList">
-                                <!-- Логи системы -->
+                                <!-- Логи будут здесь -->
+                                <!-- Логи системы -->                                 
+                            </div>
+                            <button id="adminLogClear" class="btn-secondary" style="margin-top:8px;">🗑️ Очистить логи</button>
+                        </div>                        
+
+                        <!-- Вкладка Логи -->
+                         <!--
+                        <div class="admin-tab-content" id="tab-logs" style="display:none;">
+                            <div class="admin-log-list" id="adminLogList">
+                                
                             </div>
                             <button id="adminLogClear">🗑️ Очистить логи</button>
                         </div>
+                        -->
                     </div>
 
                 </div>

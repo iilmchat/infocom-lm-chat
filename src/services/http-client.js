@@ -3,16 +3,28 @@ import { CONFIG } from '../config.js';
 
 /**
  * HTTP клиент для работы с API
+ * 
+ * Этот класс предоставляет базовые функции для выполнения HTTP-запросов к API,
+ * включая обработку ошибок, повторные попытки и таймауты.
  */
 export class ChatApiClient {
     constructor() {
+        // Устанавливаем базовый URL для всех запросов к API        
         this.baseUrl = this.getBaseUrl();
+        // Таймаут по умолчанию для каждого запроса (30 секунд)        
         this.timeout = 30000;
+        // Количество попыток повторного выполнения запроса при ошибке        
         this.retryAttempts = 3;
     }
 
+    /**
+     * Получает базовый URL из конфигурации приложения
+     * {string} Базовый URL для API
+     */    
     getBaseUrl() {
+        // Извлекаем конфигурацию из глобального объекта или переменной CONFIG        
         const config = window.__CONFIG__ || CONFIG;
+        // Формируем полный базовый URL с IP-адресом и портом сервера        
         return `http://${config.SERVER.DEFAULT_IP}:${config.SERVER.DEFAULT_PORT}/api`;
     }
 
@@ -41,38 +53,59 @@ export class ChatApiClient {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
+                // Если все прошло успешно, парсим и возвращаем данные ответа                
                 const data = await response.json();
                 return data;
                 
             } catch (error) {
                 attempt++;
+
+                // Если это была последняя попытка - выбрасываем ошибку                
                 if (attempt === this.retryAttempts) {
                     throw error;
                 }
-                
+
+                // Вычисляем задержку перед следующей попыткой с экспоненциальным backoff                
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     }
 
+    /**
+     * Выполняет fetch запрос с таймаутом
+     *  {string} url - URL для запроса
+     *  {Object} options - Опции fetch запроса
+     *  {Promise<Response>} Объект Response от fetch
+     */    
     async fetchWithTimeout(url, options) {
+        // Создаем контроллер прерывания для отмены запроса при таймауте
         const controller = new AbortController();
+        
+        // Устанавливаем таймер для автоматической отмены запроса
         const timeoutId = setTimeout(() => controller.abort(), options.timeout || this.timeout);
         
         try {
+            // Выполняем fetch с сигналом прерывания и остальными опциями
             const response = await fetch(url, {
                 ...options,
-                signal: controller.signal
+                signal: controller.signal  // Подключаем сигнал для отмены
             });
+            
+            // Отменяем таймер, если запрос завершился успешно
             clearTimeout(timeoutId);
             return response;
         } catch (error) {
+            // Отменяем таймер в случае ошибки
             clearTimeout(timeoutId);
+            
+            // Если это ошибка отмены из-за таймаута - выбрасываем специальное сообщение
             if (error.name === 'AbortError') {
                 throw new Error('Request timeout');
             }
+            
+            // Для других ошибок пробрасываем их дальше
             throw error;
         }
     }
@@ -276,6 +309,10 @@ export class ChatApiClient {
         });
     }
 
+    async getUserChats(userId) {
+        return this.request(`/private/user/${userId}/chats`);
+    }    
+
     // === Admin API ===
 
     async getAllUsers() {
@@ -290,31 +327,50 @@ export class ChatApiClient {
         return this.request(`/admin/user/${userId}/stats`);
     }
 
+    async setUserRole(userId, data) {
+        return this.request(`/admin/user/${userId}/role`, {
+            method: 'POST',
+            body: data
+        });
+    }
+
     async muteUser(data) {
         return this.request(`/admin/user/${data.userId}/mute`, {
             method: 'POST',
-            body: { minutes: data.minutes, moderatorId: data.moderatorId, reason: data.reason }
+            body: { 
+                    minutes: data.minutes, 
+                    moderatorId: data.moderatorId, 
+                    reason: data.reason 
+                }
         });
     }
 
     async kickUser(data) {
         return this.request(`/admin/user/${data.userId}/kick`, {
             method: 'POST',
-            body: { roomId: data.roomId, moderatorId: data.moderatorId }
+            body: { 
+                    roomId: data.roomId, 
+                    moderatorId: data.moderatorId 
+                }
         });
     }
 
     async banUser(data) {
         return this.request(`/admin/user/${data.userId}/ban`, {
             method: 'POST',
-            body: { moderatorId: data.moderatorId, reason: data.reason }
+            body: { 
+                    moderatorId: data.moderatorId, 
+                    reason: data.reason 
+                }
         });
     }
 
     async unbanUser(data) {
         return this.request(`/admin/user/${data.userId}/unban`, {
             method: 'POST',
-            body: { moderatorId: data.moderatorId }
+            body: { 
+                    moderatorId: data.moderatorId 
+                }
         });
     }
 
@@ -327,6 +383,12 @@ export class ChatApiClient {
     async deleteRoom(data) {
         return this.request(`/admin/room/${data.roomId}`, {
             method: 'DELETE'
+        });
+    }
+
+    async closeRoom(data) {
+        return this.request(`/admin/room/${data.roomId}/close`, {
+            method: 'POST'
         });
     }
 
@@ -344,5 +406,19 @@ export class ChatApiClient {
             method: 'POST',
             body: data
         });
+    }    
+
+    async exportRoom(roomId, format = 'json') {
+        return this.request(`/admin/room/${roomId}/export?format=${format}`);
+    }
+
+    async clearAllData() {
+        return this.request('/admin/clear-all', {
+            method: 'DELETE'
+        });
+    }
+
+    async healthCheck() {
+        return this.request('/admin/health');
     }    
 }
