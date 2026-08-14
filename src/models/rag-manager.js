@@ -110,7 +110,7 @@ export class RAGManager {
     getBaseUrl() {
         // Получаем URL из глобальной конфигурации
         const config = window.__CONFIG__ || CONFIG;
-        return `http://${config.SERVER.DEFAULT_IP}:${config.SERVER.DEFAULT_PORT}`;
+        return `http://${config.SERVER.DEFAULT_LM_IP}:${config.SERVER.LM_PORT}`;
     }
 
     getEmbeddingsEndpoint() {

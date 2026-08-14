@@ -3,13 +3,14 @@
  * Глобальная конфигурация приложения
  */
 export const CONFIG = {
-    VERSION: '5.0',
+    VERSION: '5.1',
     SERVER: {
         /*
         DEFAULT_IP: '222.1.1.31',
         DEFAULT_PORT: 8034,
         */
         DEFAULT_IP: 'localhost',
+        DEFAULT_LM_IP: '222.1.1.31',
         DEFAULT_PORT: 8032,           // API сервер
         CLIENT_PORT: 8033,            // index.html
         LM_PORT: 8034,                // LM Studio       
@@ -111,6 +112,8 @@ export const CONFIG = {
 export const SERVER_CONFIG = {
     ip: CONFIG.SERVER.DEFAULT_IP,
     port: CONFIG.SERVER.DEFAULT_PORT,
+    ip_lm: CONFIG.SERVER.DEFAULT_LM_IP,
+    port_lm: CONFIG.SERVER.LM_PORT,
     timeout: CONFIG.SERVER.DEFAULT_TIMEOUT,
     maxTokens: CONFIG.SERVER.DEFAULT_MAX_TOKENS,
     apiPath: CONFIG.SERVER.DEFAULT_API_PATH,
@@ -118,6 +121,9 @@ export const SERVER_CONFIG = {
     get baseUrl() {
         return `http://${this.ip}:${this.port}`;
     },
+    get baseUrlLM() {
+        return `http://${this.ip_lm}:${this.port_lm}`;
+    },    
     get healthEndpoint() {
         return '/health';
     },
@@ -155,6 +161,8 @@ export function saveServerConfig() {
         const serverConfig = {
             ip: SERVER_CONFIG.ip,
             port: SERVER_CONFIG.port,
+            ip_lm: SERVER_CONFIG.ip_lm,
+            port_lm: SERVER_CONFIG.port_lm,
             timeout: SERVER_CONFIG.timeout,
             maxTokens: SERVER_CONFIG.maxTokens,
             apiPath: SERVER_CONFIG.apiPath

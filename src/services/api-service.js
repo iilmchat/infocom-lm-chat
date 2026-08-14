@@ -50,15 +50,19 @@ export class ApiService {
 
     saveConfig() {
         try {
-            localStorage.setItem('server_config', JSON.stringify(this.SERVER_CONFIG));
+            localStorage.setItem('server_config', JSON.stringify(SERVER_CONFIG));
         } catch (e) {
             console.warn('Не удалось сохранить конфиг сервера:', e);
         }
     }
 
     get baseUrl() {
-        return `http://${this.SERVER_CONFIG.ip}:${this.SERVER_CONFIG.port}`;
+        return `http://${SERVER_CONFIG.ip}:${SERVER_CONFIG.port}`;
     }
+
+    get baseUrlLM() {
+        return `http://${SERVER_CONFIG.ip_lm}:${SERVER_CONFIG.port_lm}`;
+    }    
     
     /**
      * Проверка доступности сервера с расширенной диагностикой
@@ -79,7 +83,7 @@ export class ApiService {
             const startTime = Date.now();
             
             const response = await fetchWithRetry(
-                `${SERVER_CONFIG.baseUrl}${CONFIG.SERVER.HEALTH_ENDPOINT}`,
+                `${SERVER_CONFIG.baseUrlLM}${CONFIG.SERVER.HEALTH_ENDPOINT}`,
                 { 
                     signal: controller.signal,
                     headers: { 'Accept': 'application/json' }
@@ -162,7 +166,7 @@ export class ApiService {
                 console.warn('⏱️ Таймаут при загрузке моделей');
             }, SERVER_CONFIG.timeout * 1000);
 
-            const url = `${SERVER_CONFIG.baseUrl}${CONFIG.SERVER.MODELS_ENDPOINT}`;
+            const url = `${SERVER_CONFIG.baseUrlLM}${CONFIG.SERVER.MODELS_ENDPOINT}`;
             const response = await fetchWithRetry(
                 url,
                 { signal: controller.signal },
@@ -353,7 +357,7 @@ export class ApiService {
             };
 
             const response = await fetchWithRetry(
-                `${SERVER_CONFIG.baseUrl}${SERVER_CONFIG.apiPath}`,
+                `${SERVER_CONFIG.baseUrlLM}${SERVER_CONFIG.apiPath}`,
                 {
                     method: 'POST',
                     headers: { 
@@ -554,7 +558,7 @@ export class ApiService {
 
         try {
             const response = await fetchWithRetry(
-                `${SERVER_CONFIG.baseUrl}${CONFIG.SERVER.EMBEDDINGS_ENDPOINT}`,
+                `${SERVER_CONFIG.baseUrlLM}${CONFIG.SERVER.EMBEDDINGS_ENDPOINT}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -611,6 +615,7 @@ export class ApiService {
             activeRequests: this._activeControllers.size,
             config: {
                 baseUrl: SERVER_CONFIG.baseUrl,
+                baseUrlLM: SERVER_CONFIG.baseUrlLM,                
                 timeout: SERVER_CONFIG.timeout
             }
         };
