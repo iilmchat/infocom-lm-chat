@@ -9,7 +9,7 @@ export const CONFIG = {
         DEFAULT_IP: '222.1.1.31',
         DEFAULT_PORT: 8034,
         */
-        DEFAULT_IP: 'localhost',
+        DEFAULT_IP: '222.1.1.99',
         DEFAULT_LM_IP: '222.1.1.31',
         DEFAULT_PORT: 8032,           // API сервер
         CLIENT_PORT: 8033,            // index.html

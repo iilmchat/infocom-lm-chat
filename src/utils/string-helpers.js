@@ -135,3 +135,71 @@ export function containsCode(text) {
     ];
     return patterns.some(pattern => pattern.test(text));
 }
+
+/**
+ * Глубоко сравнивает два значения на равенство
+ * @param {*} a - Первое значение для сравнения
+ * @param {*} b - Второе значение для сравнения
+ * @returns {boolean} true, если значения равны, иначе false
+ */
+export function deepEqual(a, b) {
+    // Если оба значения одинаковы (по ссылке или по значению)
+    if (a === b) {
+        return true;
+    }
+
+    // Если одно из значений null или undefined, а другое нет - они не равны
+    if (a == null || b == null) {
+        return a === b;
+    }
+
+    // Если типы разных - они не могут быть равны
+    if (typeof a !== typeof b) {
+        return false;
+    }
+
+    // Обработка примитивных типов (string, number, boolean, symbol, bigint)
+    if (typeof a !== 'object') {
+        return a === b;
+    }
+
+    // Если оба значения - null или undefined
+    if (a === null && b === null) {
+        return true;
+    }
+
+    // Проверяем, являются ли оба значения массивами
+    const isArrayA = Array.isArray(a);
+    const isArrayB = Array.isArray(b);
+
+    // Если один массив, а другой не массив - они не равны
+    if (isArrayA !== isArrayB) {
+        return false;
+    }
+
+    // Если оба значения - объекты или массивы
+    // Получаем ключи для сравнения
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+
+    // Если количество ключей разное - они не равны
+    if (keysA.length !== keysB.length) {
+        return false;
+    }
+
+    // Рекурсивно сравниваем каждое свойство
+    for (let key of keysA) {
+        // Проверяем, есть ли такой же ключ у второго объекта
+        if (!keysB.includes(key)) {
+            return false;
+        }
+        
+        // Рекурсивный вызов для сравнения значений свойств
+        if (!deepEqual(a[key], b[key])) {
+            return false;
+        }
+    }
+
+    // Все проверки пройдены - объекты равны
+    return true;
+}

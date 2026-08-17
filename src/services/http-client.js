@@ -305,7 +305,7 @@ export class ChatApiClient {
     async updateUserProfile(data) {
         return this.request('/private/user', {
             method: 'PUT',
-            body: data
+            body: data            
         });
     }
 

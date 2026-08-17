@@ -2,6 +2,8 @@
 import { CONFIG } from '../config.js';
 import { ChatApiClient } from '../services/http-client.js';
 import { LongPollingClient } from '../services/long-polling-client.js';
+import { deepEqual } from '../utils/string-helpers.js';
+
 
 /**
  * Управление многопользовательским режимом через Long Polling
@@ -68,8 +70,12 @@ export class MultiUserManager {
         try {
             const result = await this.api.getUserChats(this.localUser.id);
             if (result.success) {
-                this.privateChats = result.chats || [];
-                this.eventBus?.emit('private:chats_updated', this.privateChats);
+                
+                if (!deepEqual(this.privateChats, result.chats))
+                {
+                    this.privateChats = result.chats || [];
+                    this.eventBus?.emit('private:chats_updated', this.privateChats);
+                }
                 return this.privateChats;
             }
         } catch (error) {
