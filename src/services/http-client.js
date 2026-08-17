@@ -134,7 +134,8 @@ export class ChatApiClient {
      */
     async editMessage(data) {
         return this.request('/chat/edit', {
-            method: 'PUT',
+            //method: 'PUT',
+            method: 'POST',            
             body: data
         });
     }
@@ -272,7 +273,8 @@ export class ChatApiClient {
 
     async editPrivateMessage(messageId, data) {
         return this.request(`/private/message/${messageId}`, {
-            method: 'PUT',
+            //method: 'PUT',
+            method: 'POST',
             body: data
         });
     }
@@ -304,7 +306,8 @@ export class ChatApiClient {
 
     async updateUserProfile(data) {
         return this.request('/private/user', {
-            method: 'PUT',
+            //method: 'PUT',
+            method: 'POST',            
             body: data            
         });
     }
