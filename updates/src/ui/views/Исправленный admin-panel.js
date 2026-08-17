@@ -1,4 +1,4 @@
-// src/ui/views/admin-panel.js (добавлено управление ролями)
+// src/ui/views/admin-panel.js
 import { Modal } from '../components/modal.js';
 import { sanitizeHTML } from '../../services/sanitizer.js';
 
@@ -14,104 +14,6 @@ export class AdminPanel {
         this.currentTab = 'users';
         this.setupEventListeners();
         this.setupTabSwitching();
-        this.setupRoleManagement();        
-    }
-
-    // ===== УПРАВЛЕНИЕ РОЛЯМИ =====
-
-    /**
-     * Настройка управления ролями
-     */
-    setupRoleManagement() {
-        // Кнопка изменения роли по умолчанию
-        document.getElementById('defaultRoleSaveBtn')?.addEventListener('click', () => {
-            this.saveDefaultRole();
-        });
-
-        // Кнопка получения статистики ролей
-        document.getElementById('roleStatsBtn')?.addEventListener('click', () => {
-            this.loadRoleStats();
-        });
-    }
-
-    /**
-     * Загрузка статистики по ролям
-     */
-    async loadRoleStats() {
-        try {
-            const result = await this.app.multiUserManager.api.getRoleStats();
-            if (result.success) {
-                const stats = result.stats;
-                this.renderRoleStats(stats);
-            }
-        } catch (error) {
-            this.app.toast.error('Ошибка загрузки статистики ролей');
-        }
-    }
-
-    /**
-     * Отображение статистики ролей
-     */
-    renderRoleStats(stats) {
-        const container = document.getElementById('roleStatsContainer');
-        if (!container) return;
-
-        const roles = ['Admin', 'Manager', 'User', 'Guest'];
-        let html = '<div class="role-stats-grid">';
-        
-        roles.forEach(role => {
-            const count = stats.roles?.[role] || 0;
-            const icons = {
-                'Admin': '🛡️',
-                'Manager': '🔧',
-                'User': '👤',
-                'Guest': '👋'
-            };
-            html += `
-                <div class="role-stat-card">
-                    <div class="role-icon">${icons[role] || '👤'}</div>
-                    <div class="role-name">${role}</div>
-                    <div class="role-count">${count}</div>
-                </div>
-            `;
-        });
-
-        html += `
-            <div class="role-stat-total">
-                <div>Всего пользователей: <strong>${stats.totalUsers}</strong></div>
-                <div>Онлайн: <strong>${stats.onlineUsers}</strong></div>
-                <div>Забанено: <strong>${stats.bannedUsers}</strong></div>
-            </div>
-        </div>`;
-
-        container.innerHTML = html;
-    }
-
-    /**
-     * Сохранение роли по умолчанию
-     */
-    async saveDefaultRole() {
-        const select = document.getElementById('defaultRoleSelect');
-        const role = select?.value;
-
-        if (!role) {
-            this.app.toast.warning('Выберите роль');
-            return;
-        }
-
-        try {
-            const result = await this.app.multiUserManager.api.setDefaultRole({
-                role: role
-            });
-
-            if (result.success) {
-                this.app.toast.success(`Роль по умолчанию: ${role}`);
-            } else {
-                this.app.toast.error('Ошибка сохранения');
-            }
-        } catch (error) {
-            this.app.toast.error('Ошибка сохранения роли');
-        }
     }
 
     open() {
@@ -201,29 +103,25 @@ export class AdminPanel {
 
             if (usersResult.success) {
                 this.users = usersResult.users || [];
-                //this.renderUsers();
             }
 
             if (roomsResult.success) {
                 this.rooms = roomsResult.rooms || [];
-                //this.renderRooms();
             }
 
             if (statsResult.success) {
-                this.stats = statsResult.stats;                
-                //this.renderStats(statsResult.stats);
+                this.stats = statsResult.stats;
             }
 
             if (logsResult.success) {
-                //this.renderLogs(logsResult.logs);
-                this.logs = logsResult.logs || [];                           
-            }    
+                this.logs = logsResult.logs || [];
+            }
 
             // Рендерим текущую вкладку
             this.renderCurrentTab();
 
         } catch (error) {
-            console.error('Ошибка загрузки данных:', error);            
+            console.error('Ошибка загрузки данных:', error);
             this.app.toast.error('❌ Ошибка загрузки данных');
         } finally {
             this.hideLoading();
@@ -262,16 +160,10 @@ export class AdminPanel {
     }
 
     // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ =====
-    
-    /**
-     * Отображение пользователей с возможностью смены роли
-     */
+
     renderUsers() {
         const container = document.getElementById('adminUserList');
         if (!container) return;
-
-        const currentUser = this.app.multiUserManager.localUser;
-        const isAdmin = this.app.multiUserManager.isAdminUser();
 
         if (!this.users || this.users.length === 0) {
             container.innerHTML = `
@@ -285,103 +177,41 @@ export class AdminPanel {
         const searchQuery = document.getElementById('adminUserSearch')?.value?.toLowerCase() || '';
         const filteredUsers = this.users.filter(u => 
             u.name?.toLowerCase().includes(searchQuery) ||
-            u.userId?.toLowerCase().includes(searchQuery)
+            u.id?.toLowerCase().includes(searchQuery)
         );
-                
-        container.innerHTML = filteredUsers.map(user => {
-            const isCurrentUser = user.userId === currentUser.id;
-            const canManage = isAdmin && !isCurrentUser;
 
-            return `
+        container.innerHTML = filteredUsers.map(user => `
             <div class="admin-user-item">
                 <div class="admin-user-info">
                     <span class="admin-user-avatar">${user.avatar || '👤'}</span>
                     <span class="admin-user-name">${sanitizeHTML(user.name || 'Unknown')}</span>
-                    <span class="admin-user-role ${user.role?.toLowerCase()}">
-                        ${this.getRoleIcon(user.role)} ${user.role || 'Guest'}
-                    </span>
                     <span class="admin-user-status ${user.isOnline ? 'online' : 'offline'}">
                         ${user.isOnline ? '🟢 Онлайн' : '⚪ Офлайн'}
                     </span>
-                    ${user.status === 'banned' ? '<span class="banned-badge">⛔ Забанен</span>' : ''}
-                    ${isCurrentUser ? '<span class="self-badge">👤 Вы</span>' : ''}
+                    ${user.isAdmin ? '<span class="admin-badge">🛡️ Админ</span>' : ''}
+                    ${user.isModerator ? '<span class="moderator-badge">🔧 Модератор</span>' : ''}
+                    ${user.isBanned ? '<span class="banned-badge">⛔ Забанен</span>' : ''}
                 </div>
                 <div class="admin-user-actions">
-                    ${canManage ? `
-                        <select class="role-select" data-user-id="${user.userId}" data-current-role="${user.role || 'Guest'}">
-                            <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>🛡️ Админ</option>
-                            <option value="Manager" ${user.role === 'Manager' ? 'selected' : ''}>🔧 Руководитель</option>
-                            <option value="User" ${user.role === 'User' ? 'selected' : ''}>👤 Пользователь</option>
-                            <option value="Guest" ${user.role === 'Guest' ? 'selected' : ''}>👋 Гость</option>
-                        </select>
-                        <button class="btn-role-save" data-user-id="${user.userId}" title="Сохранить роль">💾</button>
-                    ` : ''}
-                    ${!isCurrentUser ? `
-                        <button onclick="window.adminPanel.muteUser('${user.userId}', 5)" title="Заглушить">🔇</button>
-                        <button onclick="window.adminPanel.kickUser('${user.userId}')" title="Выгнать">🚪</button>
-                        ${user.status === 'banned' 
-                            ? `<button onclick="window.adminPanel.unbanUser('${user.userId}')" title="Разбанить">✅</button>`
-                            : `<button onclick="window.adminPanel.banUser('${user.userId}')" title="Забанить">⛔</button>`
-                        }
-                    ` : ''}
+                    <button onclick="window.adminPanel.muteUser('${user.id}', 5)" title="Заглушить на 5 минут">🔇</button>
+                    <button onclick="window.adminPanel.kickUser('${user.id}')" title="Выгнать">🚪</button>
+                    <button onclick="window.adminPanel.banUser('${user.id}')" title="Забанить">⛔</button>
+                    ${user.isBanned ? `<button onclick="window.adminPanel.unbanUser('${user.id}')" title="Разбанить">✅</button>` : ''}
+                    <button onclick="window.adminPanel.setAdmin('${user.id}', ${!user.isAdmin})" title="Админ">🛡️</button>
+                    <button onclick="window.adminPanel.setModerator('${user.id}', ${!user.isModerator})" title="Модератор">🔧</button>
+                </div>
+                <div class="admin-user-detail" style="font-size:11px;color:var(--text-secondary);padding:4px 8px;">
+                    Сообщений: ${user.messageCount || 0} | Комнат: ${user.roomCount || 0}
+                    ${user.mutedUntil ? `| Заглушен до: ${new Date(user.mutedUntil).toLocaleString()}` : ''}
+                    ${user.banReason ? `| Причина: ${sanitizeHTML(user.banReason)}` : ''}
                 </div>
             </div>
-        `}).join('');
-
-        // Обработчики для изменения ролей
-        container.querySelectorAll('.btn-role-save').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const userId = btn.dataset.userId;
-                const select = container.querySelector(`.role-select[data-user-id="${userId}"]`);
-                const role = select?.value;
-
-                if (role) {
-                    await this.changeUserRole(userId, role);
-                }
-            });
-        });        
+        `).join('');
 
         // Обработчик поиска
         const searchInput = document.getElementById('adminUserSearch');
         if (searchInput) {
             searchInput.oninput = () => this.renderUsers();
-        }
-    }
-
-    /**
-     * Получение иконки для роли
-     */
-    getRoleIcon(role) {
-        const icons = {
-            'Admin': '🛡️',
-            'Manager': '🔧',
-            'User': '👤',
-            'Guest': '👋'
-        };
-        return icons[role] || '👤';
-    }
-
-    /**
-     * Изменение роли пользователя
-     */
-    async changeUserRole(userId, newRole) {
-        if (!confirm(`Изменить роль пользователя на ${newRole}?`)) return;
-
-        try {
-            const result = await this.app.multiUserManager.api.setUserRole({
-                userId: userId,
-                role: newRole,
-                moderatorId: this.app.multiUserManager.localUser.id
-            });
-
-            if (result.success) {
-                this.app.toast.success(`✅ Роль изменена на ${newRole}`);
-                await this.loadData();
-            } else {
-                this.app.toast.error('❌ Ошибка изменения роли');
-            }
-        } catch (error) {
-            this.app.toast.error('❌ Ошибка изменения роли');
         }
     }
 
@@ -480,7 +310,7 @@ export class AdminPanel {
             </div>
         `).join('');
     }
-        
+
     // ===== ВКЛАДКА: СТАТИСТИКА =====
 
     renderStats() {
@@ -545,7 +375,7 @@ export class AdminPanel {
             this.app.toast.error('❌ Ошибка загрузки логов');
         }
     }
- 
+
     renderLogs() {
         const container = document.getElementById('adminLogList');
         if (!container) return;
@@ -575,37 +405,15 @@ export class AdminPanel {
     }
 
     // ===== ВКЛАДКА: НАСТРОЙКИ =====
-    
-    /**
-     * Рендеринг вкладки настроек с управлением ролями
-     */
+
     renderSettings() {
         const container = document.querySelector('.admin-settings-grid');
         if (!container) return;
 
         // Загружаем текущие настройки из localStorage
         const settings = this.loadSettings();
-        const defaultRole = settings.defaultRole || 'User';
 
         container.innerHTML = `
-            <div class="setting-item" style="grid-column: 1 / -1;">
-                <label>👤 Роль по умолчанию для новых пользователей</label>
-                <select id="defaultRoleSelect" class="role-select">
-                    <option value="Admin" ${defaultRole === 'Admin' ? 'selected' : ''}>🛡️ Администратор</option>
-                    <option value="Manager" ${defaultRole === 'Manager' ? 'selected' : ''}>🔧 Руководитель</option>
-                    <option value="User" ${defaultRole === 'User' ? 'selected' : ''}>👤 Пользователь</option>
-                    <option value="Guest" ${defaultRole === 'Guest' ? 'selected' : ''}>👋 Гость</option>
-                </select>
-                <button id="defaultRoleSaveBtn" class="btn-primary" style="margin-top:8px;">💾 Сохранить роль по умолчанию</button>
-            </div>
-
-            <div class="setting-item" style="grid-column: 1 / -1;">
-                <label>📊 Статистика ролей</label>
-                <div id="roleStatsContainer" class="role-stats-container">
-                    <button id="roleStatsBtn" class="btn-secondary">🔄 Загрузить статистику</button>
-                </div>
-            </div>
-
             <div class="setting-item">
                 <label>Макс. длина сообщения</label>
                 <input type="number" id="settingMaxLength" value="${settings.maxLength || 10000}" min="100" max="100000">
@@ -642,8 +450,7 @@ export class AdminPanel {
                 maxUsers: parseInt(document.getElementById('settingMaxUsers').value) || 50,
                 inactiveTimeout: parseInt(document.getElementById('settingInactiveTimeout').value) || 5,
                 maxHistory: parseInt(document.getElementById('settingMaxHistory').value) || 1000,
-                autoClearRag: document.getElementById('settingAutoClearRag').value === 'true',
-                defaultRole: document.getElementById('defaultRoleSelect')?.value || 'User'                
+                autoClearRag: document.getElementById('settingAutoClearRag').value === 'true'
             });
             this.app.toast.success('✅ Настройки сохранены');
         });
@@ -685,19 +492,11 @@ export class AdminPanel {
         }
     }
 
-    /* УБРАНО в 5.1
-    sanitizeHTML(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-    */
-    // ===== ДЕЙСТВИЯ МОДЕРАТОРА =====    
+    // ===== ДЕЙСТВИЯ МОДЕРАТОРА =====
 
-    //Заглушить пользователя
     async muteUser(userId, minutes) {
         if (!confirm(`Заглушить пользователя на ${minutes} минут?`)) return;
-        
+
         try {
             const result = await this.app.multiUserManager.api.muteUser({
                 userId: userId,
@@ -706,7 +505,7 @@ export class AdminPanel {
                 reason: prompt('Причина (опционально):') || undefined
             });
             if (result.success) {
-            this.app.toast.success(`🔇 Пользователь заглушен на ${minutes} минут`);
+                this.app.toast.success(`🔇 Пользователь заглушен на ${minutes} минут`);
                 await this.loadData();
             }
         } catch (error) {
@@ -714,10 +513,9 @@ export class AdminPanel {
         }
     }
 
-    //Выгнать пользователя
     async kickUser(userId) {
         if (!confirm('Выгнать пользователя?')) return;
-        
+
         try {
             const result = await this.app.multiUserManager.api.kickUser({
                 userId: userId,
@@ -725,7 +523,7 @@ export class AdminPanel {
                 moderatorId: this.app.multiUserManager.localUser.id
             });
             if (result.success) {
-            this.app.toast.success('🚪 Пользователь выгнан');
+                this.app.toast.success('🚪 Пользователь выгнан');
                 await this.loadData();
             }
         } catch (error) {
@@ -733,10 +531,9 @@ export class AdminPanel {
         }
     }
 
-    //Забанить пользователя
     async banUser(userId) {
         if (!confirm('Забанить пользователя?')) return;
-        
+
         try {
             const result = await this.app.multiUserManager.api.banUser({
                 userId: userId,
@@ -744,7 +541,7 @@ export class AdminPanel {
                 reason: prompt('Причина бана:') || 'Нарушение правил'
             });
             if (result.success) {
-            this.app.toast.success('⛔ Пользователь забанен');
+                this.app.toast.success('⛔ Пользователь забанен');
                 await this.loadData();
             }
         } catch (error) {
@@ -752,7 +549,6 @@ export class AdminPanel {
         }
     }
 
-    //Разбанить пользователя
     async unbanUser(userId) {
         if (!confirm('Разбанить пользователя?')) return;
 
@@ -770,7 +566,6 @@ export class AdminPanel {
         }
     }
 
-    //Назначить Админом
     async setAdmin(userId, set) {
         try {
             const result = await this.app.multiUserManager.api.setUserRole(userId, {
@@ -786,7 +581,6 @@ export class AdminPanel {
         }
     }
 
-    //Назначить Модератором
     async setModerator(userId, set) {
         try {
             const result = await this.app.multiUserManager.api.setUserRole(userId, {
@@ -801,17 +595,16 @@ export class AdminPanel {
             this.app.toast.error('❌ Ошибка');
         }
     }
-    
-    //Очистить историю комнаты
+
     async clearRoom(roomId) {
         if (!confirm('Очистить историю комнаты?')) return;
-        
+
         try {
             const result = await this.app.multiUserManager.api.clearRoomHistory({
                 roomId: roomId
             });
             if (result.success) {
-            this.app.toast.success('🗑️ История очищена');
+                this.app.toast.success('🗑️ История очищена');
                 await this.loadData();
             }
         } catch (error) {
@@ -819,24 +612,22 @@ export class AdminPanel {
         }
     }
 
-    //Удалить комнату
     async deleteRoom(roomId) {
         if (!confirm('Удалить комнату?')) return;
-        
+
         try {
             const result = await this.app.multiUserManager.api.deleteRoom({
                 roomId: roomId
             });
             if (result.success) {
-            this.app.toast.success('❌ Комната удалена');
+                this.app.toast.success('❌ Комната удалена');
                 await this.loadData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
         }
     }
-    
-    //Закрыть комнату
+
     async closeRoom(roomId) {
         if (!confirm('Закрыть комнату?')) return;
 
@@ -851,9 +642,8 @@ export class AdminPanel {
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
         }
-    }    
+    }
 
-    //Удалить сообщение
     async deleteMessage(messageId) {
         if (!confirm('Удалить сообщение?')) return;
 
@@ -874,7 +664,6 @@ export class AdminPanel {
         }
     }
 
-    //Экспортировать комнату и Создаем файл для скачивания
     async exportRoom(roomId) {
         try {
             const result = await this.app.multiUserManager.api.exportRoom(roomId, 'json');
@@ -895,7 +684,6 @@ export class AdminPanel {
         }
     }
 
-    //Очистить все данные? Это действие необратимо!
     async clearAll() {
         if (!confirm('⚠️ Очистить все данные? Это действие необратимо!')) return;
         if (!confirm('Вы уверены?')) return;
@@ -909,7 +697,7 @@ export class AdminPanel {
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
         }
-    }    
+    }
 
     // ===== НАСТРОЙКА ОБРАБОТЧИКОВ =====
 

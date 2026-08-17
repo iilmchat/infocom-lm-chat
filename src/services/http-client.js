@@ -143,12 +143,23 @@ export class ChatApiClient {
     /**
      * Удаление сообщения
      */
+    /*
     async deleteMessage(roomId, messageId, userId) {
         return this.request(`/chat/delete/${roomId}/${messageId}/${userId}`, {
             method: 'DELETE'
         });
     }
-
+    */
+    async deleteMessage(roomId, messageId, userId) {
+        return this.request(`/chat/delete/${roomId}/${messageId}/${userId}`, {
+            method: 'POST',
+            body: JSON.stringify({
+                roomId,
+                messageId,
+                userId
+            })
+        });
+    }
     /**
      * Создание комнаты
      */
@@ -265,12 +276,20 @@ export class ChatApiClient {
         return this.request(`/private/user/${userId}/unread`);
     }
 
+    /*
     async deletePrivateMessage(messageId, userId) {
         return this.request(`/private/message/${messageId}?userId=${userId}`, {
             method: 'DELETE'
         });
     }
-
+    */
+    async deletePrivateMessage(messageId, userId) {
+        return this.request(`/private/message/${messageId}`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }) // Передаем userId в теле запроса
+        });
+    }   
+    
     async editPrivateMessage(messageId, data) {
         return this.request(`/private/message/${messageId}`, {
             //method: 'PUT',
@@ -328,6 +347,11 @@ export class ChatApiClient {
 
     async getUserStats(userId) {
         return this.request(`/admin/user/${userId}/stats`);
+    }
+
+    //Получение информации о пользователе с сервера
+    async getUser(userId) {
+        return this.request(`/admin/user/${userId}`);
     }
 
     async setUserRole(userId, data) {

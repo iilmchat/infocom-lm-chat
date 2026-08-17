@@ -1,4 +1,4 @@
-// src/models/multi-user-manager.js (исправленная версия) (добавлена авторизация)
+// src/models/multi-user-manager.js (исправленная версия)
 import { CONFIG } from '../config.js';
 import { ChatApiClient } from '../services/http-client.js';
 import { LongPollingClient } from '../services/long-polling-client.js';
@@ -25,37 +25,26 @@ export class MultiUserManager {
         
         // Хранилище пользователей (пиры) в общей комнате
         this.peers = new Map();
-        this.isHost = false;
         
-        // Текущая комната (общая)        
+        // Текущая комната (общая)
         this.roomId = null;
-        //Убираем симуляцию пользователей
-        //this.simulateUsers();
         this.roomName = null;
-  
-        // Клиенты
-
-        //this.api = new ChatApiClient();
-        this.polling = new LongPollingClient(eventBus);
         
-        // Состояние
-        this.isConnected = false;
-        this.isPolling = false;   
-        this.pollingTimer = null;   
-        this.typingTimers = new Map();                  
-        this.connectionMode = 'offline'; // 'offline' | 'polling' | 'signalr'
-        this.lastSyncTime = Date.now();
-        this.syncInterval = null;
-        this.messages = [];
-        this.messageCount = 0;      
-        this.userRole = null; // Текущая роль пользователя      
-        this.isAdmin = false;
-        this.isModerator = false;    
         // Приватные чаты
         this.privateChats = [];
         this.privateChatRooms = new Map(); // chatId -> { roomId, user1Id, user2Id }
         this.unreadCount = 0;
-
+        
+        // Состояние
+        this.isConnected = false;
+        this.isPolling = false;
+        this.pollingTimer = null;
+        this.typingTimers = new Map();
+        this.connectionMode = 'offline';
+        this.lastSyncTime = Date.now();
+        this.syncInterval = null;
+        this.messages = [];
+        this.messageCount = 0;
         this.pendingMessages = [];
         
         // Колбэки
@@ -63,215 +52,46 @@ export class MultiUserManager {
         this.userCallbacks = new Set();
         this.typingCallbacks = new Set();
 
-        //this.privateChats = [];
-        // Сердцебиение        
+        // Сердцебиение
         this.heartbeatInterval = null;
-        //this.unreadCount = 0;
         this.setupHeartbeat();
 
         // Подписка на события
-        // Настройка обработчиков        
         this.setupEventListeners();
-        this.setupAuthEvents();        
     }
 
     // ===== ИНИЦИАЛИЗАЦИЯ =====
 
     /**
-     * Загрузка профиля пользователя
-     * {Object} Профиль пользователя
-     */    
+     * Загрузка профиля пользователя из localStorage
+     * @returns {Object} Профиль пользователя
+     */
     loadUser() {
         const stored = localStorage.getItem('user_profile');
-        //if (stored) return JSON.parse(stored);
         if (stored) {
             try {
-                const user = JSON.parse(stored);
-                // Добавляем поля для авторизации
-                user.token = user.token || null;
-                user.role = user.role || 'Guest';
-                return user;
+                return JSON.parse(stored);
             } catch (e) {
                 console.warn('Ошибка загрузки профиля:', e);
             }
-        }        
+        }
 
         // Создание нового пользователя
         const user = {
-            //Убираем симуляцию пользователей
-            //id: crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).slice(2, 8),
-            /*
-            id: this.generateUserId(),            
-            name: 'User_' + Math.random().toString(36).slice(2, 6),
-            avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸'][Math.floor(Math.random() * 8)],
-            color: ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4'][Math.floor(Math.random() * 6)],
-            lastSeen: Date.now()
-            */
             id: this.generateUserId(),
             name: this.generateUserName(),
             avatar: this.generateAvatar(),
             color: this.generateColor(),
             lastSeen: Date.now(),
-            status: 'online',
-            token: null,
-            role: 'Guest'       
+            status: 'online'
         };
-        this.saveUser(user);        
-        //localStorage.setItem('user_profile', JSON.stringify(user));
+        localStorage.setItem('user_profile', JSON.stringify(user));
         return user;
     }
 
     /**
-     * Сохранение пользователя
-     */
-    saveUser(user) {
-        localStorage.setItem('user_profile', JSON.stringify(user));
-    }
-
-    /**
-     * Обновление профиля на сервере
-     */
-    async updateProfile(name, avatar, color) {
-        try {
-            const result = await this.api.updateUserProfile({
-                userId: this.localUser.id,
-                name: name,
-                avatar: avatar,
-                color: color
-            });
-
-            if (result.success) {
-                this.localUser.name = name;
-                this.localUser.avatar = avatar;
-                this.localUser.color = color;
-                this.saveUser(this.localUser);
-                this.eventBus?.emit('profile:updated', this.localUser);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Ошибка обновления профиля:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Получение информации о пользователе с сервера
-     */
-    async fetchUserInfo() {
-        try {
-            const result = await this.api.getUser(this.localUser.id);
-            if (result.success && result.user) {
-                const userData = result.user;
-                this.localUser.role = userData.role || 'Guest';
-                this.localUser.status = userData.status || 'online';
-                this.isAdmin = this.localUser.role === 'Admin';
-                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
-                this.saveUser(this.localUser);
-                this.eventBus?.emit('user:info_updated', this.localUser);
-                return userData;
-            }
-            return null;
-        } catch (error) {
-            console.error('Ошибка получения информации о пользователе:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Проверка прав пользователя
-     */
-    hasRole(requiredRole) {
-        const rolePriority = {
-            'Admin': 4,
-            'Manager': 3,
-            'User': 2,
-            'Guest': 1
-        };
-
-        const userPriority = rolePriority[this.localUser.role] || 0;
-        const requiredPriority = rolePriority[requiredRole] || 0;
-
-        return userPriority >= requiredPriority;
-    }
-
-    /**
-     * Проверка, является ли пользователь администратором
-     */
-    isAdminUser() {
-        return this.hasRole('Admin');
-    }
-
-    /**
-     * Проверка, является ли пользователь модератором
-     */
-    isModeratorUser() {
-        return this.hasRole('Manager');
-    }
-
-    /**
-     * Настройка событий авторизации
-     */
-    setupAuthEvents() {
-        // При подключении к серверу получаем информацию о пользователе
-        this.eventBus.on('server:connected', async () => {
-            await this.fetchUserInfo();
-            this.updateAuthUI();
-        });
-
-        // Обновление роли пользователя
-        this.eventBus.on('user:role_changed', (data) => {
-            if (data.userId === this.localUser.id) {
-                this.localUser.role = data.newRole;
-                this.isAdmin = this.localUser.role === 'Admin';
-                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
-                this.saveUser(this.localUser);
-                this.updateAuthUI();
-                this.eventBus?.emit('toast:info', `Ваша роль изменена на: ${data.newRole}`);
-            }
-        });
-    }
-
-    /**
-     * Обновление UI в зависимости от роли
-     */
-    updateAuthUI() {
-        const adminBtn = document.getElementById('adminBtn');
-        const moderatorPanel = document.getElementById('moderatorPanel');
-        const userRoleDisplay = document.getElementById('userRoleDisplay');
-
-        if (adminBtn) {
-            adminBtn.style.display = this.isAdminUser() ? 'flex' : 'none';
-        }
-
-        if (moderatorPanel) {
-            moderatorPanel.style.display = this.isModeratorUser() ? 'block' : 'none';
-        }
-
-        if (userRoleDisplay) {
-            const roleNames = {
-                'Admin': '🛡️ Администратор',
-                'Manager': '🔧 Руководитель',
-                'User': '👤 Пользователь',
-                'Guest': '👋 Гость'
-            };
-            userRoleDisplay.textContent = roleNames[this.localUser.role] || this.localUser.role;
-        }
-
-        // Показываем/скрываем элементы для администратора
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = this.isAdminUser() ? 'block' : 'none';
-        });
-
-        // Показываем/скрываем элементы для модератора
-        document.querySelectorAll('.moderator-only').forEach(el => {
-            el.style.display = this.isModeratorUser() ? 'block' : 'none';
-        });
-    }
-    
-    /**
      * Генерация ID пользователя
-     * {string} Уникальный ID
+     * @returns {string} Уникальный ID
      */
     generateUserId() {
         return 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
@@ -279,7 +99,7 @@ export class MultiUserManager {
 
     /**
      * Генерация имени пользователя
-     * {string} Случайное имя
+     * @returns {string} Случайное имя
      */
     generateUserName() {
         const names = ['Анна', 'Пётр', 'Мария', 'Иван', 'Елена', 'Алексей', 'Ольга', 'Дмитрий', 
@@ -289,7 +109,7 @@ export class MultiUserManager {
 
     /**
      * Генерация аватара (эмодзи)
-     * {string} Эмодзи-аватар
+     * @returns {string} Эмодзи-аватар
      */
     generateAvatar() {
         const avatars = ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙'];
@@ -298,7 +118,7 @@ export class MultiUserManager {
 
     /**
      * Генерация цвета (HEX)
-     *{string} HEX-цвет
+     * @returns {string} HEX-цвет
      */
     generateColor() {
         const colors = ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4', '#ff9800', '#00bcd4',
@@ -306,41 +126,13 @@ export class MultiUserManager {
         return colors[Math.floor(Math.random() * colors.length)];
     }
 
-
-    simulateUsers() {
-        if (!CONFIG.MULTI_USER.SIMULATED_USERS) return;
-
-        const names = ['Анна', 'Петр', 'Мария', 'Иван', 'Елена'];
-        const avatars = ['👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'];
-        const colors = ['#4caf50', '#9b4dca', '#ff69b4', '#ff9800', '#f0db4f'];
-
-        for (let i = 0; i < CONFIG.MULTI_USER.USER_COUNT; i++) {
-            const peer = {
-                id: 'peer_' + i,
-                name: names[i] || 'User_' + i,
-                avatar: avatars[i] || '👤',
-                color: colors[i] || '#888',
-                online: true,
-                typing: false,
-                lastSeen: Date.now()
-            };
-            this.peers.set(peer.id, peer);
-        }
-        this.renderUsers();
-    }
-
-    generateUserId() {
-        return 'user_' + Math.random().toString(36).slice(2, 10);
-    }
-
     // ===== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ =====
 
     /**
      * Подключение к серверу и вход в общую комнату
-     * {string} roomId - ID комнаты (если указан, пытаемся подключиться к существующей)
-     * {string} connectionMode - Режим подключения ('polling' | 'signalr')
-     * {Promise<boolean>} Успех подключения
-     * Подключение к серверу через HTTP API + Polling
+     * @param {string} roomId - ID комнаты (если указан, пытаемся подключиться к существующей)
+     * @param {string} connectionMode - Режим подключения ('polling' | 'signalr')
+     * @returns {Promise<boolean>} Успех подключения
      */
     async connectToServer(roomId = null, connectionMode = 'polling') {
         try {
@@ -354,27 +146,6 @@ export class MultiUserManager {
                 this.eventBus?.emit('server:disconnected');
                 return false;
             }
-
-            /*
-            //До 5.1
-            // Если указан roomId - присоединяемся
-            if (roomId) {
-                await this.joinRoom(roomId);
-            } else {
-                // Создаем новую комнату
-                const result = await this.api.createRoom({
-                    name: `Комната ${new Date().toLocaleString()}`,
-                    createdBy: this.localUser.id
-                });
-                
-                if (result.success) {
-                    this.roomId = result.roomId;
-                    await this.joinRoom(this.roomId);
-                } else {
-                    throw new Error('Не удалось создать комнату');
-                }
-            }
-            */
 
             // 2. Определяем ID общей комнаты
             let targetRoomId = roomId;
@@ -399,11 +170,8 @@ export class MultiUserManager {
             this.roomId = targetRoomId;
             this.isConnected = true;
 
-            //this.startSync();
-
-            // 4. Запускаем синхронизацию            
+            // 4. Запускаем синхронизацию
             this.startPolling();
-            //this.eventBus?.emit('server:connected', { roomId: this.roomId });
             this.eventBus?.emit('server:connected', { 
                 roomId: this.roomId,
                 roomName: this.roomName,
@@ -415,7 +183,7 @@ export class MultiUserManager {
             
             console.log(`✅ Подключен к общей комнате: ${this.roomName} (${this.roomId})`);
             console.log(`👥 Пользователей в комнате: ${this.peers.size + 1}`);
-           
+            
             return true;
 
         } catch (error) {
@@ -428,7 +196,7 @@ export class MultiUserManager {
 
     /**
      * Поиск существующей общей комнаты или создание новой
-     * {Promise<string|null>} ID комнаты или null
+     * @returns {Promise<string|null>} ID комнаты или null
      */
     async findOrCreateCommonRoom() {
         try {
@@ -474,12 +242,11 @@ export class MultiUserManager {
 
     /**
      * Проверка доступности сервера
-     * {Promise<boolean>} Доступен ли сервер
+     * @returns {Promise<boolean>} Доступен ли сервер
      */
     async checkServerAvailability() {
         try {
-            //const result = await this.api.getRooms();
-            const result = await this.api.ping();            
+            const result = await this.api.ping();
             return result.success === true;
         } catch {
             return false;
@@ -488,20 +255,19 @@ export class MultiUserManager {
 
     /**
      * Вход в комнату
-     * {string} roomId - ID комнаты
-     * {Promise<boolean>} Успех входа
+     * @param {string} roomId - ID комнаты
+     * @returns {Promise<boolean>} Успех входа
      */
     async joinRoom(roomId) {
         try {
             const result = await this.api.joinRoom({
                 roomId: roomId,
-                //user: this.localUser
                 user: {
                     id: this.localUser.id,
                     name: this.localUser.name,
                     avatar: this.localUser.avatar,
                     color: this.localUser.color
-                }                
+                }
             });
 
             if (result.success) {
@@ -520,16 +286,12 @@ export class MultiUserManager {
                     this.updateUsers(result.users);
                 }
                 
-                // Запускаем polling
-                //this.polling.start(roomId);
-                
-                //this.eventBus?.emit('room:joined', { roomId, users: result.users });
                 this.eventBus?.emit('room:joined', { 
                     roomId, 
                     roomName: this.roomName,
                     users: result.users,
                     history: result.history 
-                });                
+                });
                 
                 return true;
             }
@@ -543,7 +305,7 @@ export class MultiUserManager {
 
     /**
      * Выход из комнаты
-     * {Promise<void>}
+     * @returns {Promise<void>}
      */
     async leaveRoom() {
         if (!this.roomId) return;
@@ -554,10 +316,7 @@ export class MultiUserManager {
                 userId: this.localUser.id
             });
             
-            //this.polling.stop();
-            //this.stopSync();
-            
-            this.stopPolling();            
+            this.stopPolling();
             
             this.roomId = null;
             this.roomName = null;
@@ -581,15 +340,15 @@ export class MultiUserManager {
         this.isConnected = false;
         this.connectionMode = 'offline';
         this.stopHeartbeat();
-    }  
+    }
 
     // ===== ОБЩАЯ КОМНАТА: СООБЩЕНИЯ =====
-        
+
     /**
      * Отправка сообщения в общую комнату
-     * {string} content - Текст сообщения
-     * {Object} options - Дополнительные параметры
-     * {Promise<Object|null>} Отправленное сообщение
+     * @param {string} content - Текст сообщения
+     * @param {Object} options - Дополнительные параметры
+     * @returns {Promise<Object|null>} Отправленное сообщение
      */
     async sendMessage(content, options = {}) {
         if (!this.roomId) {
@@ -612,14 +371,12 @@ export class MultiUserManager {
         };
 
         try {
-            // Пытаемся отправить через API
             const result = await this.api.sendMessage(message);
             
             if (result.success) {
                 const msg = result.message;
                 // Проверяем, не дублируется ли сообщение
-                if (!this.messages.some(m => m.id === msg.id || m.Id === msg.id)) 
-                {
+                if (!this.messages.some(m => m.id === msg.id || m.Id === msg.id)) {
                     this.messages.push(msg);
                     this.messageCount = this.messages.length;
                 }
@@ -635,8 +392,7 @@ export class MultiUserManager {
                 _pending: true
             };
             this.messages.push(localMessage);
-            //this.pendingMessages.push(localMessage);
-            this.messageCount = this.messages.length;            
+            this.messageCount = this.messages.length;
             this.pendingMessages.push(localMessage);
             
             this.eventBus?.emit('message:pending', localMessage);
@@ -650,9 +406,9 @@ export class MultiUserManager {
 
     /**
      * Редактирование сообщения в общей комнате
-     * {string} messageId - ID сообщения
-     * {string} newContent - Новый текст
-     * {Promise<boolean>} Успех редактирования
+     * @param {string} messageId - ID сообщения
+     * @param {string} newContent - Новый текст
+     * @returns {Promise<boolean>} Успех редактирования
      */
     async editMessage(messageId, newContent) {
         if (!this.roomId) return false;
@@ -666,21 +422,12 @@ export class MultiUserManager {
             });
 
             if (result.success) {
-                // Обновляем локальное сообщение УБРАНО в 5.1
-                /*
-                const msg = this.messages.find(m => m.Id === messageId);
-                if (msg) {
-                    msg.Content = newContent;
-                    msg.IsEdited = true;
-                    this.eventBus?.emit('message:edited', msg);
-                }
-                    */
                 const msg = this.messages.find(m => m.id === messageId || m.Id === messageId);
                 if (msg) {
                     msg.content = newContent;
                     msg.isEdited = true;
                     this.eventBus?.emit('message:edited', msg);
-                }                
+                }
                 return true;
             }
             return false;
@@ -692,8 +439,8 @@ export class MultiUserManager {
 
     /**
      * Удаление сообщения из общей комнаты
-     * {string} messageId - ID сообщения
-     * {Promise<boolean>} Успех удаления
+     * @param {string} messageId - ID сообщения
+     * @returns {Promise<boolean>} Успех удаления
      */
     async deleteMessage(messageId) {
         if (!this.roomId) return false;
@@ -706,11 +453,10 @@ export class MultiUserManager {
             );
 
             if (result.success) {
-                //this.messages = this.messages.filter(m => m.Id !== messageId);
                 this.messages = this.messages.filter(m => 
                     m.id !== messageId && m.Id !== messageId
                 );
-                this.messageCount = this.messages.length;                
+                this.messageCount = this.messages.length;
                 this.eventBus?.emit('message:deleted', messageId);
                 return true;
             }
@@ -725,11 +471,9 @@ export class MultiUserManager {
 
     /**
      * Установка статуса печатания в общей комнате
-     * {boolean} isTyping - Печатает ли пользователь
+     * @param {boolean} isTyping - Печатает ли пользователь
      */
     setTyping(isTyping) {
-        // Отправляем через SignalR если доступен, или сохраняем локально
-
         if (!this.roomId) return;
 
         this.localUser.isTyping = isTyping;
@@ -752,7 +496,7 @@ export class MultiUserManager {
 
     /**
      * Обновление списка пользователей в общей комнате
-     * {Array} users - Список пользователей
+     * @param {Array} users - Список пользователей
      */
     updateUsers(users) {
         if (!users) return;
@@ -768,21 +512,7 @@ export class MultiUserManager {
         }
 
         this.peers.clear();
-        /*
-        users.forEach(user => {
-            if (user.Id !== this.localUser.id) {
-                this.peers.set(user.Id, {
-                    id: user.Id,
-                    name: user.Name || 'User',
-                    avatar: user.Avatar || '👤',
-                    color: user.Color || '#888',
-                    online: true,
-                    typing: user.IsTyping || false
-                });
-            }
-        });
-*/
-
+        
         users.forEach(user => {
             // Не добавляем себя
             if (user.id !== this.localUser.id) {
@@ -802,10 +532,10 @@ export class MultiUserManager {
         this.renderUsers();
         this.eventBus?.emit('users:updated', this.peers);
     }
-     
+
     /**
      * Получение списка пользователей в общей комнате
-     * {Array} Список пользователей
+     * @returns {Array} Список пользователей
      */
     getUsers() {
         return Array.from(this.peers.values());
@@ -813,29 +543,27 @@ export class MultiUserManager {
 
     /**
      * Получение количества пользователей в общей комнате
-     * {number} Количество пользователей (включая себя)
+     * @returns {number} Количество пользователей (включая себя)
      */
     getUserCount() {
-        // +1 для локального пользователя
-        return this.peers.size + 1;         
+        return this.peers.size + 1;
     }
-    
-   /**
+
+    /**
      * Получение доступных пользователей для приватного чата
-     * {Array} Список доступных пользователей
+     * @returns {Array} Список доступных пользователей
      */
     getAvailableUsers() {
-        // Все пользователи, кроме себя
         return Array.from(this.peers.values())
             .filter(p => p.online !== false);
-    }   
+    }
 
     // ===== ПРИВАТНЫЕ ЧАТЫ =====
-    
+
     /**
      * Создание или получение приватного чата с пользователем
-     * {Object} user - Пользователь для чата
-     * {Promise<string|null>} ID чата
+     * @param {Object} user - Пользователь для чата
+     * @returns {Promise<string|null>} ID чата
      */
     async openPrivateChat(user) {
         if (!user || user.id === this.localUser.id) {
@@ -890,21 +618,19 @@ export class MultiUserManager {
         } catch (error) {
             console.error('❌ Ошибка открытия приватного чата:', error);
             this.app?.toast.error('Не удалось открыть чат');
-            return null;            
+            return null;
         }
     }
 
     /**
      * Загрузка списка приватных чатов пользователя
-     * {Promise<Array>} Список приватных чатов
+     * @returns {Promise<Array>} Список приватных чатов
      */
     async loadPrivateChats() {
         try {
             const result = await this.api.getUserChats(this.localUser.id);
             if (result.success) {
-                //Новое сравнение массивов
-                if (!deepEqual(this.privateChats, result.chats)) 
-                {
+                if (!deepEqual(this.privateChats, result.chats)) {
                     this.privateChats = result.chats || [];
                     this.eventBus?.emit('private:chats_updated', this.privateChats);
                 }
@@ -918,10 +644,10 @@ export class MultiUserManager {
 
     /**
      * Отправка сообщения в приватный чат
-     * {string} chatId - ID чата
-     * {string} content - Текст сообщения
-     * {string} replyToId - ID сообщения, на которое отвечаем (опционально)
-     * {Promise<Object|null>} Отправленное сообщение
+     * @param {string} chatId - ID чата
+     * @param {string} content - Текст сообщения
+     * @param {string} replyToId - ID сообщения, на которое отвечаем (опционально)
+     * @returns {Promise<Object|null>} Отправленное сообщение
      */
     async sendPrivateMessage(chatId, content, replyToId = null) {
         if (!chatId || !content || !content.trim()) return null;
@@ -962,10 +688,10 @@ export class MultiUserManager {
 
     /**
      * Получение истории приватного чата
-     * {string} chatId - ID чата
-     * {number} limit - Количество сообщений
-     * {number} offset - Смещение
-     * {Promise<Array>} Список сообщений
+     * @param {string} chatId - ID чата
+     * @param {number} limit - Количество сообщений
+     * @param {number} offset - Смещение
+     * @returns {Promise<Array>} Список сообщений
      */
     async getPrivateHistory(chatId, limit = 50, offset = 0) {
         try {
@@ -986,7 +712,7 @@ export class MultiUserManager {
 
     /**
      * Получение количества непрочитанных сообщений
-     * {Promise<number>} Количество непрочитанных
+     * @returns {Promise<number>} Количество непрочитанных
      */
     async getUnreadCount() {
         try {
@@ -1003,7 +729,7 @@ export class MultiUserManager {
     }
 
     // ===== LONG POLLING =====
-        
+
     /**
      * Запуск Long Polling для синхронизации
      */
@@ -1012,7 +738,7 @@ export class MultiUserManager {
         this.isPolling = true;
         this.poll();
     }
-     
+
     /**
      * Остановка Long Polling
      */
@@ -1064,7 +790,6 @@ export class MultiUserManager {
                     this.updateUsers(result.users);
                 }
 
-                // Обновляем статус соединения
                 this.isConnected = true;
             }
 
@@ -1086,7 +811,6 @@ export class MultiUserManager {
      * Настройка отправки heartbeat
      */
     setupHeartbeat() {
-        // Отправляем heartbeat каждые 30 секунд
         this.heartbeatInterval = setInterval(async () => {
             if (this.isConnected && this.roomId) {
                 try {
@@ -1114,52 +838,17 @@ export class MultiUserManager {
 
     /**
      * Задержка (Promise)
-     * {number} ms - Время в миллисекундах
-     * {Promise<void>}
+     * @param {number} ms - Время в миллисекундах
+     * @returns {Promise<void>}
      */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
-     * Синхронизация состояния Устарело в 5.1
-     */
-    startSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-        }
-
-        this.syncInterval = setInterval(async () => {
-            if (!this.isConnected || !this.roomId) return;
-            
-            try {
-                // Синхронизация пользователей
-                const roomInfo = await this.api.getRoomInfo(this.roomId);
-                if (roomInfo.success) {
-                    this.updateUsers(roomInfo.room?.Users);
-                }
-
-                // Синхронизация непрочитанных сообщений
-                this.lastSyncTime = Date.now();
-                
-            } catch (error) {
-                console.warn('Sync error:', error);
-            }
-        }, 10000); // Каждые 10 секунд
-    }
-
-    //Устарело в 5.1
-    stopSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
-        }
-    }
-
-    /**
      * Получение истории сообщений из общей комнаты
-     * {number} limit - Количество сообщений
-     * {Array} Список сообщений
+     * @param {number} limit - Количество сообщений
+     * @returns {Array} Список сообщений
      */
     getMessages(limit = 100) {
         return this.messages.slice(-limit);
@@ -1167,7 +856,7 @@ export class MultiUserManager {
 
     /**
      * Получение статуса подключения
-     * {Object} Статус
+     * @returns {Object} Статус
      */
     getStatus() {
         return {
@@ -1177,18 +866,18 @@ export class MultiUserManager {
             roomName: this.roomName,
             userCount: this.peers.size + 1,
             messageCount: this.messageCount,
-            pendingMessages: this.pendingMessages.length,           
-            isPolling: this.isPolling,                  
+            pendingMessages: this.pendingMessages.length,
+            isPolling: this.isPolling,
             lastSyncTime: Date.now(),
             privateChatsCount: this.privateChats.length,
-            unreadCount: this.unreadCount       
+            unreadCount: this.unreadCount
         };
     }
 
     /**
      * Санитизация HTML
-     * {string} str - Строка для санитизации
-     * {string} Безопасная строка
+     * @param {string} str - Строка для санитизации
+     * @returns {string} Безопасная строка
      */
     sanitizeHTML(str) {
         const div = document.createElement('div');
@@ -1196,50 +885,11 @@ export class MultiUserManager {
         return div.innerHTML;
     }
 
-    addPeer(peer) {
-        this.peers.set(peer.id, peer);
-        this.renderUsers();
-        if (this.eventBus) {
-            this.eventBus.emit('peer:joined', peer);
-        }
-    }
-
-    removePeer(id) {
-        this.peers.delete(id);
-        this.renderUsers();
-        if (this.eventBus) {
-            this.eventBus.emit('peer:left', id);
-        }
-    }
-
-    setPeerTyping(id, isTyping) {
-        const peer = this.peers.get(id);
-        if (peer) {
-            peer.typing = isTyping;
-            this.renderUsers();
-            if (isTyping) {
-                this.showTypingNotification(peer);
-            }
-        }
-    }
-
-    showTypingNotification(peer) {
-        const notif = document.getElementById('typingNotification');
-        if (notif) {
-            notif.textContent = `${peer.avatar} ${peer.name} печатает...`;
-            setTimeout(() => {
-                if (notif.textContent.includes(peer.name)) {
-                    notif.textContent = '';
-                }
-            }, 3000);
-        }
-    }
-
     // ===== UI РЕНДЕРИНГ =====
 
     /**
      * Рендеринг пользователей в UI
-     */    
+     */
     renderUsers() {
         const container = document.getElementById('usersOnlineList');
         const collabContainer = document.getElementById('collabUsers');
@@ -1248,7 +898,6 @@ export class MultiUserManager {
         if (!container) return;
 
         // Сайдбар — список пользователей
-        //let html = `<span class="user-badge self"><span class="user-avatar">${this.localUser.avatar}</span> ${this.sanitizeHTML(this.localUser.name)} (Вы)</span>`;
         let html = `<span class="user-badge self">
             <span class="user-avatar">${this.localUser.avatar}</span> 
             ${this.sanitizeHTML(this.localUser.name)} (Вы)
@@ -1261,42 +910,23 @@ export class MultiUserManager {
                     <span class="user-avatar">${peer.avatar}</span> 
                     ${this.sanitizeHTML(peer.name)}
                     ${peer.isTyping ? '<span class="user-status">печатает...</span>' : ''}
-                </span>`;                
-                /*
-                html += `<span class="user-badge ${peer.typing ? 'typing' : ''}" style="border-color:${peer.color};">
-                        <span class="user-avatar">${peer.avatar}</span> ${this.sanitizeHTML(peer.name)}
-                        ${peer.typing ? '<span class="user-status">печатает...</span>' : ''}
-                    </span>`;
-                    */
-                   /*
-                html += `<span class="user-badge ${peer.typing ? 'typing' : ''}" style="border-color:${peer.color};">
-                    <span class="user-avatar">${peer.avatar}</span> 
-                    ${this.sanitizeHTML(peer.name)}
-                    ${peer.typing ? '<span class="user-status">печатает...</span>' : ''}
-                </span>`;        
-                */           
+                </span>`;
             }
         });
         container.innerHTML = html;
 
         // Коллаборационная панель
-        //if (collabBar && this.peers.size > 0) {
-        //    collabBar.classList.add('active');
         if (collabBar && this.peers.size > 0) {
-            collabBar.classList.add('active');        
+            collabBar.classList.add('active');
             if (collabContainer) {
                 let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.color};" title="Вы">${this.localUser.avatar}</span>`;
                 this.peers.forEach(peer => {
-                    if (peer.online) {
-                        collabHtml += `<span class="collab-user-dot ${peer.isTyping ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;                        
-                        //collabHtml += `<span class="collab-user-dot ${peer.typing ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;
+                    if (peer.online !== false) {
+                        collabHtml += `<span class="collab-user-dot ${peer.isTyping ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;
                     }
                 });
                 collabContainer.innerHTML = collabHtml;
             }
-       // } else if (collabBar) {
-       //     collabBar.classList.remove('active');
-       // }
         } else if (collabBar) {
             collabBar.classList.remove('active');
         }
@@ -1306,8 +936,7 @@ export class MultiUserManager {
         if (activeUsersEl) {
             let shareHtml = `<span class="active-user-badge">${this.localUser.avatar} ${this.sanitizeHTML(this.localUser.name)} (Вы)</span>`;
             this.peers.forEach(peer => {
-                if (peer.online !== false) 
-                {
+                if (peer.online !== false) {
                     shareHtml += `<span class="active-user-badge">${peer.avatar} ${this.sanitizeHTML(peer.name)}</span>`;
                 }
             });
@@ -1381,57 +1010,32 @@ export class MultiUserManager {
 
         this.eventBus.on('users:updated', (users) => {
             this.updateUsers(users);
-        });        
+        });
     }
 
-    startSimulation() {
-        setInterval(() => {
-            const peers = Array.from(this.peers.values()).filter(p => p.online);
-            if (peers.length > 0) {
-                const randomPeer = peers[Math.floor(Math.random() * peers.length)];
-                this.setPeerTyping(randomPeer.id, Math.random() > 0.7);
-            }
-        }, 5000);
-    }
     /**
      * Обработка нового сообщения
-     * {Object} message - Новое сообщение
+     * @param {Object} message - Новое сообщение
      */
     handleNewMessage(message) {
         // Пропускаем свои сообщения
-        /*
-        if (message.UserId === this.localUser.id) {
-            // Убираем статус pending
-            const pending = this.pendingMessages.find(m => m.Id === message.Id);
-            if (pending) {
-                pending._pending = false;
-            }
-            return;
-        }
-        */
         if (message.userId === this.localUser.id) {
             return;
         }
 
         // Добавляем в историю, если ещё нет
-        /*
-        if (!this.messages.some(m => m.Id === message.Id)) {
-            this.messages.push(message);
-            this.eventBus?.emit('chat:message', message);
-        }
-            */
         if (!this.messages.some(m => m.id === message.id || m.Id === message.id)) {
             this.messages.push(message);
             this.messageCount = this.messages.length;
             this.eventBus?.emit('chat:message', message);
-        }           
+        }
     }
 
     // ===== АВТОМАТИЧЕСКОЕ ПОДКЛЮЧЕНИЕ =====
 
     /**
      * Автоматическое подключение при загрузке страницы
-     * {Promise<boolean>} Успех подключения
+     * @returns {Promise<boolean>} Успех подключения
      */
     async autoConnect() {
         // Проверяем параметр комнаты в URL
@@ -1443,5 +1047,5 @@ export class MultiUserManager {
         } else {
             return await this.connectToServer();
         }
-    } 
+    }
 }
