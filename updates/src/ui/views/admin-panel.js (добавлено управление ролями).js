@@ -149,7 +149,7 @@ export class AdminPanel {
                     <span class="admin-user-avatar">${user.avatar || '👤'}</span>
                     <span class="admin-user-name">${sanitizeHTML(user.name || 'Unknown')}</span>
                     <span class="admin-user-role ${user.role?.toLowerCase()}">
-                        ${this.getRoleIcon(user.role)} ${user.role || 'Guest'}
+                        ${this.getRoleIcon(user.role)} ${user.role || 'Admin'}
                     </span>
                     <span class="admin-user-status ${user.isOnline ? 'online' : 'offline'}">
                         ${user.isOnline ? '🟢 Онлайн' : '⚪ Офлайн'}
@@ -159,7 +159,7 @@ export class AdminPanel {
                 </div>
                 <div class="admin-user-actions">
                     ${canManage ? `
-                        <select class="role-select" data-user-id="${user.userId}" data-current-role="${user.role || 'Guest'}">
+                        <select class="role-select" data-user-id="${user.userId}" data-current-role="${user.role || 'Admin'}">
                             <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>🛡️ Админ</option>
                             <option value="Manager" ${user.role === 'Manager' ? 'selected' : ''}>🔧 Руководитель</option>
                             <option value="User" ${user.role === 'User' ? 'selected' : ''}>👤 Пользователь</option>

@@ -416,7 +416,7 @@ class App {
 
         this.toast.info(`🚀 Infocom LM Chat Pro v${CONFIG.VERSION}`, 2000);
         this.toast.info('💡 Используйте Ctrl+↑ и Ctrl+↓ для истории сообщений', 3000);
-        this.toast.info('🚀 v5.0 — Multi-user, кастомные ассистенты, тесты!', 3000);
+        this.toast.info('🚀 v5.1 — Multi-user, кастомные ассистенты, тесты!', 3000);
 
         console.log(`✅ Infocom LM Chat Pro v${CONFIG.VERSION}`);
         console.log('🛡️ XSS-защита: активна');

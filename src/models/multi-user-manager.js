@@ -89,7 +89,7 @@ export class MultiUserManager {
                 const user = JSON.parse(stored);
                 // Добавляем поля для авторизации
                 user.token = user.token || null;
-                user.role = user.role || 'Guest';
+                user.role = user.role || 'Admin';
                 return user;
             } catch (e) {
                 console.warn('Ошибка загрузки профиля:', e);
@@ -114,7 +114,7 @@ export class MultiUserManager {
             lastSeen: Date.now(),
             status: 'online',
             token: null,
-            role: 'Guest'       
+            role: 'Admin'       
         };
         this.saveUser(user);        
         //localStorage.setItem('user_profile', JSON.stringify(user));
@@ -163,7 +163,7 @@ export class MultiUserManager {
             const result = await this.api.getUser(this.localUser.id);
             if (result.success && result.user) {
                 const userData = result.user;
-                this.localUser.role = userData.role || 'Guest';
+                this.localUser.role = userData.role || 'Admin';
                 this.localUser.status = userData.status || 'online';
                 this.isAdmin = this.localUser.role === 'Admin';
                 this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
