@@ -160,8 +160,9 @@ export class MultiUserManager {
      */
     async fetchUserInfo() {
         try {
-            const result = await this.api.getUser(this.localUser.id);
-            if (result.success && result.user) {
+            const result = this.localUser;//await this.api.getUser(this.localUser.id);
+            if (/*(result.success && result.user)||*/this.localUser) {
+                /*
                 const userData = result.user;
                 this.localUser.role = userData.role || 'Admin';
                 this.localUser.status = userData.status || 'online';
@@ -170,6 +171,15 @@ export class MultiUserManager {
                 this.saveUser(this.localUser);
                 this.eventBus?.emit('user:info_updated', this.localUser);
                 return userData;
+                */
+                const userData = result;
+                this.localUser.role = 'Admin';
+                this.localUser.status = 'online';
+                this.isAdmin = this.localUser.role === 'Admin';
+                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+                this.saveUser(this.localUser);
+                this.eventBus?.emit('user:info_updated', this.localUser);
+                return userData;               
             }
             return null;
         } catch (error) {
