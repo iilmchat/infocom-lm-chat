@@ -352,6 +352,7 @@ export class ChatApiClient {
     //Получение информации о пользователе с сервера
     async getUser(userId) {
         return this.request(`/admin/user/${userId}`);
+        //return this.request(`/admin/user/${userId}/stats`);
     }
 
     async setUserRole(userId, data) {
