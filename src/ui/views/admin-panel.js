@@ -14,7 +14,10 @@ export class AdminPanel {
         this.currentTab = 'users';
         this.setupEventListeners();
         this.setupTabSwitching();
-        this.setupRoleManagement();        
+        this.setupRoleManagement();  
+
+        // Привязываем метод, чтобы он всегда ссылался на правильный this
+        this.handleRoomAction = this.handleRoomAction.bind(this);              
     }
 
     // ===== УПРАВЛЕНИЕ РОЛЯМИ =====
@@ -255,10 +258,70 @@ export class AdminPanel {
 
     showLoading() {
         // Можно добавить индикатор загрузки
+        // Создаем элемент индикатора загрузки, если он еще не существует
+        let loadingElement = document.getElementById('loadingStatsIndicator');
+        
+        // Если элемент не найден, создаем его
+        if (!loadingElement) {
+            loadingElement = document.createElement('div');
+            loadingElement.id = 'loadingStatsIndicator';
+            
+            // Создаем элемент для отображения анимации загрузки (круглый спиннер)
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner';
+            
+            // Добавляем спиннер в контейнер
+            loadingElement.appendChild(spinner);
+            
+            // Добавляем стили для индикатора загрузки
+            const style = document.createElement('style');
+            style.textContent = `
+                #loadingStatsIndicator {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(255, 255, 255, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                }
+                
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(loadingElement);
+        }
+        
+        // Показываем индикатор загрузки
+        loadingElement.style.display = 'flex';
+
     }
 
     hideLoading() {
         // Скрыть индикатор загрузки
+        // Ищет элемент индикатора загрузки по ID
+        const d = document.getElementById('loadingStatsIndicator');
+
+        // Проверяет, существует ли элемент перед попыткой его скрыть
+            // Применяет анимацию исчезновения
+            // Удаляет элемент после завершения анимации (через 300мс)
+        if (d) { d.style.animation = 'fadeOut 0.3s ease'; setTimeout(() => d.remove(), 300); }        
     }
 
     // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ =====
@@ -284,44 +347,49 @@ export class AdminPanel {
 
         const searchQuery = document.getElementById('adminUserSearch')?.value?.toLowerCase() || '';
         const filteredUsers = this.users.filter(u => 
-            u.name?.toLowerCase().includes(searchQuery) ||
-            u.userId?.toLowerCase().includes(searchQuery)
-        );
+            //u.name?.toLowerCase().includes(searchQuery) ||
+            //u.userId?.toLowerCase().includes(searchQuery)
+        {
+            // Если searchQuery пустой, возвращаем true (показываем все)
+            return !searchQuery || searchQuery.trim() === '' || 
+                u.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                u.UserId?.toLowerCase().includes(searchQuery.toLowerCase());
+        });
                 
         container.innerHTML = filteredUsers.map(user => {
-            const isCurrentUser = user.userId === currentUser.id;
+            const isCurrentUser = user.UserId === currentUser.id;
             const canManage = isAdmin && !isCurrentUser;
-
+            const userName = user.Name && user.Name.trim() ? user.Name : 'Unknown';
             return `
             <div class="admin-user-item">
                 <div class="admin-user-info">
                     <span class="admin-user-avatar">${user.avatar || '👤'}</span>
-                    <span class="admin-user-name">${sanitizeHTML(user.name || 'Unknown')}</span>
-                    <span class="admin-user-role ${user.role?.toLowerCase()}">
-                        ${this.getRoleIcon(user.role)} ${user.role || 'Admin'}
+                    <span class="admin-user-name">${sanitizeHTML(userName)}</span>
+                    <span class="admin-user-role ${user.Role?.toLowerCase()}">
+                        ${this.getRoleIcon(user.Role)} ${user.Role || 'Admin'}
                     </span>
-                    <span class="admin-user-status ${user.isOnline ? 'online' : 'offline'}">
-                        ${user.isOnline ? '🟢 Онлайн' : '⚪ Офлайн'}
+                    <span class="admin-user-status ${user.IsOnline ? 'online' : 'offline'}">
+                        ${user.IsOnline ? '🟢 Онлайн' : '⚪ Офлайн'}
                     </span>
-                    ${user.status === 'banned' ? '<span class="banned-badge">⛔ Забанен</span>' : ''}
+                    ${user.Status === 'banned' ? '<span class="banned-badge">⛔ Забанен</span>' : ''}
                     ${isCurrentUser ? '<span class="self-badge">👤 Вы</span>' : ''}
                 </div>
                 <div class="admin-user-actions">
                     ${canManage ? `
-                        <select class="role-select" data-user-id="${user.userId}" data-current-role="${user.role || 'Admin'}">
-                            <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>🛡️ Админ</option>
-                            <option value="Manager" ${user.role === 'Manager' ? 'selected' : ''}>🔧 Руководитель</option>
-                            <option value="User" ${user.role === 'User' ? 'selected' : ''}>👤 Пользователь</option>
-                            <option value="Guest" ${user.role === 'Guest' ? 'selected' : ''}>👋 Гость</option>
+                        <select class="role-select" data-user-id="${user.UserId}" data-current-role="${user.Role || 'Admin'}">
+                            <option value="Admin" ${user.Role === 'Admin' ? 'selected' : ''}>🛡️ Админ</option>
+                            <option value="Manager" ${user.Role === 'Manager' ? 'selected' : ''}>🔧 Руководитель</option>
+                            <option value="User" ${user.Role === 'User' ? 'selected' : ''}>👤 Пользователь</option>
+                            <option value="Guest" ${user.Role === 'Guest' ? 'selected' : ''}>👋 Гость</option>
                         </select>
-                        <button class="btn-role-save" data-user-id="${user.userId}" title="Сохранить роль">💾</button>
+                        <button class="btn-role-save" data-user-id="${user.UserId}" title="Сохранить роль">💾</button>
                     ` : ''}
                     ${!isCurrentUser ? `
-                        <button onclick="window.adminPanel.muteUser('${user.userId}', 5)" title="Заглушить">🔇</button>
-                        <button onclick="window.adminPanel.kickUser('${user.userId}')" title="Выгнать">🚪</button>
-                        ${user.status === 'banned' 
-                            ? `<button onclick="window.adminPanel.unbanUser('${user.userId}')" title="Разбанить">✅</button>`
-                            : `<button onclick="window.adminPanel.banUser('${user.userId}')" title="Забанить">⛔</button>`
+                        <button onclick="window.adminPanel.muteUser('${user.UserId}', 5)" title="Заглушить">🔇</button>
+                        <button onclick="window.adminPanel.kickUser('${user.UserId}')" title="Выгнать">🚪</button>
+                        ${user.Status === 'banned' 
+                            ? `<button onclick="window.adminPanel.unbanUser('${user.UserId}')" title="Разбанить">✅</button>`
+                            : `<button onclick="window.adminPanel.banUser('${user.UserId}')" title="Забанить">⛔</button>`
                         }
                     ` : ''}
                 </div>
@@ -368,12 +436,18 @@ export class AdminPanel {
         if (!confirm(`Изменить роль пользователя на ${newRole}?`)) return;
 
         try {
+            /*
             const result = await this.app.multiUserManager.api.setUserRole({
                 userId: userId,
                 role: newRole,
                 moderatorId: this.app.multiUserManager.localUser.id
             });
-
+            */
+            const result = await this.app.multiUserManager.api.setUserRole(userId,{
+                userId: userId,
+                Role: newRole,
+                ModeratorId: this.app.multiUserManager.localUser.id
+            });           
             if (result.success) {
                 this.app.toast.success(`✅ Роль изменена на ${newRole}`);
                 await this.loadData();
@@ -391,6 +465,9 @@ export class AdminPanel {
         const container = document.getElementById('adminRoomList');
         if (!container) return;
 
+        // Удаляем все старые обработчики кликов, чтобы избежать дублирования
+        container.removeEventListener('click', this.handleRoomAction); // Предполагаем, что метод будет привязан к экземпляру
+
         if (!this.rooms || this.rooms.length === 0) {
             container.innerHTML = `
                 <div style="padding:16px;text-align:center;color:var(--text-secondary);">
@@ -403,23 +480,78 @@ export class AdminPanel {
         container.innerHTML = this.rooms.map(room => `
             <div class="admin-room-item">
                 <div class="admin-room-info">
-                    <span class="admin-room-name">💬 ${sanitizeHTML(room.name || room.roomId)}</span>
-                    <span class="admin-room-users">👥 ${room.userCount || 0}</span>
-                    <span class="admin-room-messages">💬 ${room.messageCount || 0}</span>
-                    <span class="admin-room-status ${room.isActive ? 'active' : 'inactive'}">
-                        ${room.isActive ? '🟢 Активна' : '⚪ Неактивна'}
+                    <span class="admin-room-name">💬 ${sanitizeHTML(room.Name || room.RoomId)}</span>
+                    <span class="admin-room-users">👥 ${room.UserCount || 0}</span>
+                    <span class="admin-room-messages">💬 ${room.MessageCount || 0}</span>
+                    <span class="admin-room-status ${room.IsActive ? 'active' : 'inactive'}">
+                        ${room.IsActive ? '🟢 Активна' : '⚪ Неактивна'}
                     </span>
                 </div>
                 <div class="admin-room-actions">
-                    <button onclick="window.adminPanel.clearRoom('${room.roomId || room.id}')" title="Очистить историю">🗑️</button>
-                    <button onclick="window.adminPanel.deleteRoom('${room.roomId || room.id}')" title="Удалить комнату">❌</button>
-                    <button onclick="window.adminPanel.closeRoom('${room.roomId || room.id}')" title="Закрыть комнату">🔒</button>
-                    <button onclick="window.adminPanel.exportRoom('${room.roomId || room.id}')" title="Экспортировать">💾</button>
+                    <button class="admin-room-clear" data-room-id="${room.RoomId}" title="Очистить историю">🗑️</button>
+                    <button class="admin-room-delete" data-room-id="${room.RoomId}" title="Удалить комнату">❌</button>
+                    <button class="admin-room-close" data-room-id="${room.RoomId}" title="Закрыть комнату">🔒</button>
+                    <button class="admin-room-export" data-room-id="${room.RoomId}" title="Экспортировать">💾</button>
                 </div>
             </div>
         `).join('');
+
+        // Добавляем один обработчик событий на контейнер (делегирование)
+        container.addEventListener('click', this.handleRoomAction.bind(this));   
+             
+        /*
+        container.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('admin-room-delete')) {
+                const roomId = event.target.dataset.roomId;
+                await this.deleteRoom(roomId);
+                await this.loadData();
+            }
+        });
+
+        container.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('admin-room-close')) {
+                const roomId = event.target.dataset.roomId;
+                await this.closeRoom(roomId);
+                await this.loadData();
+            }
+        });    
+        
+        container.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('admin-room-clear')) {
+                const roomId = event.target.dataset.roomId;
+                await this.clearRoom(roomId);
+                await this.loadData();
+            }
+        });          
+        
+        container.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('admin-room-export')) {
+                const roomId = event.target.dataset.roomId;
+                await this.exportRoom(roomId);
+                await this.loadData();
+            }
+        });    
+        */       
     }
 
+    // Объявляем метод для делегирования действий
+    handleRoomAction(event) {
+        const target = event.target;
+
+        if (target.classList.contains('admin-room-delete')) {
+            const roomId = target.dataset.roomId;
+            this.deleteRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-close')) {
+            const roomId = target.dataset.roomId;
+            this.closeRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-clear')) {
+            const roomId = target.dataset.roomId;
+            this.clearRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-export')) {
+            const roomId = target.dataset.roomId;
+            this.exportRoom(roomId).then(() => this.loadData());
+        }
+    }    
     // ===== ВКЛАДКА: СООБЩЕНИЯ =====
 
     async loadMessages() {
@@ -492,43 +624,56 @@ export class AdminPanel {
         container.innerHTML = `
             <div class="admin-stats-grid">
                 <div class="stat-card">
-                    <div class="stat-number">${stats.totalUsers || 0}</div>
+                    <div class="stat-number">${stats.TotalUsers || 0}</div>
                     <div class="stat-label">👥 Всего пользователей</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.onlineUsers || 0}</div>
+                    <div class="stat-number">${stats.OnlineUsers || 0}</div>
                     <div class="stat-label">🟢 Онлайн</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.totalRooms || 0}</div>
+                    <div class="stat-number">${stats.TotalRooms || 0}</div>
                     <div class="stat-label">💬 Комнат</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.totalMessages || 0}</div>
+                    <div class="stat-number">${stats.TotalMessages || 0}</div>
                     <div class="stat-label">📝 Сообщений</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.privateMessages || 0}</div>
+                    <div class="stat-number">${stats.PrivateMessages || 0}</div>
                     <div class="stat-label">🔒 Приватных</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.bannedUsers || 0}</div>
+                    <div class="stat-number">${stats.BannedUsers || 0}</div>
                     <div class="stat-label">⛔ Забанено</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.mutedUsers || 0}</div>
+                    <div class="stat-number">${stats.MutedUsers || 0}</div>
                     <div class="stat-label">🔇 Заглушено</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.uptime ? new Date(stats.uptime).toLocaleString() : '—'}</div>
+                    <div class="stat-number">${stats.Timestamp ? new Date(stats.Timestamp).toLocaleString() : '—'}</div>
                     <div class="stat-label">⏱️ Время работы</div>
                 </div>
             </div>
             <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
-                <button onclick="window.adminPanel.loadData()" class="btn-secondary">🔄 Обновить</button>
-                <button onclick="window.adminPanel.clearAll()" class="btn-secondary" style="color:var(--error-color);">🗑️ Очистить всё</button>
+                <button class="admin-stats-load" class="btn-secondary">🔄 Обновить</button>
+                <button class="admin-stats-clear" class="btn-secondary" style="color:var(--error-color);">🗑️ Очистить всё</button>
             </div>
         `;
+
+        container.addEventListener('click', (event) => {
+            if (event.target.classList.contains('admin-stats-load')) {
+                this.loadData();
+            }
+        });  
+        
+        container.addEventListener('click', (event) => {
+            if (event.target.classList.contains('admin-stats-clear')) {
+                this.clearAll();
+            }
+        });  
+
     }
 
     // ===== ВКЛАДКА: ЛОГИ =====
@@ -811,8 +956,8 @@ export class AdminPanel {
                 roomId: roomId
             });
             if (result.success) {
-            this.app.toast.success('🗑️ История очищена');
-                await this.loadData();
+                this.app.toast.success('🗑️ История очищена');
+                //await this.loadData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
@@ -828,8 +973,8 @@ export class AdminPanel {
                 roomId: roomId
             });
             if (result.success) {
-            this.app.toast.success('❌ Комната удалена');
-                await this.loadData();
+                this.app.toast.success('❌ Комната удалена');
+                //await this.loadData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
@@ -846,7 +991,7 @@ export class AdminPanel {
             });
             if (result.success) {
                 this.app.toast.success('🔒 Комната закрыта');
-                await this.loadData();
+                //await this.loadData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');

@@ -151,7 +151,11 @@ export class ChatApiClient {
     }
     */
     async deleteMessage(roomId, messageId, userId) {
-        return this.request(`/chat/delete/${roomId}/${messageId}/${userId}`, {
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую                  
+        return this.request(`/chat/delete/${roomId}/${messageId}/${actualUserId}`, {
             method: 'POST',
             body: JSON.stringify({
                 roomId,
@@ -273,7 +277,11 @@ export class ChatApiClient {
     }
 
     async getUnreadCount(userId) {
-        return this.request(`/private/user/${userId}/unread`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую              
+        return this.request(`/private/user/${actualUserId}/unread`);
     }
 
     /*
@@ -284,9 +292,13 @@ export class ChatApiClient {
     }
     */
     async deletePrivateMessage(messageId, userId) {
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую            
         return this.request(`/private/message/${messageId}`, {
             method: 'POST',
-            body: JSON.stringify({ userId }) // Передаем userId в теле запроса
+            body: JSON.stringify({ actualUserId }) // Передаем userId в теле запроса
         });
     }   
     
@@ -313,7 +325,11 @@ export class ChatApiClient {
     }
 
     async getBlockedUsers(userId) {
-        return this.request(`/private/user/${userId}/blocked`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую             
+        return this.request(`/private/user/${actualUserId}/blocked`);
     }
 
     async heartbeat(data) {
@@ -332,7 +348,11 @@ export class ChatApiClient {
     }
 
     async getUserChats(userId) {
-        return this.request(`/private/user/${userId}/chats`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую             
+        return this.request(`/private/user/${actualUserId}/chats`);
     }    
 
     // === Admin API ===
@@ -346,17 +366,29 @@ export class ChatApiClient {
     }
 
     async getUserStats(userId) {
-        return this.request(`/admin/user/${userId}/stats`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую               
+        return this.request(`/admin/user/${actualUserId}/stats`);
     }
 
     //Получение информации о пользователе с сервера
     async getUser(userId) {
-        return this.request(`/admin/user/${userId}`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую             
+        return this.request(`/admin/user/${actualUserId}`);
         //return this.request(`/admin/user/${userId}/stats`);
     }
 
     async setUserRole(userId, data) {
-        return this.request(`/admin/user/${userId}/role`, {
+        // Проверяем, является ли userId объектом
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую        
+        return this.request(`/admin/user/${actualUserId}/role`, {
             method: 'POST',
             body: data
         });
@@ -404,13 +436,13 @@ export class ChatApiClient {
 
     async clearRoomHistory(data) {
         return this.request(`/admin/room/${data.roomId}/history`, {
-            method: 'DELETE'
+            method: 'POST'
         });
     }
 
     async deleteRoom(data) {
         return this.request(`/admin/room/${data.roomId}`, {
-            method: 'DELETE'
+            method: 'POST'
         });
     }
 
@@ -425,7 +457,11 @@ export class ChatApiClient {
     }
 
     async getModerationLog(userId = null) {
-        const query = userId ? `?userId=${userId}` : '';
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую              
+        const query = userId ? `?userId=${actualUserId}` : '';
         return this.request(`/admin/logs${query}`);
     }
 
@@ -442,7 +478,7 @@ export class ChatApiClient {
 
     async clearAllData() {
         return this.request('/admin/clear-all', {
-            method: 'DELETE'
+            method: 'POST'
         });
     }
 

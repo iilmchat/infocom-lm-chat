@@ -156,7 +156,7 @@ export class MultiUserManager {
     }
 
     /**
-     * Получение информации о пользователе с сервера
+     * Получение информации о пользователе с сервера (Пока отключено. ВКлючить)
      */
     async fetchUserInfo() {
         try {
@@ -766,9 +766,9 @@ export class MultiUserManager {
      */
     updateUsers(users) {
         if (!users) return;
-        
+        let userList = Array.isArray(users) ? users : Object.values(users);
         // Проверяем, изменился ли список
-        const newUserIds = new Set(users.map(u => u.id));
+        const newUserIds = new Set(userList.map(u => u.id));
         const currentUserIds = new Set(this.peers.keys());
         
         // Если списки совпадают, не обновляем
@@ -779,7 +779,7 @@ export class MultiUserManager {
 
         this.peers.clear();
         /*
-        users.forEach(user => {
+        userList.forEach(user => {
             if (user.Id !== this.localUser.id) {
                 this.peers.set(user.Id, {
                     id: user.Id,
@@ -793,7 +793,7 @@ export class MultiUserManager {
         });
 */
 
-        users.forEach(user => {
+        userList.forEach(user => {
             // Не добавляем себя
             if (user.id !== this.localUser.id) {
                 this.peers.set(user.id, {
