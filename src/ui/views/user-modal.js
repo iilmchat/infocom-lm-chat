@@ -1,6 +1,10 @@
 // src/ui/views/user-modal.js
 import { Modal } from '../components/modal.js';
 
+/**
+ * Модальное окно для управления профилем пользователя
+ * Добавлено в 5.1: выход из аккаунта
+ */
 export class UserModal {
     constructor(app) {
         this.app = app;
@@ -8,15 +12,24 @@ export class UserModal {
         this.setupEventListeners();
     }
 
+    /**
+     * Открыть модальное окно профиля
+     */
     open() {
         this.loadUserProfile();
         this.modal.open();
     }
 
+    /**
+     * Закрыть модальное окно профиля
+     */
     close() {
         this.modal.close();
     }
 
+    /**
+     * Загрузить данные пользователя в форму
+     */
     loadUserProfile() {
         const user = this.app.multiUserManager.localUser;
         document.getElementById('userNameInput').value = user.name || '';
@@ -25,6 +38,9 @@ export class UserModal {
         this.updatePreview();
     }
 
+    /**
+     * Обновить превью профиля
+     */
     updatePreview() {
         const name = document.getElementById('userNameInput').value || 'Пользователь';
         const avatar = document.getElementById('userAvatarInput').value || '👤';
@@ -35,6 +51,9 @@ export class UserModal {
         document.getElementById('userPreview').style.borderColor = color;
     }
 
+    /**
+     * Сохранить изменения профиля
+     */
     async saveUserProfile() {
         const name = document.getElementById('userNameInput').value.trim();
         const avatar = document.getElementById('userAvatarInput').value.trim();
@@ -69,9 +88,28 @@ export class UserModal {
         }
     }
 
+    /**
+     * Выход из аккаунта
+     * Добавлено в 5.1.
+     */
+    async logout() {
+        if (confirm('Выйти из аккаунта?')) {
+            await this.app.authService.logout();
+            this.close();
+            // Перезагружаем страницу для очистки состояния
+            window.location.reload();
+        }
+    }
+
+    /**
+     * Настройка обработчиков событий
+     */
     setupEventListeners() {
         // Открытие
         //document.getElementById('userModal')?.addEventListener('click', () => this.open());
+        // Открытие (вызывается из app.js)
+        // document.getElementById('userProfileBtn')?.addEventListener('click', () => this.open());
+         
         // Превью при вводе
         document.getElementById('userNameInput')?.addEventListener('input', () => this.updatePreview());
         document.getElementById('userAvatarInput')?.addEventListener('input', () => this.updatePreview());
@@ -82,6 +120,12 @@ export class UserModal {
 
         // Закрытие
         document.getElementById('userModalClose')?.addEventListener('click', () => this.close());
+
+        // Добавлено в 5.1: кнопка выхода (если есть в модалке)
+        const logoutBtn = document.getElementById('userLogoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
 
         // Предустановленные аватарки
         document.querySelectorAll('.avatar-preset').forEach(el => {
@@ -100,5 +144,12 @@ export class UserModal {
                 el.classList.add('selected');
             });
         });
+        
+        // Закрытие по клику на overlay
+        document.getElementById('userModal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('userModal')) {
+                this.close();
+            }
+        });   
     }
 }

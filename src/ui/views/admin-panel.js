@@ -1,7 +1,11 @@
-// src/ui/views/admin-panel.js (добавлено управление ролями)
+// src/ui/views/admin-panel.js
 import { Modal } from '../components/modal.js';
 import { sanitizeHTML } from '../../services/sanitizer.js';
 
+/**
+ * Панель администратора/модератора
+ * Изменено в 5.1: добавлены все действия (бан, мут, кик, управление комнатами)
+ */
 export class AdminPanel {
     constructor(app) {
         this.app = app;
@@ -116,7 +120,10 @@ export class AdminPanel {
             this.app.toast.error('Ошибка сохранения роли');
         }
     }
-
+    
+    /**
+     * Открыть панель администрирования
+     */
     open() {
         this.loadData();
         this.modal.open();
@@ -124,6 +131,9 @@ export class AdminPanel {
         this.switchTab('users');
     }
 
+    /**
+     * Закрыть панель администрирования
+     */
     close() {
         this.modal.close();
     }
@@ -179,7 +189,8 @@ export class AdminPanel {
                 this.renderStats();
                 break;
             case 'logs':
-                this.loadLogs();
+                //this.loadLogs();
+                this.renderLogs();
                 break;
             case 'settings':
                 this.renderSettings();
@@ -191,48 +202,34 @@ export class AdminPanel {
      * Загрузка всех данных
      */
     async loadData() {
+        // Показываем индикатор загрузки
+        this.showLoading();        
         try {
-            // Показываем индикатор загрузки
-            this.showLoading();
-
-            const [usersResult, roomsResult, statsResult, logsResult] = await Promise.all([
-                this.app.multiUserManager.api.getAllUsers().catch(() => ({ success: false })),
-                this.app.multiUserManager.api.getRooms().catch(() => ({ success: false })),
-                this.app.multiUserManager.api.getAdminStats().catch(() => ({ success: false })),
-                this.app.multiUserManager.api.getModerationLog().catch(() => ({ success: false }))
+            // Загружаем всё параллельно
+            const [users, rooms, stats, logs] = await Promise.all([
+                this.app.apiService.getAllUsers().catch(() => ({ success: false })),
+                this.app.apiService.getAdminRooms().catch(() => ({ success: false })),
+                this.app.apiService.getAdminStats().catch(() => ({ success: false })),
+                this.app.apiService.getModerationLogs().catch(() => ({ success: false }))
             ]);
-
-            if (usersResult.success) {
-                this.users = usersResult.users || [];
-                //this.renderUsers();
-            }
-
-            if (roomsResult.success) {
-                this.rooms = roomsResult.rooms || [];
-                //this.renderRooms();
-            }
-
-            if (statsResult.success) {
-                this.stats = statsResult.stats;                
-                //this.renderStats(statsResult.stats);
-            }
-
-            if (logsResult.success) {
-                //this.renderLogs(logsResult.logs);
-                this.logs = logsResult.logs || [];                           
-            }    
-
+            if (users.success) this.users = users.users || [];
+            if (rooms.success) this.rooms = rooms.rooms || [];
+            if (stats.success) this.stats = stats.stats || {};
+            if (logs.success) this.logs = logs.logs || [];            
             // Рендерим текущую вкладку
             this.renderCurrentTab();
 
         } catch (error) {
             console.error('Ошибка загрузки данных:', error);            
-            this.app.toast.error('❌ Ошибка загрузки данных');
+            this.app.toast.error('❌ Ошибка загрузки данных админки');
         } finally {
             this.hideLoading();
         }
     }
 
+    /**
+     * Рендеринг текущей вкладки
+     */
     renderCurrentTab() {
         switch (this.currentTab) {
             case 'users':
@@ -256,6 +253,9 @@ export class AdminPanel {
         }
     }
 
+    /**
+     * Показать индикатор загрузки
+     */
     showLoading() {
         // Можно добавить индикатор загрузки
         // Создаем элемент индикатора загрузки, если он еще не существует
@@ -313,6 +313,9 @@ export class AdminPanel {
 
     }
 
+    /**
+     * Скрыть индикатор загрузки
+     */
     hideLoading() {
         // Скрыть индикатор загрузки
         // Ищет элемент индикатора загрузки по ID
@@ -327,7 +330,8 @@ export class AdminPanel {
     // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ =====
     
     /**
-     * Отображение пользователей с возможностью смены роли
+     * Отображение пользователей с возможностью управления
+     * Изменено в 5.1: добавлены кнопки бан, мут, кик, смена роли
      */
     renderUsers() {
         const container = document.getElementById('adminUserList');
@@ -431,23 +435,20 @@ export class AdminPanel {
 
     /**
      * Изменение роли пользователя
+     * Добавлено в 5.1.
      */
     async changeUserRole(userId, newRole) {
         if (!confirm(`Изменить роль пользователя на ${newRole}?`)) return;
 
         try {
-            /*
-            const result = await this.app.multiUserManager.api.setUserRole({
-                userId: userId,
+            const result = await this.app.apiService.setUserRole(userId, {
+                //userId: userId,
+                //Role: role,
+                //ModeratorId: this.app.multiUserManager.localUser.id
                 role: newRole,
-                moderatorId: this.app.multiUserManager.localUser.id
-            });
-            */
-            const result = await this.app.multiUserManager.api.setUserRole(userId,{
-                userId: userId,
-                Role: newRole,
-                ModeratorId: this.app.multiUserManager.localUser.id
-            });           
+                moderatorId: this.app.multiUserManager.localUser.id                
+            });    
+
             if (result.success) {
                 this.app.toast.success(`✅ Роль изменена на ${newRole}`);
                 await this.loadData();
@@ -461,6 +462,10 @@ export class AdminPanel {
 
     // ===== ВКЛАДКА: КОМНАТЫ =====
 
+    /**
+     * Отображение комнат с возможностью управления
+     * Изменено в 5.1: добавлены действия с комнатами
+     */
     renderRooms() {
         const container = document.getElementById('adminRoomList');
         if (!container) return;
@@ -476,6 +481,13 @@ export class AdminPanel {
             `;
             return;
         }
+
+/*
+                    <button onclick="window.adminPanel.clearRoom('${room.roomId || room.id}')" title="Очистить историю">🗑️</button>
+                    <button onclick="window.adminPanel.deleteRoom('${room.roomId || room.id}')" title="Удалить комнату">❌</button>
+                    <button onclick="window.adminPanel.closeRoom('${room.roomId || room.id}')" title="Закрыть комнату">🔒</button>
+                    <button onclick="window.adminPanel.exportRoom('${room.roomId || room.id}')" title="Экспортировать">💾</button>
+*/
 
         container.innerHTML = this.rooms.map(room => `
             <div class="admin-room-item">
@@ -554,6 +566,9 @@ export class AdminPanel {
     }    
     // ===== ВКЛАДКА: СООБЩЕНИЯ =====
 
+    /**
+     * Загрузка и поиск сообщений
+     */
     async loadMessages() {
         const searchInput = document.getElementById('adminMsgSearch');
         const query = searchInput?.value || '';
@@ -564,7 +579,7 @@ export class AdminPanel {
                 return;
             }
 
-            const result = await this.app.multiUserManager.api.searchMessages({
+            const result = await this.app.apiService.adminSearchMessages({
                 query: query,
                 limit: 100
             });
@@ -585,6 +600,9 @@ export class AdminPanel {
         }
     }
 
+    /**
+     * Отображение сообщений
+     */
     renderMessages(messages) {
         const container = document.getElementById('adminMessageList');
         if (!container) return;
@@ -615,6 +633,9 @@ export class AdminPanel {
         
     // ===== ВКЛАДКА: СТАТИСТИКА =====
 
+    /**
+     * Отображение статистики
+     */
     renderStats() {
         const container = document.getElementById('adminStats');
         if (!container) return;
@@ -691,6 +712,9 @@ export class AdminPanel {
         }
     }
  
+    /**
+     * Отображение логов модерации
+     */    
     renderLogs() {
         const container = document.getElementById('adminLogList');
         if (!container) return;
@@ -802,6 +826,9 @@ export class AdminPanel {
         });
     }
 
+    /**
+     * Загрузка настроек из localStorage
+     */
     loadSettings() {
         try {
             const data = localStorage.getItem('admin_settings');
@@ -811,6 +838,9 @@ export class AdminPanel {
         }
     }
 
+    /**
+     * Сохранение настроек
+     */
     saveSettings(settings) {
         try {
             const current = this.loadSettings();
@@ -822,6 +852,9 @@ export class AdminPanel {
         }
     }
 
+    /**
+     * Сброс настроек
+     */
     resetSettings() {
         try {
             localStorage.removeItem('admin_settings');
@@ -839,12 +872,15 @@ export class AdminPanel {
     */
     // ===== ДЕЙСТВИЯ МОДЕРАТОРА =====    
 
-    //Заглушить пользователя
+    /**
+     * Заглушить пользователя
+     * Добавлено в 5.1.
+     */
     async muteUser(userId, minutes) {
         if (!confirm(`Заглушить пользователя на ${minutes} минут?`)) return;
         
         try {
-            const result = await this.app.multiUserManager.api.muteUser({
+            const result = await this.app.apiService.muteUser({
                 userId: userId,
                 minutes: minutes,
                 moderatorId: this.app.multiUserManager.localUser.id,
@@ -855,16 +891,19 @@ export class AdminPanel {
                 await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка мута');
         }
     }
 
-    //Выгнать пользователя
+    /**
+     * Выгнать пользователя из комнаты
+     * Добавлено в 5.1.
+     */
     async kickUser(userId) {
         if (!confirm('Выгнать пользователя?')) return;
         
         try {
-            const result = await this.app.multiUserManager.api.kickUser({
+            const result = await this.app.apiService.kickUser({
                 userId: userId,
                 roomId: this.app.multiUserManager.roomId,
                 moderatorId: this.app.multiUserManager.localUser.id
@@ -874,16 +913,19 @@ export class AdminPanel {
                 await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка кика');
         }
     }
 
-    //Забанить пользователя
+    /**
+     * Забанить пользователя
+     * Добавлено в 5.1.
+     */
     async banUser(userId) {
         if (!confirm('Забанить пользователя?')) return;
         
         try {
-            const result = await this.app.multiUserManager.api.banUser({
+            const result = await this.app.apiService.banUser({
                 userId: userId,
                 moderatorId: this.app.multiUserManager.localUser.id,
                 reason: prompt('Причина бана:') || 'Нарушение правил'
@@ -893,16 +935,19 @@ export class AdminPanel {
                 await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка бана');
         }
     }
 
-    //Разбанить пользователя
+    /**
+     * Разбанить пользователя
+     * Добавлено в 5.1.
+     */
     async unbanUser(userId) {
         if (!confirm('Разбанить пользователя?')) return;
 
         try {
-            const result = await this.app.multiUserManager.api.unbanUser({
+            const result = await this.app.apiService.unbanUser({
                 userId: userId,
                 moderatorId: this.app.multiUserManager.localUser.id
             });
@@ -911,7 +956,7 @@ export class AdminPanel {
                 await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка разбана');
         }
     }
 
@@ -946,86 +991,93 @@ export class AdminPanel {
             this.app.toast.error('❌ Ошибка');
         }
     }
-    
-    //Очистить историю комнаты
+
+
+    // ===== ДЕЙСТВИЯ С КОМНАТАМИ =====
+
+    /**
+     * Очистить историю комнаты
+     * Добавлено в 5.1.
+     */
     async clearRoom(roomId) {
         if (!confirm('Очистить историю комнаты?')) return;
         
         try {
+            const result = await this.app.apiService.clearRoomHistory({ roomId });
+            /*
             const result = await this.app.multiUserManager.api.clearRoomHistory({
                 roomId: roomId
             });
+            */
             if (result.success) {
                 this.app.toast.success('🗑️ История очищена');
-                //await this.loadData();
+                //Может надо закрыть?
+                await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка очистки');
         }
     }
 
-    //Удалить комнату
+    /**
+     * Удалить комнату
+     * Добавлено в 5.1.
+     */
     async deleteRoom(roomId) {
         if (!confirm('Удалить комнату?')) return;
         
         try {
+            /*
             const result = await this.app.multiUserManager.api.deleteRoom({
                 roomId: roomId
             });
+            */
+            const result = await this.app.apiService.deleteRoom({ roomId });           
             if (result.success) {
                 this.app.toast.success('❌ Комната удалена');
-                //await this.loadData();
+                //Может надо закрыть?
+                await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка удаления комнаты');
         }
     }
-    
-    //Закрыть комнату
+
+    /**
+     * Закрыть комнату
+     * Добавлено в 5.1.
+     */
     async closeRoom(roomId) {
         if (!confirm('Закрыть комнату?')) return;
 
         try {
+            const result = await this.app.apiService.closeRoom({ roomId });            
+            /*
             const result = await this.app.multiUserManager.api.closeRoom({
                 roomId: roomId
             });
+            */
             if (result.success) {
                 this.app.toast.success('🔒 Комната закрыта');
-                //await this.loadData();
+                //Может надо закрыть?
+                await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка закрытия комнаты');
         }
     }    
 
-    //Удалить сообщение
-    async deleteMessage(messageId) {
-        if (!confirm('Удалить сообщение?')) return;
-
-        try {
-            const result = await this.app.multiUserManager.api.deleteMessage(
-                null, // roomId не нужен для админского удаления
-                messageId,
-                this.app.multiUserManager.localUser.id
-            );
-            if (result.success) {
-                this.app.toast.success('🗑️ Сообщение удалено');
-                // Обновляем список сообщений
-                this.messages = this.messages.filter(m => m.id !== messageId);
-                this.renderMessages();
-            }
-        } catch (error) {
-            this.app.toast.error('❌ Ошибка');
-        }
-    }
-
-    //Экспортировать комнату и Создаем файл для скачивания
+    /**
+     * Экспортировать комнату
+     * Добавлено в 5.1.
+     */
     async exportRoom(roomId) {
         try {
-            const result = await this.app.multiUserManager.api.exportRoom(roomId, 'json');
+            const result = await this.app.apiService.exportRoom(roomId, 'json');
             if (result.success) {
                 // Создаем файл для скачивания
-                const data = result.data || result.data1;
+                //const data = result.data || result.data1;
+                const data = result.data || result;
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1040,24 +1092,60 @@ export class AdminPanel {
         }
     }
 
-    //Очистить все данные? Это действие необратимо!
+    // Действия с сообщениями   
+
+    /**
+     * Удалить сообщение (админ)
+     * Добавлено в 5.1.
+     */
+    async deleteMessage(messageId) {
+        if (!confirm('Удалить сообщение?')) return;
+
+        try {
+            const result = await this.app.apiService.adminDeleteMessage(messageId);
+            /*
+            const result = await this.app.multiUserManager.api.deleteMessage(
+                null, // roomId не нужен для админского удаления
+                messageId,
+                this.app.multiUserManager.localUser.id
+            );
+            */
+            if (result.success) {
+                this.app.toast.success('🗑️ Сообщение удалено');
+                // Обновляем список сообщений
+                this.messages = this.messages.filter(m => m.id !== messageId);
+                this.renderMessages();
+            }
+        } catch (error) {
+            this.app.toast.error('❌ Ошибка удаления сообщения');
+        }
+    }
+        
+    /**
+     * Очистить все данные
+     * Добавлено в 5.1.
+     * Это действие необратимо!
+     */
     async clearAll() {
         if (!confirm('⚠️ Очистить все данные? Это действие необратимо!')) return;
         if (!confirm('Вы уверены?')) return;
 
         try {
-            const result = await this.app.multiUserManager.api.clearAllData();
+            const result = await this.app.apiService.clearAllData();
             if (result.success) {
                 this.app.toast.success('🗑️ Все данные очищены');
                 await this.loadData();
             }
         } catch (error) {
-            this.app.toast.error('❌ Ошибка');
+            this.app.toast.error('❌ Ошибка очистки');
         }
     }    
 
     // ===== НАСТРОЙКА ОБРАБОТЧИКОВ =====
 
+    /**
+     * Настройка обработчиков событий
+     */
     setupEventListeners() {
         // Открытие
         document.getElementById('adminBtn')?.addEventListener('click', () => this.open());

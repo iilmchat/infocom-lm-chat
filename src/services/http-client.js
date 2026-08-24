@@ -6,6 +6,7 @@ import { CONFIG } from '../config.js';
  * 
  * Этот класс предоставляет базовые функции для выполнения HTTP-запросов к API,
  * включая обработку ошибок, повторные попытки и таймауты.
+ * Изменено в 5.1: добавлены все методы API (реакции, администрирование, аналитика, файлы)
  */
 export class ChatApiClient {
     constructor() {
@@ -134,7 +135,6 @@ export class ChatApiClient {
      */
     async editMessage(data) {
         return this.request('/chat/edit', {
-            //method: 'PUT',
             method: 'POST',            
             body: data
         });
@@ -143,13 +143,6 @@ export class ChatApiClient {
     /**
      * Удаление сообщения
      */
-    /*
-    async deleteMessage(roomId, messageId, userId) {
-        return this.request(`/chat/delete/${roomId}/${messageId}/${userId}`, {
-            method: 'DELETE'
-        });
-    }
-    */
     async deleteMessage(roomId, messageId, userId) {
         // Проверяем, является ли userId объектом        
         const actualUserId = typeof userId === 'object' && userId !== null 
@@ -164,6 +157,7 @@ export class ChatApiClient {
             })
         });
     }
+
     /**
      * Создание комнаты
      */
@@ -284,13 +278,6 @@ export class ChatApiClient {
         return this.request(`/private/user/${actualUserId}/unread`);
     }
 
-    /*
-    async deletePrivateMessage(messageId, userId) {
-        return this.request(`/private/message/${messageId}?userId=${userId}`, {
-            method: 'DELETE'
-        });
-    }
-    */
     async deletePrivateMessage(messageId, userId) {
         // Проверяем, является ли userId объектом        
         const actualUserId = typeof userId === 'object' && userId !== null 
@@ -304,7 +291,6 @@ export class ChatApiClient {
     
     async editPrivateMessage(messageId, data) {
         return this.request(`/private/message/${messageId}`, {
-            //method: 'PUT',
             method: 'POST',
             body: data
         });
@@ -338,10 +324,36 @@ export class ChatApiClient {
             body: data
         });
     }
+    // === Добавлено в 5.1: Аутентификация ===
+
+    async createUser(data) {
+        return this.request('/private/user', {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    async getSessions(userId) {
+        return this.request(`/auth/sessions?userId=${userId}`);
+    }
+
+    async deleteSession(sessionId, userId) {
+        return this.request(`/auth/sessions/${sessionId}?userId=${userId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async logoutAll(data) {
+        return this.request('/auth/logout-all', {
+            method: 'POST',
+            body: data
+        });
+    }
+
+
 
     async updateUserProfile(data) {
         return this.request('/private/user', {
-            //method: 'PUT',
             method: 'POST',            
             body: data            
         });
@@ -380,7 +392,6 @@ export class ChatApiClient {
             ? userId.userId  // Если объект - используем свойство userId
             : userId;        // Если значение - используем его напрямую             
         return this.request(`/admin/user/${actualUserId}`);
-        //return this.request(`/admin/user/${userId}/stats`);
     }
 
     async setUserRole(userId, data) {
@@ -456,6 +467,18 @@ export class ChatApiClient {
         return this.request('/admin/stats');
     }
 
+    async getModerationLogs(userId = null) {
+        const query = userId ? `?userId=${userId}` : '';
+        return this.request(`/admin/logs${query}`);
+    }
+
+    async adminSearchMessages(data) {
+        return this.request('/admin/messages/search', {
+            method: 'POST',
+            body: data
+        });
+    }    
+        
     async getModerationLog(userId = null) {
         // Проверяем, является ли userId объектом        
         const actualUserId = typeof userId === 'object' && userId !== null 
@@ -485,4 +508,165 @@ export class ChatApiClient {
     async healthCheck() {
         return this.request('/admin/health');
     }    
+
+    // === Добавлено в 5.1: Реакции ===
+
+    async addReaction(data) {
+        return this.request('/Reaction/add', {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    async removeReaction(messageId, userId) {
+        return this.request(`/Reaction/remove?messageId=${messageId}&userId=${userId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async getReactions(messageId) {
+        return this.request(`/Reaction/message/${messageId}`);
+    }
+
+    async getUserReaction(messageId, userId) {
+        return this.request(`/Reaction/message/${messageId}/user/${userId}`);
+    }
+
+    // === Добавлено в 5.1: Закрепление ===
+
+    async pinMessage(messageId, data) {
+        return this.request(`/chat/pin/${messageId}`, {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    async unpinMessage(messageId, roomId) {
+        return this.request(`/chat/pin/${messageId}?roomId=${roomId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async getPinnedMessages(roomId) {
+        return this.request(`/chat/pinned/${roomId}`);
+    }
+
+    // === Добавлено в 5.1: Жалобы ===
+
+    async reportMessage(messageId, data) {
+        return this.request(`/chat/report/${messageId}`, {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    // === Добавлено в 5.1: Уведомления ===
+
+    async getNotifications(userId, onlyUnread = true, limit = 50) {
+        return this.request(`/notifications/user/${userId}?onlyUnread=${onlyUnread}&limit=${limit}`);
+    }
+
+    async markNotificationsRead(data) {
+        return this.request('/notifications/mark-read', {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    async getNotificationCount(userId) {
+        return this.request(`/notifications/count/${userId}`);
+    }
+
+    // === Добавлено в 5.1: Файлы ===
+
+    async uploadAttachment(formData) {
+        return this.request('/attachment/upload', {
+            method: 'POST',
+            body: formData,
+            headers: {}
+        });
+    }
+
+    async getAttachment(attachmentId) {
+        const url = `${this.baseUrl}/attachment/${attachmentId}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки файла: ${response.status}`);
+        }
+        return response;
+    }
+
+    async deleteAttachment(attachmentId) {
+        return this.request(`/attachment/${attachmentId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async getAttachmentsForMessage(messageId) {
+        return this.request(`/attachment/message/${messageId}`);
+    }
+
+    // === Добавлено в 5.1: Аналитика ===
+
+    async getUserActivity(userId, from, to) {
+        const params = new URLSearchParams({ from, to });
+        return this.request(`/analytics/user/${userId}/activity?${params}`);
+    }
+
+    async getRoomEngagement(roomId, from, to) {
+        const params = new URLSearchParams({ from, to });
+        return this.request(`/analytics/room/${roomId}/engagement?${params}`);
+    }
+
+    async getGlobalAnalytics() {
+        return this.request('/analytics/global');
+    }
+
+    // === Добавлено в 5.1: Поиск комнат ===
+
+    async searchRooms(query, limit = 20) {
+        const params = new URLSearchParams({ query, limit });
+        return this.request(`/room/search?${params}`);
+    }
+
+    // === Добавлено в 5.1: Admin комнаты ===
+
+    async getAdminRooms() {
+        return this.request('/admin/rooms');
+    }
+
+    async getAdminRoom(roomId) {
+        return this.request(`/admin/room/${roomId}`);
+    }
+
+    async getAdminRoomStats(roomId) {
+        return this.request(`/admin/room/${roomId}/stats`);
+    }
+
+    async updateRoomSettings(roomId, settings) {
+        return this.request(`/admin/room/${roomId}/settings`, {
+            method: 'PUT',
+            body: settings
+        });
+    }
+
+    async transferRoom(roomId, data) {
+        return this.request(`/admin/room/${roomId}/transfer`, {
+            method: 'POST',
+            body: data
+        });
+    }
+
+    async adminDeleteMessage(messageId) {
+        return this.request(`/admin/message/${messageId}`, {
+            method: 'DELETE'
+        });
+    }    
+
+    async adminEditMessage(messageId, data) {
+        return this.request(`/admin/message/${messageId}`, {
+            method: 'POST',
+            body: data
+        });
+    }
 }

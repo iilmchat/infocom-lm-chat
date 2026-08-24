@@ -1,4 +1,21 @@
 // src/app.js
+/**
+ * Главный файл приложения Infocom LM Chat Pro v5.1
+ * 
+ * Архитектура:
+ * - Используется EventBus для слабосвязанной коммуникации между модулями
+ * - Все компоненты инициализируются в конструкторе App
+ * - Приложение запускается автоматически при загрузке страницы
+ * - Поддерживается восстановление сессии из localStorage
+ * 
+ * Изменено в 5.1:
+ * - Добавлена аутентификация через AuthService
+ * - Добавлен менеджер уведомлений NotificationManager
+ * - Добавлена аналитика AnalyticsView
+ * - Улучшена обработка ошибок
+ * - Добавлена поддержка приватных чатов и общих комнат
+ */
+
 import { CONFIG, SERVER_CONFIG, loadServerConfig, saveServerConfig } from './config.js';
 import { EventBus } from './core/event-bus.js';
 import { ErrorBoundary } from './core/error-boundary.js';
@@ -12,6 +29,8 @@ import { RoadmapTracker } from './models/roadmap-tracker.js';
 import { RateLimiter } from './models/rate-limiter.js';
 import { InputHistory } from './models/input-history.js';
 import { ApiService } from './services/api-service.js';
+import { AuthService } from './services/auth-service.js'; // Добавлено в 5.1.
+import { NotificationManager } from './models/notification-manager.js'; // Добавлено в 5.1.
 import { applyTheme, cycleTheme } from './ui/theme.js';
 import { ChatView } from './ui/views/chat-view.js';
 import { Sidebar } from './ui/views/sidebar.js';
@@ -20,6 +39,7 @@ import { InfoView } from './ui/views/info-view.js';
 import { ShareView } from './ui/views/share-view.js';
 import { GameView } from './ui/views/game-view.js';
 import { ExportView } from './ui/views/export-view.js';
+import { AnalyticsView } from './ui/views/analytics-view.js'; // Добавлено в 5.1.
 import { renderAssistantBar, updateActiveIndicator, viewPrompt, deleteAssistant, openCustomAssistantModal } from './ui/views/assistant-bar.js';
 import { runAllTests } from './utils/test-runner.js';
 import { DropZone } from './ui/components/drop-zone.js';
@@ -28,112 +48,174 @@ import { SectionHelpers } from './utils/section-helpers.js';
 import { UserModal } from './ui/views/user-modal.js';
 import { AdminPanel } from './ui/views/admin-panel.js';
 import { PrivateChat } from './ui/views/private-chat.js';
+import { AuthModal } from './ui/views/auth-modal.js'; // Добавлено в 5.1.
 
-
-
+/**
+ * Главный класс приложения
+ * Координирует работу всех компонентов и управляет глобальным состоянием
+ */
 class App {
     constructor() {
-        // Инициализация ядра
+        // ===== Инициализация ядра =====
+        // Центральная шина событий для коммуникации между модулями
         this.eventBus = new EventBus();
+        
+        // Менеджер всплывающих уведомлений (Toast)
         this.toast = new ToastManager();
+        
+        // Глобальный перехватчик ошибок с красивым отображением
         this.errorBoundary = new ErrorBoundary();
+        
+        // Ограничитель частоты запросов (защита от спама)
         this.rateLimiter = new RateLimiter();
+        
+        // История ввода сообщений (Ctrl+↑/↓)
         this.inputHistory = new InputHistory();
 
-        // Инициализация моделей
+        // ===== Инициализация моделей =====
+        // Управление диалогами (сессиями чата)
         this.sessionManager = new SessionManager(this.eventBus);
+        
+        // Управление RAG документами (Retrieval-Augmented Generation)
         this.ragManager = new RAGManager(this.eventBus);
+        
+        // Управление ассистентами (встроенными и кастомными)
         this.assistantManager = new AssistantManager(this.eventBus);
+        
+        // Управление достижениями (геймификация)
         this.achievementManager = new AchievementManager(this.eventBus);
+        
+        // Управление многопользовательским режимом (общие комнаты, приватные чаты)
         this.multiUserManager = new MultiUserManager(this.eventBus);
+        
+        // Отслеживание прогресса развития проекта (дорожная карта)
         this.roadmapTracker = new RoadmapTracker(this.eventBus);
 
-        // Инициализация сервисов
+        // Добавлено в 5.1: Управление уведомлениями
+        this.notificationManager = new NotificationManager(this);        
+
+        // ===== Инициализация сервисов =====
+        // Сервис для работы с API
         this.apiService = new ApiService(this.eventBus);
 
-        // Состояние приложения
+        // Добавлено в 5.1: Сервис аутентификации и управления сессиями
+        this.authService = new AuthService(this.eventBus);
+
+        // ===== Состояние приложения =====
+        // Текущая модель для генерации ответов
         this.currentModel = CONFIG.UI_CONFIG.DEFAULT_MODEL;
+        
+        // Список доступных моделей (загружается с сервера)
         this.availableModels = [];
+        
+        // Флаг обработки запроса (блокировка повторных отправок)
         this.isProcessing = false;
+        
+        // Контроллер для отмены потоковых запросов
         this.streamAbortController = null;
+        
+        // Прикреплённые файлы к сообщению
         this.attachedFiles = [];
+        
+        // Текущая тема оформления
         this.currentTheme = localStorage.getItem('chat_theme') || CONFIG.UI_CONFIG.DEFAULT_THEME;
+        
+        // Цель для ответа на сообщение (reply)
         this.replyTarget = null;
+        
+        // ID редактируемого сообщения
         this.editingMessageId = null;
+        
+        // Оригинальное содержимое редактируемого сообщения
         this.editingOriginalContent = '';
+        
+        // Элемент последнего сообщения бота (для стриминга)
         this.lastBotMessageEl = null;
         this.lastBotContent = '';
         this.fullResponse = '';
+        
+        // Режим Drag-and-Drop (attachment или rag)
         this.currentDragMode = 'rag';
 
-        // Инициализация UI
+        // ===== Инициализация UI =====
+        // Основное представление чата
         this.chatView = new ChatView(this);
+        
+        // Боковая панель
         this.sidebar = new Sidebar(this);
+        
+        // Настройки сервера
         this.settingsView = new SettingsView(this);
+        
+        // Информационное окно (Вики, Предложения, Достижения)
         this.infoView = new InfoView(this);
+        
+        // Окно для совместного доступа (Share)
         this.shareView = new ShareView(this);
+        
+        // Игры
         this.gameView = new GameView(this);
+        
+        // Экспорт диалогов
         this.exportView = new ExportView(this);
 
+        // Добавлено в 5.1: Аналитика
+        this.analyticsView = new AnalyticsView(this);
+
+        // Модальное окно профиля пользователя
         this.userModal = new UserModal(this);
+        
+        // Панель администратора
         this.adminPanel = new AdminPanel(this);
+        
+        // Приватные чаты
         this.privateChat = new PrivateChat(this);
 
-        // Инициализация DropZone
+        // Добавлено в 5.1: Модальное окно аутентификации
+        this.authModal = new AuthModal(this);
+
+        // Добавлено в 5.1: Инициализация сервиса аутентификации и модального окна
+        this.authModal.onLogin = (user) => {
+            // После успешного входа обновляем приложение
+            this.multiUserManager.localUser = user;
+            this.multiUserManager.saveUser(user);
+            this.multiUserManager.renderUsers();
+            this.multiUserManager.connectToServer();
+            this.userModal.loadUserProfile();
+            // Обновляем интерфейс (скрываем кнопку входа, показываем профиль)
+            this.updateAuthUI();
+            // Загружаем уведомления
+            this.notificationManager.fetchNotifications(true);
+        };
+
+        // ===== Инициализация компонентов =====
+        // Компонент Drag-and-Drop для загрузки файлов
         this.dropZone = new DropZone(this);
                 
-        // Инициализация секций
+        // Инициализация секций (сворачиваемые панели)
         this.initSections();
 
-        // Загрузка и инициализация
+        // ===== Загрузка и инициализация =====
         this.init();
 
-        // Инициализация UI для многопользовательского режима
+        // ===== Настройка UI для многопользовательского режима =====
         this.setupMultiUserUI();
         this.updateUserCount();    
+        this.setupNotificationUI(); // Добавлено в 5.1.
 
-        // Подписка на события приватных чатов
+        // ===== Подписка на события приватных чатов =====
         this.setupPrivateChatEvents();        
     }
 
-    setupPrivateChatEvents() {
-        // Событие открытия приватного чата
-        this.eventBus.on('private:chat_opened', (data) => {
-            const peer = this.multiUserManager.peers.get(data.user.id);
-            if (peer) {
-                this.privateChat.open(peer);
-            }
-        });
+    /**
 
-        // Обновление непрочитанных
-        this.eventBus.on('private:unread_updated', (count) => {
-            this.updateUnreadBadge(count);
-        });
-
-        // Обновление списка чатов
-        this.eventBus.on('private:chats_updated', () => {
-            this.sidebar.renderPrivateChats();
-        });
-
-        // Получение нового приватного сообщения
-        this.eventBus.on('private:message_received', (message) => {
-            this.toast.info(`💬 Приватное сообщение от ${message.senderName}`);
-            this.sidebar.renderPrivateChats();
-            this.updateUnreadBadge();
-        });
-    }
-
-    updateUnreadBadge(count) {
-        const badge = document.getElementById('unreadBadge');
-        if (!badge) return;
-        
-        if (count > 0) {
-            badge.textContent = count;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
+     * Открытие приватного чата
+     * Добавлено в 5.1: поддержка выбора пользователя
+     */
+    openPrivateChat() {
+        this.privateChat.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    } 
 
     // Переопределяем openPrivateChat
     async openPrivateChat(user) {
@@ -155,199 +237,19 @@ class App {
         }
     }
 
-    showUserSelector(users) {
-        // Создаем модальное окно для выбора пользователя
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay active';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width:400px;">
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-                <h2>👥 Выберите пользователя</h2>
-                <div style="max-height:300px;overflow-y:auto;">
-                    ${users.map(u => `
-                        <div class="user-select-item" data-user-id="${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
-                            <span style="font-size:28px;">${u.avatar}</span>
-                            <div>
-                                <div style="font-weight:600;">${this.sanitizeHTML(u.name)}</div>
-                                <div style="font-size:11px;color:var(--text-secondary);">${u.isTyping ? 'печатает...' : 'онлайн'}</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        modal.querySelectorAll('.user-select-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const userId = el.dataset.userId;
-                const user = this.multiUserManager.peers.get(userId);
-                if (user) {
-                    modal.remove();
-                    this.privateChat.open(user);
-                }
-            });
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-    }
-        
-    setupMultiUserUI() {
-        // Кнопка подключения
-        const connectBtn = document.getElementById('connectBtn');
-        if (connectBtn) {
-            connectBtn.addEventListener('click', async () => {
-                if (this.multiUserManager.isConnected) {
-                    // Отключение
-                    await this.multiUserManager.leaveRoom();
-                    this.toast.info('Отключено от сервера');
-                    this.updateUserCount();
-                    this.updateRoomInfoUI();
-                } else {
-                    // Подключение
-                    this.toast.info('Подключение к серверу...');
-                    const success = await this.multiUserManager.connectToServer();
-                    if (success) {
-                        this.toast.success('✅ Подключено к серверу');
-                        this.updateUserCount();
-                        this.updateRoomInfoUI();
-                        // Загружаем историю
-                        this.chatView.loadMessages();
-                    } else {
-                        this.toast.error('❌ Не удалось подключиться');
-                    }
-                }
-            });
-        }
-
- 
-        // Кнопка открытия Администрирования
-        document.getElementById('adminBtn')?.addEventListener('click', () => {
-            this.openAdmin();
-        });
-        
-        // Кнопка открытия приватного чата
-        document.getElementById('privateChatBtn')?.addEventListener('click', () => {
-            this.openPrivateChat();
-        });
-
-
-        // Кнопка информации о пользователе
-        document.getElementById('userProfileBtn')?.addEventListener('click', () => {
-            this.openProfileInfo();
-        });
-
-        // Кнопка информации о комнате
-        document.getElementById('roomInfoBtn')?.addEventListener('click', () => {
-            this.openRoomInfo();
-        });
-
-        // Закрытие модалки комнаты
-        document.getElementById('roomInfoModalClose')?.addEventListener('click', () => {
-            document.getElementById('roomInfoModal').classList.remove('active');
-        });
-
-        // Обновление информации о комнате
-        document.getElementById('roomInfoRefreshBtn')?.addEventListener('click', () => {
-            this.updateRoomInfoUI();
-        });
-
-        // Выход из комнаты
-        document.getElementById('roomInfoLeaveBtn')?.addEventListener('click', async () => {
-            if (confirm('Выйти из комнаты?')) {
-                await this.multiUserManager.leaveRoom();
-                document.getElementById('roomInfoModal').classList.remove('active');
-                this.toast.info('Вы вышли из комнаты');
-                this.updateUserCount();
-                this.updateRoomInfoUI();
-            }
-        });
-    }
-
-    updateUserCount() {
-        const count = this.multiUserManager.peers.size + 1;
-        const display = document.getElementById('userCountDisplay');
-        if (display) {
-            display.textContent = `👥 ${count} онлайн`;
-        }
-        // Обновляем sidebar
-        this.multiUserManager.renderUsers();
-    }
-
-    updateRoomInfoUI() {
-        const status = this.multiUserManager.getStatus();
-        document.getElementById('roomInfoId').textContent = status.roomId || '—';
-        document.getElementById('roomInfoName').textContent = status.roomName || '—';
-        document.getElementById('roomInfoUsers').textContent = status.userCount || 0;
-        document.getElementById('roomInfoMessages').textContent = status.messageCount || 0;
-        document.getElementById('roomInfoStatus').textContent = status.isConnected ? '🟢 Подключен' : '⚪ Отключен';
-        document.getElementById('roomInfoStatus').style.color = status.isConnected ? 'var(--success-color)' : 'var(--text-secondary)';
-    }
-
-    openProfileInfo() {
-        this.userModal.open();
-        //document.getElementById('roomInfoModal').classList.add('active');
-    }    
-
-    openPrivateChat() {
-        this.privateChat.open();
-        //document.getElementById('roomInfoModal').classList.add('active');
-    } 
-
-    openAdmin() {
-        this.adminPanel.open();
-        //document.getElementById('roomInfoModal').classList.add('active');
-    } 
-
-    openRoomInfo() {
-        this.updateRoomInfoUI();
-        document.getElementById('roomInfoModal').classList.add('active');
-    }
-
-    // Подписка на события MultiUserManager
-    setupMultiUserEvents() {
-        this.eventBus.on('room:joined', (data) => {
-            this.toast.success(`👥 Вошли в комнату: ${data.users?.length || 0} пользователей`);
-            this.updateUserCount();
-            this.updateRoomInfoUI();
-        });
-
-        this.eventBus.on('room:left', () => {
-            this.toast.info('Вы вышли из комнаты');
-            this.updateUserCount();
-            this.updateRoomInfoUI();
-        });
-
-        this.eventBus.on('message:new', (message) => {
-            this.toast.info(`💬 ${message.userName}: ${message.content?.substring(0, 50)}...`);
-        });
-
-        this.eventBus.on('users:updated', () => {
-            this.updateUserCount();
-        });
-
-        this.eventBus.on('server:connected', () => {
-            document.getElementById('connectBtn').textContent = '🌐 Отключиться';
-            document.getElementById('connectBtn').style.color = 'var(--success-color)';
-        });
-
-        this.eventBus.on('server:disconnected', () => {
-            document.getElementById('connectBtn').textContent = '🌐 Подключиться';
-            document.getElementById('connectBtn').style.color = '';
-        });
-    }
-
+    /**
+     * Инициализация приложения
+     * Загружает конфигурацию, восстанавливает сессию, подключает сервисы
+     * Добавлено в 5.1: восстановление сессии через AuthService
+     */    
     async init() {
-        // Загрузка конфигурации сервера
+        // Загрузка конфигурации сервера из localStorage
         loadServerConfig();
 
-        // Применение темы
+        // Применение темы оформления
         applyTheme(this.currentTheme);
 
-        // Загрузка данных RAG
+        // Загрузка данных RAG из сессии
         const ragData = this.sessionManager.getRAG();
         if (ragData) {
             try {
@@ -360,7 +262,7 @@ class App {
             }
         }
 
-        // Проверка сервера
+        // Проверка доступности сервера
         await this.apiService.checkServer();
 
         // Перерисовываем выпадающий список моделей
@@ -382,13 +284,30 @@ class App {
         this.multiUserManager.renderUsers();
         this.multiUserManager.startSimulation();
 
+        // Добавлено в 5.1: Проверка сессии при загрузке
+        const user = await this.authService.restoreSession();
+        if (user) {
+            // Пользователь уже авторизован
+            this.multiUserManager.localUser = user;
+            this.multiUserManager.saveUser(user);
+            this.multiUserManager.renderUsers();
+            this.multiUserManager.connectToServer();
+            this.userModal.loadUserProfile();
+            this.updateAuthUI();
+            // Загружаем уведомления
+            this.notificationManager.fetchNotifications(true);
+        } else {
+            // Показываем форму входа
+            this.authModal.open();
+        }
+
         // Фокус на поле ввода
         this.chatView.focusInput();
 
         // Обновление счетчика символов
         this.chatView.updateCharCounter();
 
-        // Инициализация выбора режима
+        // Инициализация выбора режима Drag-and-Drop
         this.selectDragMode('rag');
 
         // Автозапуск тестов
@@ -396,7 +315,7 @@ class App {
             runAllTests();
         }, 500);
 
-        // Применение подсветки после загрузки
+        // Применение подсветки синтаксиса после загрузки
         setTimeout(() => {
             document.querySelectorAll('.message .bubble pre code').forEach(el => {
                 if (!el.classList.contains('hljs')) {
@@ -414,6 +333,7 @@ class App {
         // Подписка на события
         this.setupEventListeners(this);
 
+        // Приветственные сообщения
         this.toast.info(`🚀 Infocom LM Chat Pro v${CONFIG.VERSION}`, 2000);
         this.toast.info('💡 Используйте Ctrl+↑ и Ctrl+↓ для истории сообщений', 3000);
         this.toast.info('🚀 v5.1 — Multi-user, кастомные ассистенты, тесты!', 3000);
@@ -425,7 +345,7 @@ class App {
     }
 
     /**
-     * Остановка генерации
+     * Остановка генерации ответа
      * Вызывается при нажатии кнопки СТОП
      */
     stopGeneration() {
@@ -467,6 +387,7 @@ class App {
 
     /**
      * Настройка глобальных обработчиков событий
+     * Добавлено в 5.1: обработчики для уведомлений и аналитики
      */    
     setupEventListeners(app) {
         // Глобальные обработчики клавиш
@@ -499,6 +420,8 @@ class App {
 
         this.eventBus.on('server:connected', () => {
             console.log('✅ Сервер подключен');
+            // Загружаем уведомления при подключении
+            this.notificationManager.fetchNotifications(true);
         });
 
         this.eventBus.on('server:disconnected', () => {
@@ -521,7 +444,7 @@ class App {
             });
         }
 
-        // Глобальная обработка клавиш для отмены
+        // Глобальная обработка клавиш для отмены (Escape)
         document.addEventListener('keydown', (e) => {
             // Escape отменяет генерацию (если есть активный запрос)
             if (e.key === 'Escape' && this.isProcessing) {
@@ -536,21 +459,36 @@ class App {
             document.getElementById('modelDropdown').classList.toggle('active');
         };
 
-        // Глобальный обработчик для кнопки смена тем
-        const themeBtn = document.getElementById('themeBtn')
+        // Глобальный обработчик для кнопки смены темы
+        const themeBtn = document.getElementById('themeBtn');
         if (themeBtn) {
             themeBtn.addEventListener('click', () => {
                 cycleTheme();
             });
         }
         
+        // === Добавлено в 5.1: Кнопка аналитики ===
+        const analyticsBtn = document.getElementById('analyticsBtn');
+        if (analyticsBtn) {
+            analyticsBtn.addEventListener('click', () => {
+                this.analyticsView.open();
+            });
+        }
 
-        // === ОБЩИЕ ПОДПИСКИ НА СОБЫТИЯ ДЛЯ МОДАЛЬНЫХ ОКЕН ===
+        // === Кнопка уведомлений ===
+        const notifBtn = document.getElementById('notificationBtn');
+        if (notifBtn) {
+            notifBtn.addEventListener('click', () => {
+                this.showNotificationsModal();
+            });
+        }
+
+        // === ОБЩИЕ ПОДПИСКИ НА СОБЫТИЯ ДЛЯ МОДАЛЬНЫХ ОКОН ===
 
         // Открытие модального окна "Поделиться"
         document.getElementById('shareBtn').onclick = app.openShareModal;
 
-        // Закрытие модального окна "Поделиться" по кнопке закрытия
+        // Закрытие модального окна "Поделиться"
         document.getElementById('shareModalClose').onclick = () => {
             document.getElementById('shareModal').classList.remove('active');
         };
@@ -650,9 +588,19 @@ class App {
         };
 
         document.addEventListener('click', () => document.getElementById('modelDropdown').classList.remove('active'));        
+
+        document.getElementById('analyticsBtn')?.addEventListener('click', () => {
+            this.analyticsView.open();
+        });
+
+        document.getElementById('newPrivateChatBtn')?.addEventListener('click', () => {
+            this.privateChat.showUserSelector();
+        });        
     }
 
-
+    /**
+     * Открытие модального окна для совместного доступа
+     */
     openShareModal() {
         // Генерируем случайный ID комнаты (6 символов в base36)
         const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -673,7 +621,7 @@ class App {
 
             // Добавляем каждого подключенного пользователя в список
             window.app.multiUserManager.peers.forEach(peer => {
-                shareHtml += `${peer.avatar} ${sanitizeHTML(peer.name)}`;
+                shareHtml += `${peer.avatar} ${window.app.sanitizeHTML(peer.name)}`;
             });
         }
 
@@ -689,6 +637,9 @@ class App {
         }
     }
 
+    /**
+     * Обработка глобальных клавиш
+     */
     handleGlobalKeys(e) {
         // Фокус на поле ввода при нажатии "/"
         const userInput = document.getElementById('userInput');
@@ -735,6 +686,9 @@ class App {
 
     // ===== UI Update Methods =====
 
+    /**
+     * Обновление отображения текущей модели
+     */
     updateModelUI() {
         const currentModelLabel = document.getElementById('currentModelLabel');
         if (currentModelLabel) {
@@ -745,6 +699,9 @@ class App {
         }
     }
 
+    /**
+     * Рендеринг выпадающего списка моделей
+     */
      renderModelDropdown(object) {
         const modelDropdown = document.getElementById('modelDropdown');
         const currentModelLabel = document.getElementById('currentModelLabel');                
@@ -770,12 +727,6 @@ class App {
                     object.sessionManager.setModelForChat(object.currentModel);
                     object.updateModelUI();
                     object.renderModelDropdown(object);
-                    //-------------------------------------------
-                    //БЫЛО УДАЛЕНО в 3.0, ЗАЧЕМ
-                    //const s = sessionManager.getCurrent();
-                    //if (s) s.model = currentModel;
-                    //sessionManager.save();
-                    //-------------------------------------------
                     object.toast.success(`Модель: ${object.currentModel}`);
                 }
                 modelDropdown.classList.remove('active');
@@ -783,8 +734,9 @@ class App {
         });
     }
 
-
-
+    /**
+     * Обновление статистики
+     */
     updateStats() {
         const messagesCount = this.sessionManager.getMessages()
             .filter(m => m.role !== 'system').length;
@@ -834,6 +786,9 @@ class App {
         }
     }
 
+    /**
+     * Обновление UI файлов RAG
+     */
     updateRagFilesUI() {
         const files = this.ragManager.getFileNames();
         const ragFilesInfo = document.getElementById('ragFilesInfo');
@@ -852,6 +807,9 @@ class App {
         this.updateStats();
     }
 
+    /**
+     * Обновление UI прикреплённых файлов
+     */
     updateAttachedFilesUI() {
         const fileInfo = document.getElementById('fileInfo');
         const fileList = document.getElementById('fileList');
@@ -877,16 +835,25 @@ class App {
         this.updateStats();
     }
 
+    /**
+     * Рендеринг панели ассистентов
+     */
     renderAssistantBar() {
         renderAssistantBar(this);
     }
 
+    /**
+     * Обновление индикатора активного ассистента
+     */
     updateActiveIndicator() {
         updateActiveIndicator(this);
     }
 
     // ===== Reply Target =====
 
+    /**
+     * Установка цели для ответа на сообщение
+     */
     setReplyTarget(div, content, role) {
         document.querySelectorAll('.message.reply-target').forEach(el => {
             el.classList.remove('reply-target');
@@ -904,6 +871,9 @@ class App {
         this.toast.info(`↩️ Ответ на сообщение от ${author}`, 2000);
     }
 
+    /**
+     * Очистка цели ответа
+     */
     clearReplyTarget() {
         this.replyTarget = null;
         const userInput = document.getElementById('userInput');
@@ -917,6 +887,9 @@ class App {
 
     // ===== Drag Mode =====
 
+    /**
+     * Выбор режима Drag-and-Drop
+     */
     selectDragMode(mode) {
         this.currentDragMode = mode;
         const dragIcon = document.getElementById('dragIcon');
@@ -937,6 +910,9 @@ class App {
 
     // ===== Achievement =====
 
+    /**
+     * Отображение разблокированного достижения
+     */
     showAchievement(ach) {
         const div = document.createElement('div');
         div.className = 'achievement-unlock';
@@ -963,12 +939,18 @@ class App {
 
     // ===== Utilities =====
 
+    /**
+     * Санитизация HTML для защиты от XSS
+     */
     sanitizeHTML(str) {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
 
+    /**
+     * Чтение текстового содержимого файла
+     */
     getFileText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -978,6 +960,9 @@ class App {
         });
     }
 
+    /**
+     * Проверка разрешённого типа файла
+     */
     isFileAllowed(file) {
         const ext = '.' + file.name.split('.').pop().toLowerCase();
         if (CONFIG.SECURITY.ALLOWED_EXTENSIONS.includes(ext)) return true;
@@ -985,6 +970,9 @@ class App {
         return false;
     }
 
+    /**
+     * Валидация ввода пользователя
+     */
     validateInput(text) {
         if (!text) return { valid: false, reason: 'Пустой ввод' };
         if (text.length > CONFIG.LIMITS.MAX_INPUT_LENGTH) {
@@ -999,19 +987,389 @@ class App {
         return { valid: true };
     }
 
+    /**
+     * Проверка длины ввода
+     */
     validateLength(text) {
         return text.length <= CONFIG.LIMITS.MAX_INPUT_LENGTH;
     }
 
-    // Определяем все секции
+    // ===== UI для уведомлений =====
+
+    /**
+     * Настройка UI уведомлений
+     * Добавлено в 5.1.
+     */
+    setupNotificationUI() {
+        const notifBtn = document.getElementById('notificationBtn');
+        if (notifBtn) {
+            notifBtn.style.position = 'relative';
+            // Бейдж уже есть в HTML
+        }
+        // Подписка на обновления уведомлений
+        this.eventBus.on('notifications:updated', () => {
+            this.notificationManager.updateBadge();
+        });        
+        /*
+        // Иконка уведомлений в шапке
+        const notifBtn = document.createElement('button');
+        notifBtn.id = 'notificationBtn';
+        notifBtn.title = 'Уведомления';
+        notifBtn.innerHTML = '🔔<span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:red;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;">0</span>';
+        notifBtn.style.position = 'relative';
+        // Добавляем в header-actions
+        const headerActions = document.querySelector('.header-actions');
+        if (headerActions) {
+            headerActions.prepend(notifBtn);
+        }
+        notifBtn.addEventListener('click', () => {
+            this.showNotificationsModal();
+        });
+        */
+    }
+    
+    /**
+     * Показать модальное окно уведомлений
+     * Добавлено в 5.1.
+     */
+    showNotificationsModal() {
+        // Создаём модальное окно со списком уведомлений
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:500px;">
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                <h2>🔔 Уведомления</h2>
+                <div id="notificationsList" style="max-height:400px;overflow-y:auto;">
+                    ${this.notificationManager.notifications.length ? 
+                        this.notificationManager.notifications.map(n => `
+                            <div class="notification-item ${n.isRead ? 'read' : 'unread'}" data-id="${n.notificationId}">
+                                <div class="notif-icon">${n.type === 'mention' ? '@' : n.type === 'reaction' ? '❤️' : '💬'}</div>
+                                <div class="notif-content">
+                                    <div class="notif-title">${this.sanitizeHTML(n.title)}</div>
+                                    <div class="notif-body">${this.sanitizeHTML(n.body)}</div>
+                                    <div class="notif-time">${new Date(n.createdAt).toLocaleString()}</div>
+                                </div>
+                                ${!n.isRead ? `<button class="mark-read-btn" data-id="${n.notificationId}">✅</button>` : ''}
+                            </div>
+                        `).join('') 
+                        : '<div style="padding:20px;text-align:center;color:var(--text-secondary);">Нет уведомлений</div>'
+                    }
+                </div>
+                <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="markAllReadBtn" class="btn-secondary">✅ Отметить все прочитанными</button>
+                    <button id="closeNotifModal" class="btn-secondary">Закрыть</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        // Обработчики
+        modal.querySelector('#closeNotifModal').addEventListener('click', () => modal.remove());
+        modal.querySelector('#markAllReadBtn').addEventListener('click', async () => {
+            await this.notificationManager.markRead([]);
+            modal.querySelector('#notificationsList').querySelectorAll('.notification-item').forEach(el => {
+                el.classList.remove('unread');
+                el.classList.add('read');
+                const btn = el.querySelector('.mark-read-btn');
+                if (btn) btn.remove();
+            });
+            this.notificationManager.updateBadge();
+        });
+        modal.querySelectorAll('.mark-read-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                await this.notificationManager.markRead([id]);
+                const item = btn.closest('.notification-item');
+                item.classList.remove('unread');
+                item.classList.add('read');
+                btn.remove();
+                this.notificationManager.updateBadge();
+            });
+        });
+        // Закрытие по клику вне
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
+    /**
+     * Обновление UI в зависимости от статуса аутентификации
+     * Добавлено в 5.1.
+     */
+    updateAuthUI() {
+        const isAuth = this.authService.isAuthenticated;
+        // Показываем/скрываем элементы
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const profileBtn = document.getElementById('userProfileBtn');
+        const adminBtn = document.getElementById('adminBtn');
+        
+        if (loginBtn) loginBtn.style.display = isAuth ? 'none' : 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = isAuth ? 'inline-block' : 'none';
+        if (profileBtn) profileBtn.style.display = isAuth ? 'inline-block' : 'none';
+        if (adminBtn) {
+            adminBtn.style.display = (isAuth && this.multiUserManager.isAdminUser()) ? 'inline-block' : 'none';
+        }
+    }
+
+    showUserSelector(users) {
+        // Создаем модальное окно для выбора пользователя
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:400px;">
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                <h2>👥 Выберите пользователя</h2>
+                <div style="max-height:300px;overflow-y:auto;">
+                    ${users.map(u => `
+                        <div class="user-select-item" data-user-id="${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
+                            <span style="font-size:28px;">${u.avatar}</span>
+                            <div>
+                                <div style="font-weight:600;">${this.sanitizeHTML(u.name)}</div>
+                                <div style="font-size:11px;color:var(--text-secondary);">${u.isTyping ? 'печатает...' : 'онлайн'}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('.user-select-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const userId = el.dataset.userId;
+                const user = this.multiUserManager.peers.get(userId);
+                if (user) {
+                    modal.remove();
+                    this.privateChat.open(user);
+                }
+            });
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+    
+    // ===== Многопользовательский режим =====
+
+    /**
+     * Настройка UI для многопользовательского режима
+     * Добавлено в 5.1: кнопки для администрирования и приватных чатов
+     */
+    setupMultiUserUI() {
+        // Кнопка подключения
+        const connectBtn = document.getElementById('connectBtn');
+        if (connectBtn) {
+            connectBtn.addEventListener('click', async () => {
+                if (this.multiUserManager.isConnected) {
+                    // Отключение
+                    await this.multiUserManager.leaveRoom();
+                    this.toast.info('Отключено от сервера');
+                    this.updateUserCount();
+                    this.updateRoomInfoUI();
+                } else {
+                    // Подключение
+                    this.toast.info('Подключение к серверу...');
+                    const success = await this.multiUserManager.connectToServer();
+                    if (success) {
+                        this.toast.success('✅ Подключено к серверу');
+                        this.updateUserCount();
+                        this.updateRoomInfoUI();
+                        // Загружаем историю
+                        this.chatView.loadMessages();
+                    } else {
+                        this.toast.error('❌ Не удалось подключиться');
+                    }
+                }
+            });
+        }
+
+ 
+        // Кнопка открытия Администрирования
+        document.getElementById('adminBtn')?.addEventListener('click', () => {
+            this.openAdmin();
+        });
+        
+        // Кнопка открытия приватного чата
+        document.getElementById('privateChatBtn')?.addEventListener('click', () => {
+            this.openPrivateChat();
+        });
+
+
+        // Кнопка информации о пользователе
+        document.getElementById('userProfileBtn')?.addEventListener('click', () => {
+            this.openProfileInfo();
+        });
+
+        // Кнопка информации о комнате
+        document.getElementById('roomInfoBtn')?.addEventListener('click', () => {
+            this.openRoomInfo();
+        });
+
+        // Закрытие модалки комнаты
+        document.getElementById('roomInfoModalClose')?.addEventListener('click', () => {
+            document.getElementById('roomInfoModal').classList.remove('active');
+        });
+
+        // Обновление информации о комнате
+        document.getElementById('roomInfoRefreshBtn')?.addEventListener('click', () => {
+            this.updateRoomInfoUI();
+        });
+
+        // Выход из комнаты
+        document.getElementById('roomInfoLeaveBtn')?.addEventListener('click', async () => {
+            if (confirm('Выйти из комнаты?')) {
+                await this.multiUserManager.leaveRoom();
+                document.getElementById('roomInfoModal').classList.remove('active');
+                this.toast.info('Вы вышли из комнаты');
+                this.updateUserCount();
+                this.updateRoomInfoUI();
+            }
+        });
+    }
+
+    /**
+     * Обновление счётчика пользователей
+     */
+    updateUserCount() {
+        const count = this.multiUserManager.peers.size + 1;
+        const display = document.getElementById('userCountDisplay');
+        if (display) {
+            display.textContent = `👥 ${count} онлайн`;
+        }
+        // Обновляем sidebar
+        this.multiUserManager.renderUsers();
+    }
+
+    /**
+     * Обновление UI информации о комнате
+     */
+    updateRoomInfoUI() {
+        const status = this.multiUserManager.getStatus();
+        document.getElementById('roomInfoId').textContent = status.roomId || '—';
+        document.getElementById('roomInfoName').textContent = status.roomName || '—';
+        document.getElementById('roomInfoUsers').textContent = status.userCount || 0;
+        document.getElementById('roomInfoMessages').textContent = status.messageCount || 0;
+        document.getElementById('roomInfoStatus').textContent = status.isConnected ? '🟢 Подключен' : '⚪ Отключен';
+        document.getElementById('roomInfoStatus').style.color = status.isConnected ? 'var(--success-color)' : 'var(--text-secondary)';
+    }
+
+    /**
+     * Открытие профиля пользователя
+     */
+    openProfileInfo() {
+        this.userModal.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    }    
+
+
+    /**
+     * Открытие панели администратора
+     */
+    openAdmin() {
+        this.adminPanel.open();
+        //document.getElementById('roomInfoModal').classList.add('active');
+    } 
+
+    /**
+     * Открытие информации о комнате
+     */
+    openRoomInfo() {
+        this.updateRoomInfoUI();
+        document.getElementById('roomInfoModal').classList.add('active');
+    }    
+    // Подписка на события MultiUserManager
+    setupMultiUserEvents() {
+        this.eventBus.on('room:joined', (data) => {
+            this.toast.success(`👥 Вошли в комнату: ${data.users?.length || 0} пользователей`);
+            this.updateUserCount();
+            this.updateRoomInfoUI();
+        });
+
+        this.eventBus.on('room:left', () => {
+            this.toast.info('Вы вышли из комнаты');
+            this.updateUserCount();
+            this.updateRoomInfoUI();
+        });
+
+        this.eventBus.on('message:new', (message) => {
+            this.toast.info(`💬 ${message.userName}: ${message.content?.substring(0, 50)}...`);
+        });
+
+        this.eventBus.on('users:updated', () => {
+            this.updateUserCount();
+        });
+
+        this.eventBus.on('server:connected', () => {
+            document.getElementById('connectBtn').textContent = '🌐 Отключиться';
+            document.getElementById('connectBtn').style.color = 'var(--success-color)';
+        });
+
+        this.eventBus.on('server:disconnected', () => {
+            document.getElementById('connectBtn').textContent = '🌐 Подключиться';
+            document.getElementById('connectBtn').style.color = '';
+        });
+    }
+    
+    /**
+     * Настройка событий приватных чатов
+     */    
+    setupPrivateChatEvents() {
+        // Событие открытия приватного чата
+        this.eventBus.on('private:chat_opened', (data) => {
+            const peer = this.multiUserManager.peers.get(data.user.id);
+            if (peer) {
+                this.privateChat.open(peer);
+            }
+        });
+
+        // Обновление непрочитанных
+        this.eventBus.on('private:unread_updated', (count) => {
+            this.updateUnreadBadge(count);
+        });
+
+        // Обновление списка чатов
+        this.eventBus.on('private:chats_updated', () => {
+            this.sidebar.renderPrivateChats();
+        });
+
+        // Получение нового приватного сообщения
+        this.eventBus.on('private:message_received', (message) => {
+            this.toast.info(`💬 Приватное сообщение от ${message.senderName}`);
+            this.sidebar.renderPrivateChats();
+            this.updateUnreadBadge();
+        });
+    }
+
+    /**
+     * Обновление бейджа непрочитанных сообщений
+     */
+    updateUnreadBadge(count) {
+        const badge = document.getElementById('unreadBadge');
+        if (!badge) return;
+        
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+        
+    /**
+     * Инициализация сворачиваемых секций
+     */
     initSections() {
         // Определяем все секции
         const sectionConfigs = [
             { id: 'statsPanel', headerSelector: '[data-section="statsPanel"]' },
             { id: 'usersOnlinePanel', headerSelector: '[data-section="usersOnlinePanel"]' },
             { id: 'roadmapPanel', headerSelector: '[data-section="roadmapPanel"]' },
-            { id: 'privateChatsPanel', headerSelector: '[data-section="privateChatsPanel"]' }
-            
+            { id: 'privateChatsPanel', headerSelector: '[data-section="privateChatsPanel"]' },
+            { id: 'roomsPanel', headerSelector: '[data-section="roomsPanel"]' } // Добавлено в 5.1.
         ];
 
         sectionConfigs.forEach(({ id, headerSelector }) => {
@@ -1044,48 +1402,6 @@ class App {
 
         SectionHelpers.collapseAllSections();
     }    
-
-    /*
-    initSections() {
-        // Находим все секции и инициализируем их
-        const sections = {
-            statsPanel: {
-                header: document.querySelector('.section-header[onclick*="statsPanel"]') || 
-                        document.querySelector('#statsPanel')?.previousElementSibling,
-                content: document.getElementById('statsPanel')
-            },
-            usersOnlinePanel: {
-                header: document.querySelector('.section-header[onclick*="usersOnlinePanel"]') ||
-                        document.querySelector('#usersOnlinePanel')?.previousElementSibling,
-                content: document.getElementById('usersOnlinePanel')
-            },
-            roadmapPanel: {
-                header: document.querySelector('.section-header[onclick*="roadmapPanel"]') ||
-                        document.querySelector('#roadmapPanel')?.previousElementSibling,
-                content: document.getElementById('roadmapPanel')
-            }
-        };
-
-        // Инициализируем каждую секцию, которая существует
-        Object.entries(sections).forEach(([id, { header, content }]) => {
-            if (header && content) {
-                // Добавляем data-атрибуты для идентификации
-                header.dataset.section = id;
-                sectionToggle.initSection(id, header, content);
-            }
-        });
-
-        // Альтернативный способ: инициализация через data-атрибуты
-        document.querySelectorAll('[data-section]').forEach(header => {
-            const id = header.dataset.section;
-            const content = document.getElementById(id);
-            if (content) {
-                sectionToggle.initSection(id, header, content);
-            }
-        });
-    }
-
-    */
 }
 
 // Запуск приложения

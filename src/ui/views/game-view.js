@@ -3,6 +3,7 @@ import { Modal } from '../components/modal.js';
 import { Game2048 } from '../../games/game-2048.js';
 import { SnakeGame } from '../../games/snake-game.js';
 import { TetrisGame } from '../../games/tetris-game.js';
+import { BlockBlastGame } from '../../games/block-blast.js';
 
 /**
  * Модальное окно с играми
@@ -14,6 +15,15 @@ export class GameView {
         this.container = document.getElementById('gameContainer');
         this.currentGame = null;
         this.currentGameType = '2048';
+
+        // Добавлено в 5.1: поддержка Block Blast
+        this.gameTypes = ['2048', 'snake', 'tetris', 'blockblast'];
+        this.gameLabels = {
+            '2048': '🔢 2048',
+            'snake': '🐍 Змейка',
+            'tetris': '🧱 Тетрис',
+            'blockblast': '🧩 Block Blast' // Добавлено в 5.1
+        };
 
         this.setupEventListeners();
     }
@@ -49,7 +59,33 @@ export class GameView {
             this.currentGame.loop = null;
         }
 
-        if (type === '2048') {
+        // Добавлено в 5.1: блок для Block Blast
+        if (type === 'blockblast') {
+            // Создаём контейнер для игры
+            const gameContainer = document.createElement('div');
+            gameContainer.id = 'blockBlastContainer';
+            this.container.appendChild(gameContainer);
+            this.currentGame = new BlockBlastGame(gameContainer);
+            // Автоматически стартуем
+            this.currentGame.start();
+            /*
+                this.container.innerHTML = `
+                    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:4px;flex-wrap:wrap;">
+                        <button onclick="window.gameView.currentGame?.start()" style="padding:4px 10px;border-radius:4px;border:none;background:var(--success-color);color:#fff;cursor:pointer;">▶ Старт</button>
+                        <button onclick="window.gameView.currentGame?.togglePause()" style="padding:4px 10px;border-radius:4px;border:none;background:var(--warning-color);color:#fff;cursor:pointer;">⏯ Пауза</button>
+                        <button onclick="window.gameView.currentGame?.newGame()" style="padding:4px 10px;border-radius:4px;border:none;background:var(--send-btn-bg);color:#fff;cursor:pointer;">🔄 Новая</button>
+                    </div>
+                    <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
+                        <button onclick="window.gameView.currentGame?.moveLeft()" style="padding:6px 10px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;">◀</button>
+                        <button onclick="window.gameView.currentGame?.rotate()" style="padding:6px 10px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;">🔄</button>
+                        <button onclick="window.gameView.currentGame?.moveRight()" style="padding:6px 10px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;">▶</button>
+                        <button onclick="window.gameView.currentGame?.moveDown()" style="padding:6px 10px;border-radius:4px;border:none;background:var(--send-btn-bg);color:#fff;cursor:pointer;">⬇</button>
+                    </div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Кликните по клетке для размещения фигуры</div>
+                `;
+                this.currentGame = new BlockBlast(this.container);
+            */
+        } else if (type === '2048') {
             this.currentGame = new Game2048(this.container, 4);
             this.currentGame.render();
         } else if (type === 'snake') {
@@ -84,6 +120,7 @@ export class GameView {
         window.gameView = this;
     }
 
+    // Добавлено в 5.1: обновлённый setup для новых игр    
     setupEventListeners() {
         document.getElementById('gameBtn')?.addEventListener('click', () => this.open());
         document.getElementById('gameModalClose')?.addEventListener('click', () => this.close());

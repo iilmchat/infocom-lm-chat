@@ -620,3 +620,77 @@
         display: block !important;
     }
 }
+
+/* Добавлено в 5.1: стили для списка комнат */
+.room-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+}
+
+.room-item:hover {
+    background: var(--bg-accent);
+}
+
+.room-item.active {
+    background: var(--bg-accent);
+    border-left: 3px solid var(--text-accent);
+}
+
+.room-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.room-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.room-users {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.room-join-btn {
+    background: var(--text-accent);
+    border: none;
+    color: #1a1a2e;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.room-join-btn:hover {
+    background: #5fb0d0;
+}
+
+#createRoomBtn {
+    background: var(--bg-accent);
+    border: none;
+    color: var(--text-accent);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+#createRoomBtn:hover {
+    background: var(--border-color);
+}

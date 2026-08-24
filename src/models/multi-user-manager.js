@@ -80,8 +80,11 @@ export class MultiUserManager {
     /**
      * Загрузка профиля пользователя
      * {Object} Профиль пользователя
-     */    
+     */   
+    // Изменено в 5.1: Добавлена проверка, не используется ли уже пользователь из auth     
     loadUser() {
+        // Если уже есть пользователь из сессии (установлен извне), не создаём нового
+        // Проверяем наличие в localStorage
         const stored = localStorage.getItem('user_profile');
         //if (stored) return JSON.parse(stored);
         if (stored) {
@@ -96,7 +99,8 @@ export class MultiUserManager {
             }
         }        
 
-        // Создание нового пользователя
+        // Создание нового пользователя (только если нет сохранённого)
+        // Добавлено в 5.1: Генерируем ID и сохраняем
         const user = {
             //Убираем симуляцию пользователей
             //id: crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).slice(2, 8),
@@ -131,6 +135,7 @@ export class MultiUserManager {
     /**
      * Обновление профиля на сервере
      */
+    // Добавлено в 5.1: метод для обновления профиля на сервере    
     async updateProfile(name, avatar, color) {
         try {
             const result = await this.api.updateUserProfile({

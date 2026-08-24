@@ -24,11 +24,13 @@
 <body>
     <!-- Основной контейнер приложения -->
     <div id="app">
+        <!-- Копирайт -->
         <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v5.1</div>
 
         <!-- ===== SIDEBAR ===== -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <div class="sidebar" id="sidebar">
+            <!-- Заголовок боковой панели -->
             <div class="sidebar-header">
                 <h3>💬 Диалоги</h3>
                 <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
@@ -68,8 +70,8 @@
             -->
             <!-- В sidebar -->
 
-            <!-- ===== STATS PANEL ===== -->
-            <div class="sidebar-section collapsed"">
+            <!-- ===== СТАТИСТИКА ===== -->
+            <div class="sidebar-section collapsed">
                 <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
                     <span class="section-icon">📊</span>
                     <span class="section-title">Статистика</span>
@@ -104,12 +106,30 @@
                 </div>
             </div>
 
-            <!-- Приватные чаты -->
+            <!-- ===== ОБЩИЕ КОМНАТЫ ===== -->
+            <!-- Добавлено в 5.1. -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
+                    <span class="section-icon">💬</span>
+                    <span class="section-title">Общие комнаты</span>
+                    <span class="section-arrow">▶</span>
+                    <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
+                </div>
+                <div class="section-content rooms-panel collapsed" id="roomsPanel">
+                    <div style="padding:4px 8px;">
+                        <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
+                        <div id="roomList" style="margin-top:4px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ПРИВАТНЫЕ ЧАТЫ ===== -->
             <div class="sidebar-section">
                 <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
                     <span class="section-icon">💬</span>
                     <span class="section-title">Приватные чаты</span>
                     <span class="section-arrow">▶</span>
+                    <button id="newPrivateChatBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
                     <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
                 </div>
                 <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
@@ -138,6 +158,25 @@
                 </div>
             </div>
             -->
+            <!-- Общие комнаты -->
+             <!-- 
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
+                    <span class="section-icon">💬</span>
+                    <span class="section-title">Общие комнаты</span>
+                    <span class="section-arrow">▶</span>
+                    <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
+                </div>
+                <div class="section-content rooms-panel collapsed" id="roomsPanel">
+                    <div style="padding:4px 8px;">
+                        <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
+                        <div id="roomList" style="margin-top:4px;"></div>
+                    </div>
+                </div>
+            </div>
+            -->
+
+            <!-- ===== ПОЛЬЗОВАТЕЛИ ОНЛАЙН ===== -->
             <div class="sidebar-section">
                 <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
                     <span class="section-icon">👥</span>
@@ -156,23 +195,25 @@
                 </div>
             </div>
 
-            <!-- ===== ROADMAP ===== -->
-            <div class="sidebar-section collapsed"">
+            <!-- ===== ПРОГРЕСС РАЗВИТИЯ ===== -->
+            <div class="sidebar-section collapsed">
                 <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
                     <span class="section-icon">📊</span>
                     <span class="section-title">Прогресс развития</span>
                     <span class="section-arrow">▶</span>
                 </div>         
-                <div class="section-content collapsed"" id="roadmapPanel">
+                <div class="section-content collapsed" id="roadmapPanel">
                     <div id="milestoneList"></div>
                 </div>
             </div>
 
+            <!-- ===== ТЕСТЫ ===== -->
             <div class="test-panel" id="testPanel">
                 <h4>🧪 Тесты <button onclick="window.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
                 <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
             </div>
 
+            <!-- ===== ПОИСК ДИАЛОГОВ ===== -->
             <div class="search-chats"><input type="text" id="chatSearch" placeholder="🔍 Поиск диалогов..."></div>
             <div class="chat-list" id="chatList"></div>
         </div>
@@ -184,7 +225,7 @@
                 <div class="drag-icon" id="dragIcon">📚</div>
                 <div class="drag-text">Отпустите файлы для загрузки</div>
                 <div class="drag-subtext">
-                    Выберите режимклавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
+                    Выберите режим клавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
                 </div>
 
                 <div class="drag-mode-selector" id="dragModeSelector">
@@ -205,16 +246,14 @@
                         <span class="mode-hotkey"><kbd>2</kbd></span>
                     </label>
                 </div>
-
                 <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
-
                 <div class="drag-files-preview" id="dragFilesPreview"></div>
-
                 <div class="drag-progress" id="dragProgress">
                     <div class="drag-progress-fill" id="dragProgressFill"></div>
                 </div>
                 <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
-            </div>            
+            </div>     
+
             <!-- DRAG-DROP OVERLAY -->
              <!-- 
             <div class="drag-overlay" id="dragOverlay">
@@ -250,10 +289,10 @@
                 <div class="typing-notification" id="typingNotification"></div>
             </div>
 
-            <!-- ASSISTANT BAR -->
+            <!-- Assistant Bar -->
             <div class="assistant-bar" id="assistantBar"></div>
 
-            <!-- HEADER -->
+            <!-- ===== HEADER ===== -->
             <div class="chat-header">
                 <div class="header-left">
                     <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
@@ -271,13 +310,22 @@
                     <span class="perf-indicator" id="perfIndicator"></span>
                 </div>
 
+                <!-- ===== HEADER ACTIONS ===== -->
                 <!-- Кнопка подключения в шапке -->                
                 <div class="header-actions">
+                    <!-- Добавлено в 5.1: Кнопка уведомлений -->
+                    <button id="notificationBtn" title="Уведомления" aria-label="Уведомления" style="position:relative;">
+                        🔔
+                        <span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:red;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;">0</span>
+                    </button>   
 
                     <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
                     <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button>
-
                     <button id="gameBtn" title="Игры">🎮</button>
+
+                    <!-- Добавлено в 5.1: Кнопка аналитики -->
+                    <button id="analyticsBtn" title="Аналитика">📊<span class="tooltip">Аналитика</span></button>
+
                     <!-- Существующие кнопки -->
                     <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
                         🌐<span class="tooltip">Подключиться</span>
@@ -299,6 +347,8 @@
                 </div>
             </div>
 
+            <!-- ===== MODALS ===== -->
+
             <!-- Room Info Modal -->
             <div class="modal-overlay" id="roomInfoModal">
                 <div class="modal-content" style="max-width:400px;">
@@ -313,12 +363,13 @@
                     </div>
                     <div class="modal-actions" style="margin-top:12px;">
                         <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+                        <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button>                        
                         <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
                     </div>
                 </div>
             </div>           
             
-            <!-- MODALS -->
+            <!-- User Modal (профиль) -->
             <!-- ===== USER MODAL (идентификация) ===== -->
             <div class="modal-overlay" id="userModal">
                 <div class="modal-content" style="max-width:450px;">
@@ -371,6 +422,8 @@
                     <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
                         <button class="btn-secondary" id="userCancelBtn">Отмена</button>
                         <button class="btn-primary" id="userSaveBtn">💾 Сохранить</button>
+                        <!-- Добавлено в 5.1: Кнопка выхода -->
+                        <button class="btn-secondary" id="userLogoutBtn" style="background:var(--error-color);color:#fff;">🚪 Выйти</button>
                     </div>
                 </div>
             </div>
@@ -477,22 +530,9 @@
                             </div>
                             <button id="adminLogClear" class="btn-secondary" style="margin-top:8px;">🗑️ Очистить логи</button>
                         </div>                        
-
-                        <!-- Вкладка Логи -->
-                         <!--
-                        <div class="admin-tab-content" id="tab-logs" style="display:none;">
-                            <div class="admin-log-list" id="adminLogList">
-                                
-                            </div>
-                            <button id="adminLogClear">🗑️ Очистить логи</button>
-                        </div>
-                        -->
                     </div>
-
                 </div>
             </div>
-
-
 
             <!-- Server Settings Modal -->
             <div class="modal-overlay server-settings-modal" id="serverSettingsModal">
@@ -693,16 +733,19 @@
             <div class="modal-overlay" id="gameModal">
                 <div class="modal-content" style="max-width:400px;">
                     <button class="modal-close" id="gameModalClose">✕</button>
-                    <h2>🎮 Игры</h2><div class="game-selector" id="gameSelector">
+                    <h2>🎮 Игры</h2>
+                    <div class="game-selector" id="gameSelector">
                         <div class="game-option active" data-game="2048">🔢 2048</div>
                         <div class="game-option" data-game="snake">🐍 Змейка</div>
                         <div class="game-option" data-game="tetris">🧱 Тетрис</div>
+                        <!-- Добавлено в 5.1: Block Blast -->
+                        <div class="game-option" data-game="blockblast">🧊 Block Blast</div>
                     </div>
                     <div id="gameContainer"></div>
                 </div>
             </div>
 
-            <!-- CHAT AREA -->
+            <!-- ===== CHAT AREA ===== -->
             <div class="error-boundary" id="errorBoundary"></div>
             <div class="chat-messages" id="messages" role="log" aria-live="polite" aria-label="История сообщений"></div>
 
@@ -758,6 +801,7 @@
             <input type="file" id="ragInput" accept=".txt,.md,.json,.xml,.csv,.html,.css,.js,.py,.java,.cpp,.cs,.sql,.rb,.go,.rs,.php" multiple style="display:none;">
         </div>
     </div>
+
     <!-- ===== СКРИПТЫ ===== -->
     <script type="module" src="src/app.js"></script>
 </body>

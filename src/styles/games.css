@@ -95,3 +95,163 @@
 #gameContainer .game-best {
     color: var(--gold-color);
 }
+
+/* Block Blast */
+.block-blast-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.blast-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.blast-score { color: var(--text-accent); }
+.blast-highscore { color: var(--gold-color); }
+.blast-status { color: var(--text-secondary); }
+
+.blast-main {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.blast-grid {
+    display: inline-block;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.blast-row {
+    display: flex;
+}
+
+.blast-cell {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.blast-cell:hover {
+    filter: brightness(1.2);
+}
+
+.blast-shapes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.blast-shape {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.blast-shape.selected {
+    border-color: var(--text-accent);
+    background: var(--bg-accent);
+}
+
+.blast-shape:hover {
+    background: var(--bg-accent);
+}
+
+.mini-grid {
+    display: inline-block;
+}
+
+.mini-row {
+    display: flex;
+}
+
+.mini-cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+}
+
+.shape-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.blast-gameover {
+    padding: 8px 16px;
+    background: var(--error-color);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.blast-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.blast-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--text-accent);
+    color: #1a1a2e;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.blast-btn:hover {
+    background: #5fb0d0;
+}
+
+.blast-hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 500px) {
+    .blast-cell {
+        width: 24px;
+        height: 24px;
+    }
+    .blast-shape {
+        padding: 4px 8px;
+    }
+    .mini-cell {
+        width: 16px;
+        height: 16px;
+    }
+}

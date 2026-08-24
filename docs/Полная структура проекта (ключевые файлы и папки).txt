@@ -1,0 +1,79 @@
+Infocom_LM_Chat_Pro/
+├── index.html
+├── src/
+│   ├── app.js
+│   ├── config.js
+│   ├── core/
+│   │   ├── event-bus.js
+│   │   ├── error-boundary.js
+│   │   └── storage.js
+│   ├── models/
+│   │   ├── achievement-manager.js
+│   │   ├── assistant-manager.js
+│   │   ├── embedding-cache.js
+│   │   ├── input-history.js
+│   │   ├── multi-user-manager.js
+│   │   ├── notification-manager.js (новый)
+│   │   ├── rag-manager.js
+│   │   ├── rate-limiter.js
+│   │   ├── reaction-manager.js (новый)
+│   │   ├── roadmap-tracker.js
+│   │   └── session-manager.js
+│   ├── services/
+│   │   ├── api-service.js (дополнен)
+│   │   ├── auth-service.js (новый)
+│   │   ├── http-client.js
+│   │   ├── long-polling-client.js
+│   │   ├── sanitizer.js
+│   │   ├── syntax-highlighter-cache.js
+│   │   ├── syntax-highlighter-optimizations.js
+│   │   ├── syntax-highlighter.worker.js
+│   │   └── syntax-highlighter.js
+│   ├── ui/
+│   │   ├── components/
+│   │   │   ├── drop-zone.js
+│   │   │   ├── modal.js
+│   │   │   ├── section-toggle.js
+│   │   │   └── toast.js
+│   │   ├── renderers/
+│   │   │   └── message-renderer.js (дополнен)
+│   │   ├── views/
+│   │   │   ├── admin-panel.js (дополнен)
+│   │   │   ├── assistant-bar.js
+│   │   │   ├── auth-modal.js (новый)
+│   │   │   ├── chat-view.js (дополнен)
+│   │   │   ├── export-view.js
+│   │   │   ├── game-view.js (дополнен)
+│   │   │   ├── info-view.js
+│   │   │   ├── private-chat.js (дополнен)
+│   │   │   ├── room-list.js (новый)
+│   │   │   ├── settings-view.js
+│   │   │   ├── share-view.js
+│   │   │   ├── sidebar.js (дополнен)
+│   │   │   └── user-modal.js (дополнен)
+│   │   └── theme.js
+│   ├── games/
+│   │   ├── block-blast.js (новый)
+│   │   ├── game-2048.js
+│   │   ├── snake-game.js
+│   │   └── tetris-game.js
+│   ├── styles/
+│   │   ├── admin.css
+│   │   ├── chat.css
+│   │   ├── games.css (дополнен)
+│   │   ├── main.css (дополнен)
+│   │   ├── modals.css
+│   │   ├── private-chat.css
+│   │   ├── sidebar.css (дополнен)
+│   │   └── themes.css
+│   └── utils/
+│       ├── debounce.js
+│       ├── dom-helpers.js
+│       ├── file-helpers.js
+│       ├── network-helpers.js
+│       ├── section-helpers.js
+│       ├── string-helpers.js
+│       └── test-runner.js
+└── tests/
+    ├── rag-manager.test.js
+    └── session-manager.test.js

@@ -5,6 +5,7 @@ import { copyToClipboard } from '../../utils/dom-helpers.js';
 
 /**
  * Рендеринг сообщений чата
+ * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
  */
 export class MessageRenderer {
     render(msgData) {
@@ -95,7 +96,8 @@ export class MessageRenderer {
     }
 
     /**
-     * Рендеринг баббла с асинхронной подсветкой кода
+     * Рендеринг баббла с вложениями
+     * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
      */
     renderBubble(role, content, files, ragSources, isEdit, replyTo) {
         const bubble = document.createElement('div');
@@ -202,7 +204,9 @@ export class MessageRenderer {
             bubble.appendChild(td);
         }
 
-        // Вложения
+        // Вложения 
+        /*
+        //старое
         if (files && files.length) {
             const fd = document.createElement('div');
             fd.className = 'file-attachment';
@@ -212,6 +216,64 @@ export class MessageRenderer {
                 const name = f.name || 'unknown';
                 const size = f.size || 0;
                 item.textContent = `📎 ${sanitizeHTML(name)} (${(size / 1024).toFixed(1)} KB)`;
+                fd.appendChild(item);
+            });
+            bubble.appendChild(fd);
+        }
+        */
+        /**
+         * Вложения с кнопками скачивания и удаления
+         * Добавлено в 5.1.
+         */       
+        if (files && files.length) {
+            const fd = document.createElement('div');
+            fd.className = 'file-attachment';
+            const currentUserId = window.app?.multiUserManager?.localUser?.id;
+            const isModerator = window.app?.multiUserManager?.isModeratorUser?.() || false;
+            const messageId = this.currentMessageId || null;
+            
+            (Array.isArray(files) ? files : [files]).forEach(f => {
+                const item = document.createElement('span');
+                item.className = 'file-item';
+                const attachmentId = f.attachmentId || f.id;
+                if (attachmentId) {
+                    item.dataset.attachmentId = attachmentId;
+                }
+                const name = f.name || 'unknown';
+                const size = f.size || 0;
+                const sizeStr = size > 0 ? `(${(size / 1024).toFixed(1)} KB)` : '';
+                item.textContent = `📎 ${sanitizeHTML(name)} ${sizeStr}`;
+                
+                // Кнопка скачивания
+                if (attachmentId) {
+                    item.style.cursor = 'pointer';
+                    item.title = 'Скачать';
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const app = window.app;
+                        if (app && app.chatView) {
+                            app.chatView.downloadAttachment(attachmentId, name);
+                        }
+                    });
+                }
+                
+                // Кнопка удаления (для владельца сообщения или модератора)
+                const canDelete = (window.app?.chatView?.editingMessageId === messageId && currentUserId) || isModerator;
+                if (canDelete && attachmentId) {
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = '✕';
+                    delBtn.className = 'file-delete-btn';
+                    delBtn.title = 'Удалить вложение';
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const app = window.app;
+                        if (app && app.chatView) {
+                            app.chatView.deleteAttachment(attachmentId, messageId);
+                        }
+                    });
+                    item.appendChild(delBtn);
+                }
+                
                 fd.appendChild(item);
             });
             bubble.appendChild(fd);

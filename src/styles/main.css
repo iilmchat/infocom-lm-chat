@@ -351,3 +351,244 @@ pre.hljs-pre .copy-btn:active {
     font-size: 32px;
     margin-right: 12px;
 }
+
+/* Добавлено в 5.1: реакции и уведомления */
+.reactions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 4px 0;
+}
+
+.reactions-emoji-bar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.reaction-btn, .reaction-more-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.reaction-btn:hover, .reaction-more-btn:hover {
+    background: var(--bg-accent);
+}
+
+.reactions-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.reaction-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reaction-item.user-reacted {
+    background: var(--text-accent);
+    color: #1a1a2e;
+    border-color: var(--text-accent);
+}
+
+.reaction-item:hover {
+    background: var(--bg-accent);
+}
+
+.emoji-picker-popup {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 200px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.picker-emoji {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.picker-emoji:hover {
+    background: var(--bg-accent);
+}
+
+.message-actions-extra {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.message-actions-extra .action-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.message-actions-extra .action-btn:hover {
+    opacity: 1;
+}
+
+.pinned-messages {
+    background: var(--bg-accent);
+    border-left: 3px solid var(--gold-color);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+.pinned-header {
+    font-weight: 600;
+    color: var(--gold-color);
+    margin-bottom: 4px;
+}
+
+.pinned-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pinned-item:last-child {
+    border-bottom: none;
+}
+
+.pinned-content {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unpin-btn {
+    background: transparent;
+    border: none;
+    color: var(--error-color);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+}
+
+.load-more-btn:hover {
+    background: var(--bg-accent);
+}
+
+/* Уведомления */
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s;
+}
+
+.notification-item.unread {
+    background: var(--bg-accent);
+    border-left: 3px solid var(--text-accent);
+}
+
+.notification-item:hover {
+    background: var(--bg-primary);
+}
+
+.notif-icon {
+    font-size: 20px;
+    width: 32px;
+    text-align: center;
+}
+
+.notif-content {
+    flex: 1;
+}
+
+.notif-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.notif-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.notif-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.mark-read-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.mark-read-btn:hover {
+    opacity: 1;
+}
+
+/* Стили для вложений */
+.file-attachment {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.file-item {
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.file-item[style*="cursor:pointer"]:hover {
+    background: var(--bg-accent);
+}
