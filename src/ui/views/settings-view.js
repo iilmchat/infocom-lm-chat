@@ -54,7 +54,7 @@ export class SettingsView {
         this.app.toast.success('✅ Настройки сервера сохранены');
         this.close();
         this.app.eventBus.emit('server:config_updated');
-        this.app.apiService.checkServer();
+        this.app.api.checkServer();
     }
 
     async testConnection() {

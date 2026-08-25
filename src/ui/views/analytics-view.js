@@ -653,9 +653,9 @@ export class AnalyticsView {
         });
 
         // Загрузка данных (Старая)
-        document.getElementById('analyticsUserLoad').addEventListener('click', () => this.loadUserAnalytics_old());
-        document.getElementById('analyticsRoomLoad').addEventListener('click', () => this.loadRoomAnalytics_old());
-        document.getElementById('analyticsGlobalLoad').addEventListener('click', () => this.loadGlobalAnalytics_old());
+        document.getElementById('analyticsUserLoad')?.addEventListener('click', () => this.loadUserAnalytics_old());
+        document.getElementById('analyticsRoomLoad')?.addEventListener('click', () => this.loadRoomAnalytics_old());
+        document.getElementById('analyticsGlobalLoad')?.addEventListener('click', () => this.loadGlobalAnalytics_old());
 
         
         // Загрузка аналитики пользователя
@@ -686,9 +686,9 @@ export class AnalyticsView {
         }
 
         //Что-то из NEW
-        document.getElementById('analyticsGlobalBtn').addEventListener('click', () => this.showGlobal());
-        document.getElementById('analyticsUserBtn').addEventListener('click', () => this.showUserActivity());
-        document.getElementById('analyticsRoomBtn').addEventListener('click', () => this.showRoomEngagement());
+        document.getElementById('analyticsGlobalBtn')?.addEventListener('click', () => this.showGlobal());
+        document.getElementById('analyticsUserBtn')?.addEventListener('click', () => this.showUserActivity());
+        document.getElementById('analyticsRoomBtn')?.addEventListener('click', () => this.showRoomEngagement());
 
     }
 }

@@ -671,7 +671,7 @@ export class ChatView {
         this.app.isProcessing = true;
 
         // Проверка сервера
-        const online = await this.app.apiService.checkServer();
+        const online = await this.app.api.checkServer();
         if (!online) {
             this.app.toast.error('Сервер недоступен. Проверьте настройки.');
             this.app.isProcessing = false;

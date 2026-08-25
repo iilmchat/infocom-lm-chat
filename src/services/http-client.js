@@ -9,7 +9,8 @@ import { CONFIG } from '../config.js';
  * Изменено в 5.1: добавлены все методы API (реакции, администрирование, аналитика, файлы)
  */
 export class ChatApiClient {
-    constructor() {
+    constructor(eventBus) {
+        this.eventBus = eventBus;        
         // Устанавливаем базовый URL для всех запросов к API        
         this.baseUrl = this.getBaseUrl();
         // Таймаут по умолчанию для каждого запроса (30 секунд)        
@@ -334,11 +335,19 @@ export class ChatApiClient {
     }
 
     async getSessions(userId) {
-        return this.request(`/auth/sessions?userId=${userId}`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую              
+        return this.request(`/auth/sessions?userId=${actualUserId}`);
     }
 
     async deleteSession(sessionId, userId) {
-        return this.request(`/auth/sessions/${sessionId}?userId=${userId}`, {
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую            
+        return this.request(`/auth/sessions/${sessionId}?userId=${actualUserId}`, {
             method: 'DELETE'
         });
     }
@@ -468,7 +477,11 @@ export class ChatApiClient {
     }
 
     async getModerationLogs(userId = null) {
-        const query = userId ? `?userId=${userId}` : '';
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую             
+        const query = userId ? `?userId=${actualUserId}` : '';
         return this.request(`/admin/logs${query}`);
     }
 
@@ -519,7 +532,11 @@ export class ChatApiClient {
     }
 
     async removeReaction(messageId, userId) {
-        return this.request(`/Reaction/remove?messageId=${messageId}&userId=${userId}`, {
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую               
+        return this.request(`/Reaction/remove?messageId=${messageId}&userId=${actualUserId}`, {
             method: 'DELETE'
         });
     }
@@ -529,7 +546,11 @@ export class ChatApiClient {
     }
 
     async getUserReaction(messageId, userId) {
-        return this.request(`/Reaction/message/${messageId}/user/${userId}`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую              
+        return this.request(`/Reaction/message/${messageId}/user/${actualUserId}`);
     }
 
     // === Добавлено в 5.1: Закрепление ===
@@ -563,7 +584,11 @@ export class ChatApiClient {
     // === Добавлено в 5.1: Уведомления ===
 
     async getNotifications(userId, onlyUnread = true, limit = 50) {
-        return this.request(`/notifications/user/${userId}?onlyUnread=${onlyUnread}&limit=${limit}`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую               
+        return this.request(`/notifications/user/${actualUserId}?onlyUnread=${onlyUnread}&limit=${limit}`);
     }
 
     async markNotificationsRead(data) {
@@ -574,7 +599,11 @@ export class ChatApiClient {
     }
 
     async getNotificationCount(userId) {
-        return this.request(`/notifications/count/${userId}`);
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую            
+        return this.request(`/notifications/count/${actualUserId}`);
     }
 
     // === Добавлено в 5.1: Файлы ===
@@ -609,8 +638,12 @@ export class ChatApiClient {
     // === Добавлено в 5.1: Аналитика ===
 
     async getUserActivity(userId, from, to) {
+        // Проверяем, является ли userId объектом        
+        const actualUserId = typeof userId === 'object' && userId !== null 
+            ? userId.userId  // Если объект - используем свойство userId
+            : userId;        // Если значение - используем его напрямую                
         const params = new URLSearchParams({ from, to });
-        return this.request(`/analytics/user/${userId}/activity?${params}`);
+        return this.request(`/analytics/user/${actualUserId}/activity?${params}`);
     }
 
     async getRoomEngagement(roomId, from, to) {

@@ -11,7 +11,7 @@ export class NotificationManager {
     async fetchNotifications(onlyUnread = true) {
         try {
             const result = await this.app.apiService.getNotifications({
-                userId: this.app.multiUserManager.localUser.id,
+                userId: this.app.multiUserManager.localUser.Id,
                 onlyUnread: onlyUnread,
                 limit: 50
             });
@@ -29,7 +29,7 @@ export class NotificationManager {
     async markRead(notificationIds = []) {
         try {
             const result = await this.app.apiService.markNotificationsRead({
-                userId: this.app.multiUserManager.localUser.id,
+                userId: this.app.multiUserManager.localUser.Id,
                 notificationIds: notificationIds
             });
             if (result.success) {

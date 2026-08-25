@@ -29,6 +29,7 @@ import { RoadmapTracker } from './models/roadmap-tracker.js';
 import { RateLimiter } from './models/rate-limiter.js';
 import { InputHistory } from './models/input-history.js';
 import { ApiService } from './services/api-service.js';
+import { ChatApiClient } from './services/http-client.js';
 import { AuthService } from './services/auth-service.js'; // Добавлено в 5.1.
 import { NotificationManager } from './models/notification-manager.js'; // Добавлено в 5.1.
 import { applyTheme, cycleTheme } from './ui/theme.js';
@@ -96,7 +97,9 @@ class App {
 
         // ===== Инициализация сервисов =====
         // Сервис для работы с API
-        this.apiService = new ApiService(this.eventBus);
+        this.apiService = new ChatApiClient(this.eventBus);
+        // Сервис для работы с API проверки статуса сервера
+        this.api= new ApiService(this.eventBus);
 
         // Добавлено в 5.1: Сервис аутентификации и управления сессиями
         this.authService = new AuthService(this.eventBus);
@@ -263,7 +266,7 @@ class App {
         }
 
         // Проверка доступности сервера
-        await this.apiService.checkServer();
+        await this.api.checkServer();
 
         // Перерисовываем выпадающий список моделей
         this.renderModelDropdown(this);
@@ -327,7 +330,7 @@ class App {
         }, 500);
 
         // Настройка периодических задач
-        setInterval(() => this.apiService.checkServer(), CONFIG.SERVER.CHECK_INTERVAL);
+        setInterval(() => this.api.checkServer(), CONFIG.SERVER.CHECK_INTERVAL);
         setInterval(() => this.updateStats(), CONFIG.DEBOUNCE.STATS);
 
         // Подписка на события
@@ -371,9 +374,9 @@ class App {
             this.toast.info('⏹ Генерация остановлена', 2000);
             console.log('🛑 Генерация остановлена пользователем');
         } else {
-            // Если нет активного контроллера, но есть активные запросы в apiService
-            if (this.apiService) {
-                const aborted = this.apiService.abortAllRequests();
+            // Если нет активного контроллера, но есть активные запросы в api
+            if (this.api) {
+                const aborted = this.api.abortAllRequests();
                 if (aborted > 0) {
                     this.isProcessing = false;
                     this.toast.info(`⏹ Остановлено ${aborted} запросов`, 2000);
@@ -705,12 +708,12 @@ class App {
      renderModelDropdown(object) {
         const modelDropdown = document.getElementById('modelDropdown');
         const currentModelLabel = document.getElementById('currentModelLabel');                
-        if (!object.apiService.availableModels.length) {
+        if (!object.api.availableModels.length) {
             modelDropdown.innerHTML = `<div class="model-item" style="color:var(--text-secondary);">Модели не найдены</div>`;
             return;
         }
         let html = '';
-        object.apiService.availableModels.forEach(m => {
+        object.api.availableModels.forEach(m => {
             const active = m === object.currentModel;
             html += `<div class="model-item ${active ? 'active-model' : ''}" data-model="${object.sanitizeHTML(m)}" role="option" aria-selected="${active}">
             <span>${object.sanitizeHTML(m)}</span>${active ? '<span class="check">✔</span>' : ''}

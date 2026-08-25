@@ -1,5 +1,6 @@
 // src/services/auth-service.js
 import { ApiService } from './api-service.js';
+import { ChatApiClient } from './http-client.js';
 
 /**
  * Сервис аутентификации и управления сессиями
@@ -7,16 +8,18 @@ import { ApiService } from './api-service.js';
 export class AuthService {
     constructor(eventBus) {
         this.eventBus = eventBus;
-        this.api = new ApiService(eventBus);
+        //this.api = new ApiService(eventBus);
+        this.api = new ChatApiClient(eventBus);
         this.currentUserId = null;
         this.token = null; // если используется токен
         this.isAuthenticated = false;
+        this.localUser = null;
     }
 
     /**
      * Регистрация или обновление пользователя
-     * @param {Object} userData - { userId, name, avatar, color }
-     * @returns {Promise<Object>} - данные пользователя
+     * {Object} userData - { userId, name, avatar, color }
+     * {Promise<Object>} - данные пользователя
      */
     async registerUser(userData) {
         try {
@@ -63,7 +66,13 @@ export class AuthService {
      * @returns {Promise<Object|null>} - данные пользователя или null
      */
     async restoreSession() {
-        const userId = localStorage.getItem('userId');
+        let userId = localStorage.getItem('userId');
+        const stored = localStorage.getItem('user_profile');
+        if (stored) {
+            this.localUser = JSON.parse(stored);
+            userId = this.localUser.Id;
+        }
+        
         const token = localStorage.getItem('authToken');
         if (!userId) {
             return null;
