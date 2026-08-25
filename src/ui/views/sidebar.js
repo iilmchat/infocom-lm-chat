@@ -187,15 +187,15 @@ export class Sidebar {
         }
 
         container.innerHTML = chats.map(chat => {
-            const otherUser = chat.user1Id === this.app.multiUserManager.localUser.id 
+            const otherUser = chat.user1Id === this.app.multiUserManager.localUser.Id 
                 ? chat.user2Id 
                 : chat.user1Id;
             
             // Получаем имя пользователя из кэша
             const peer = this.app.multiUserManager.peers.get(otherUser);
-            const name = peer?.name || otherUser;
-            const avatar = peer?.avatar || '👤';
-            const color = peer?.color || '#888';
+            const name = peer?.Name || otherUser;
+            const avatar = peer?.Avatar || '👤';
+            const color = peer?.Color || '#888';
             const lastMsg = chat.lastMessage || 'Нет сообщений';
             const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
 

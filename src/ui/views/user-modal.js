@@ -32,9 +32,9 @@ export class UserModal {
      */
     loadUserProfile() {
         const user = this.app.multiUserManager.localUser;
-        document.getElementById('userNameInput').value = user.name || '';
-        document.getElementById('userAvatarInput').value = user.avatar || '👤';
-        document.getElementById('userColorInput').value = user.color || '#7ec8e3';
+        document.getElementById('userNameInput').value = user.Name || '';
+        document.getElementById('userAvatarInput').value = user.Avatar || '👤';
+        document.getElementById('userColorInput').value = user.Color || '#7ec8e3';
         this.updatePreview();
     }
 
@@ -68,17 +68,23 @@ export class UserModal {
         this.app.multiUserManager.localUser.name = name;
         this.app.multiUserManager.localUser.avatar = avatar;
         this.app.multiUserManager.localUser.color = color;
-        
+
+        this.app.multiUserManager.localUser.Name = name;
+        this.app.multiUserManager.localUser.Avatar = avatar;
+        this.app.multiUserManager.localUser.Color = color;        
         // Сохраняем в localStorage
         localStorage.setItem('user_profile', JSON.stringify(this.app.multiUserManager.localUser));
 
         // Отправляем на сервер
         try {
             await this.app.multiUserManager.api.updateUserProfile({
-                userId: this.app.multiUserManager.localUser.id,
+                userId: this.app.multiUserManager.localUser.Id,
                 name: name,
                 avatar: avatar,
-                color: color
+                color: color,
+                Name: name,
+                Avatar: avatar,
+                Color: color                
             });
             this.app.toast.success('✅ Профиль обновлен');
             this.close();

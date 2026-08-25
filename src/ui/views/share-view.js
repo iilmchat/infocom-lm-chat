@@ -41,10 +41,10 @@ export class ShareView {
     renderActiveUsers() {
         if (!this.activeUsers) return;
         
-        let html = `<span class="active-user-badge">${this.app.multiUserManager.localUser.avatar} ${sanitizeHTML(this.app.multiUserManager.localUser.name)} (Вы)</span>`;
+        let html = `<span class="active-user-badge">${this.app.multiUserManager.localUser.Avatar} ${sanitizeHTML(this.app.multiUserManager.localUser.Name)} (Вы)</span>`;
         
         this.app.multiUserManager.peers.forEach(p => {
-            html += `<span class="active-user-badge">${p.avatar} ${sanitizeHTML(p.name)}</span>`;
+            html += `<span class="active-user-badge">${p.Avatar} ${sanitizeHTML(p.Name)}</span>`;
         });
         
         this.activeUsers.innerHTML = html;

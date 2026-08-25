@@ -25,7 +25,14 @@ export class AuthService {
         try {
             const result = await this.api.createUser(userData);
             if (result.success) {
-                this.currentUserId = result.user.id;
+                if(result.user.Id)
+                {
+                    this.currentUserId = result.user.Id;
+                }
+                else
+                {
+                    this.currentUserId = result.user.id;
+                }
                 this.isAuthenticated = true;
                 // Сохраняем userId в localStorage для восстановления сессии
                 localStorage.setItem('userId', this.currentUserId);

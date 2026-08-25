@@ -228,6 +228,56 @@ export class AdminPanel {
     }
 
     /**
+     * Загрузка всех данных для пользователей только
+     */
+    async loadUserData() {
+        // Показываем индикатор загрузки
+        this.showLoading();        
+        try {
+            // Загружаем всё параллельно
+            const [users] = await Promise.all([
+                this.app.apiService.getAllUsers().catch(() => ({ success: false })),
+
+            ]);
+            if (users.success) this.users = users.users || [];
+    
+            // Рендерим текущую вкладку
+            this.renderCurrentTab();
+
+        } catch (error) {
+            console.error('Ошибка загрузки данных пользователей:', error);            
+            this.app.toast.error('❌ Ошибка загрузки данных админки для пользователей');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Загрузка всех данных для комнат только
+     */
+    async loadRoomData() {
+        // Показываем индикатор загрузки
+        this.showLoading();        
+        try {
+            // Загружаем всё параллельно
+            const [ rooms] = await Promise.all([
+                this.app.apiService.getAdminRooms().catch(() => ({ success: false })),
+            ]);
+
+            if (rooms.success) this.rooms = rooms.rooms || [];
+    
+            // Рендерим текущую вкладку
+            this.renderCurrentTab();
+
+        } catch (error) {
+            console.error('Ошибка загрузки данных комнат:', error);            
+            this.app.toast.error('❌ Ошибка загрузки данных админки для комнат');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
      * Рендеринг текущей вкладки
      */
     renderCurrentTab() {
@@ -361,13 +411,17 @@ export class AdminPanel {
         });
                 
         container.innerHTML = filteredUsers.map(user => {
-            const isCurrentUser = user.UserId === currentUser.id;
+            if(!(user.UserId) || user.UserId == undefined)
+            {
+                user.UserId = user.Id;
+            }
+            const isCurrentUser = user.UserId === currentUser.Id;
             const canManage = isAdmin && !isCurrentUser;
             const userName = user.Name && user.Name.trim() ? user.Name : 'Unknown';
             return `
             <div class="admin-user-item">
                 <div class="admin-user-info">
-                    <span class="admin-user-avatar">${user.avatar || '👤'}</span>
+                    <span class="admin-user-avatar">${user.Avatar || '👤'}</span>
                     <span class="admin-user-name">${sanitizeHTML(userName)}</span>
                     <span class="admin-user-role ${user.Role?.toLowerCase()}">
                         ${this.getRoleIcon(user.Role)} ${user.Role || 'Admin'}
@@ -444,9 +498,9 @@ export class AdminPanel {
             const result = await this.app.apiService.setUserRole(userId, {
                 //userId: userId,
                 //Role: role,
-                //ModeratorId: this.app.multiUserManager.localUser.id
+                //ModeratorId: this.app.multiUserManager.localUser.Id
                 role: newRole,
-                moderatorId: this.app.multiUserManager.localUser.id                
+                moderatorId: this.app.multiUserManager.localUser.Id                
             });    
 
             if (result.success) {
@@ -471,7 +525,7 @@ export class AdminPanel {
         if (!container) return;
 
         // Удаляем все старые обработчики кликов, чтобы избежать дублирования
-        container.removeEventListener('click', this.handleRoomAction); // Предполагаем, что метод будет привязан к экземпляру
+        //container.removeEventListener('click', this.handleRoomAction); // Предполагаем, что метод будет привязан к экземпляру
 
         if (!this.rooms || this.rooms.length === 0) {
             container.innerHTML = `
@@ -483,10 +537,11 @@ export class AdminPanel {
         }
 
 /*
-                    <button onclick="window.adminPanel.clearRoom('${room.roomId || room.id}')" title="Очистить историю">🗑️</button>
-                    <button onclick="window.adminPanel.deleteRoom('${room.roomId || room.id}')" title="Удалить комнату">❌</button>
-                    <button onclick="window.adminPanel.closeRoom('${room.roomId || room.id}')" title="Закрыть комнату">🔒</button>
-                    <button onclick="window.adminPanel.exportRoom('${room.roomId || room.id}')" title="Экспортировать">💾</button>
+                    <button class="admin-room-clear" data-room-id="${room.RoomId}" title="Очистить историю">🗑️</button>
+                    <button class="admin-room-delete" data-room-id="${room.RoomId}" title="Удалить комнату">❌</button>
+                    <button class="admin-room-close" data-room-id="${room.RoomId}" title="Закрыть комнату">🔒</button>
+                    <button class="admin-room-export" data-room-id="${room.RoomId}" title="Экспортировать">💾</button>
+
 */
 
         container.innerHTML = this.rooms.map(room => `
@@ -500,16 +555,16 @@ export class AdminPanel {
                     </span>
                 </div>
                 <div class="admin-room-actions">
-                    <button class="admin-room-clear" data-room-id="${room.RoomId}" title="Очистить историю">🗑️</button>
-                    <button class="admin-room-delete" data-room-id="${room.RoomId}" title="Удалить комнату">❌</button>
-                    <button class="admin-room-close" data-room-id="${room.RoomId}" title="Закрыть комнату">🔒</button>
-                    <button class="admin-room-export" data-room-id="${room.RoomId}" title="Экспортировать">💾</button>
+                    <button class="admin-room-clear" onclick="window.adminPanel.clearRoom('${room.RoomId || room.id}')" title="Очистить историю">🗑️</button>
+                    <button class="admin-room-delete" onclick="window.adminPanel.deleteRoom('${room.RoomId || room.id}')" title="Удалить комнату">❌</button>
+                    <button class="admin-room-close" onclick="window.adminPanel.closeRoom('${room.RoomId || room.id}')" title="Закрыть комнату">🔒</button>
+                    <button class="admin-room-export" onclick="window.adminPanel.exportRoom('${room.RoomId || room.id}')" title="Экспортировать">💾</button>
                 </div>
             </div>
         `).join('');
 
         // Добавляем один обработчик событий на контейнер (делегирование)
-        container.addEventListener('click', this.handleRoomAction.bind(this));   
+        //container.addEventListener('click', this.handleRoomAction.bind(this));   
              
         /*
         container.addEventListener('click', async (event) => {
@@ -883,12 +938,12 @@ export class AdminPanel {
             const result = await this.app.apiService.muteUser({
                 userId: userId,
                 minutes: minutes,
-                moderatorId: this.app.multiUserManager.localUser.id,
+                moderatorId: this.app.multiUserManager.localUser.Id,
                 reason: prompt('Причина (опционально):') || undefined
             });
             if (result.success) {
             this.app.toast.success(`🔇 Пользователь заглушен на ${minutes} минут`);
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка мута');
@@ -906,11 +961,11 @@ export class AdminPanel {
             const result = await this.app.apiService.kickUser({
                 userId: userId,
                 roomId: this.app.multiUserManager.roomId,
-                moderatorId: this.app.multiUserManager.localUser.id
+                moderatorId: this.app.multiUserManager.localUser.Id
             });
             if (result.success) {
             this.app.toast.success('🚪 Пользователь выгнан');
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка кика');
@@ -927,12 +982,12 @@ export class AdminPanel {
         try {
             const result = await this.app.apiService.banUser({
                 userId: userId,
-                moderatorId: this.app.multiUserManager.localUser.id,
+                moderatorId: this.app.multiUserManager.localUser.Id,
                 reason: prompt('Причина бана:') || 'Нарушение правил'
             });
             if (result.success) {
             this.app.toast.success('⛔ Пользователь забанен');
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка бана');
@@ -949,11 +1004,11 @@ export class AdminPanel {
         try {
             const result = await this.app.apiService.unbanUser({
                 userId: userId,
-                moderatorId: this.app.multiUserManager.localUser.id
+                moderatorId: this.app.multiUserManager.localUser.Id
             });
             if (result.success) {
                 this.app.toast.success('✅ Пользователь разбанен');
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка разбана');
@@ -969,7 +1024,7 @@ export class AdminPanel {
             });
             if (result.success) {
                 this.app.toast.success(`🛡️ Админ ${set ? 'назначен' : 'снят'}`);
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
@@ -985,7 +1040,7 @@ export class AdminPanel {
             });
             if (result.success) {
                 this.app.toast.success(`🔧 Модератор ${set ? 'назначен' : 'снят'}`);
-                await this.loadData();
+                await this.loadUserData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка');
@@ -1012,7 +1067,7 @@ export class AdminPanel {
             if (result.success) {
                 this.app.toast.success('🗑️ История очищена');
                 //Может надо закрыть?
-                await this.loadData();
+                await this.loadRoomData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка очистки');
@@ -1036,7 +1091,7 @@ export class AdminPanel {
             if (result.success) {
                 this.app.toast.success('❌ Комната удалена');
                 //Может надо закрыть?
-                await this.loadData();
+                await this.loadRoomData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка удаления комнаты');
@@ -1060,7 +1115,7 @@ export class AdminPanel {
             if (result.success) {
                 this.app.toast.success('🔒 Комната закрыта');
                 //Может надо закрыть?
-                await this.loadData();
+                await this.loadRoomData();
             }
         } catch (error) {
             this.app.toast.error('❌ Ошибка закрытия комнаты');
@@ -1107,7 +1162,7 @@ export class AdminPanel {
             const result = await this.app.multiUserManager.api.deleteMessage(
                 null, // roomId не нужен для админского удаления
                 messageId,
-                this.app.multiUserManager.localUser.id
+                this.app.multiUserManager.localUser.Id
             );
             */
             if (result.success) {
@@ -1185,4 +1240,10 @@ export class AdminPanel {
 }
 
 // Для доступа из HTML
+/*
 window.adminPanel = null;
+*/
+// После определения класса:
+document.addEventListener('DOMContentLoaded', () => {
+    window.adminPanel = new AdminPanel(window.app);
+});

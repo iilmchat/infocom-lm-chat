@@ -31,8 +31,8 @@ export class PrivateChat {
 
             // Ищем существующий чат
             const chat = this.app.multiUserManager.privateChats.find(c =>
-                (c.user1Id === this.app.multiUserManager.localUser.id && c.user2Id === user.id) ||
-                (c.user1Id === user.id && c.user2Id === this.app.multiUserManager.localUser.id)
+                (c.user1Id === this.app.multiUserManager.localUser.Id && c.user2Id === user.Id) ||
+                (c.user1Id === user.Id && c.user2Id === this.app.multiUserManager.localUser.Id)
             );
             if (chat) {
                 this.currentChatId = chat.id;
@@ -44,7 +44,7 @@ export class PrivateChat {
                 return;
             }
             // Иначе создаём
-            this.createWithUser(user.id);     
+            this.createWithUser(user.Id);     
         } else {
             // Показываем выбор пользователя
             this.showUserSelector();                   
@@ -70,7 +70,7 @@ export class PrivateChat {
     updateTitle() {
         if (this.currentUser) {
             document.getElementById('privateChatTitle').textContent = 
-                `${this.currentUser.avatar} ${sanitizeHTML(this.currentUser.name)}`;
+                `${this.currentUser.Avatar} ${sanitizeHTML(this.currentUser.Name)}`;
         }
     }
 
@@ -81,7 +81,7 @@ export class PrivateChat {
     async createWithUser(userId) {
         try {
             const result = await this.app.multiUserManager.api.createPrivateChat({
-                user1Id: this.app.multiUserManager.localUser.id,
+                user1Id: this.app.multiUserManager.localUser.Id,
                 //user2Id: user.id
                 user2Id: userId
             });
@@ -89,7 +89,7 @@ export class PrivateChat {
             if (result.success) {
                 this.currentChatId = result.chatId;
                 // Находим пользователя
-                const user = this.app.multiUserManager.peers.get(userId) || { id: userId, name: userId, avatar: '👤' };
+                const user = this.app.multiUserManager.peers.get(userId) || { id: userId, name: userId, avatar: '👤',Id: userId, Name: userId, Avatar: '👤' };
                 this.currentUser = user;
                 this.updateTitle();
                 await this.loadHistory();
@@ -124,11 +124,11 @@ export class PrivateChat {
                 <h2>👥 Выберите пользователя</h2>
                 <div style="max-height:300px;overflow-y:auto;">
                     ${users.map(u => `
-                        <div class="user-select-item" data-user-id="${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
-                            <span style="font-size:28px;">${u.avatar}</span>
+                        <div class="user-select-item" data-user-id="${u.Id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
+                            <span style="font-size:28px;">${u.Avatar}</span>
                             <div>
-                                <div style="font-weight:600;">${sanitizeHTML(u.name)}</div>
-                                <div style="font-size:11px;color:var(--text-secondary);">${u.isTyping ? 'печатает...' : 'онлайн'}</div>
+                                <div style="font-weight:600;">${sanitizeHTML(u.Name)}</div>
+                                <div style="font-size:11px;color:var(--text-secondary);">${u.IsTyping ? 'печатает...' : 'онлайн'}</div>
                             </div>
                         </div>
                     `).join('')}
@@ -169,7 +169,7 @@ export class PrivateChat {
                 // Отмечаем как прочитанные
                 await this.app.multiUserManager.api.markPrivateRead({
                     chatId: this.currentChatId,
-                    userId: this.app.multiUserManager.localUser.id
+                    userId: this.app.multiUserManager.localUser.Id
                 });
                 // Обновляем бейдж
                 this.app.multiUserManager.getUnreadCount();                
@@ -185,7 +185,7 @@ export class PrivateChat {
      */
     renderMessages() {
         const container = document.getElementById('privateMessages');
-        const currentUserId = this.app.multiUserManager.localUser.id;
+        const currentUserId = this.app.multiUserManager.localUser.Id;
 
         if (!this.messages.length) {
             container.innerHTML = `
@@ -227,8 +227,8 @@ export class PrivateChat {
         try {
             const result = await this.app.multiUserManager.api.sendPrivateMessage({
                 chatId: this.currentChatId,
-                senderId: this.app.multiUserManager.localUser.id,
-                receiverId: this.currentUser.id,
+                senderId: this.app.multiUserManager.localUser.Id,
+                receiverId: this.currentUser.Id,
                 content: content
             });
 

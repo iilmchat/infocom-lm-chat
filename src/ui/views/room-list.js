@@ -38,14 +38,14 @@ export class RoomList {
         }
 
         this.container.innerHTML = this.rooms.map(room => `
-            <div class="room-item ${room.roomId === this.currentRoomId ? 'active' : ''}" 
-                 data-room-id="${room.roomId}">
+            <div class="room-item ${room.RoomId === this.currentRoomId ? 'active' : ''}" 
+                 data-room-id="${room.RoomId}">
                 <div class="room-info">
-                    <span class="room-name">💬 ${sanitizeHTML(room.name)}</span>
-                    <span class="room-users">👥 ${room.userCount || 0}</span>
+                    <span class="room-name">💬 ${sanitizeHTML(room.Name)}</span>
+                    <span class="room-users">👥 ${room.UserCount || 0}</span>
                 </div>
                 <div class="room-actions">
-                    <button class="room-join-btn" data-room-id="${room.roomId}">Войти</button>
+                    <button class="room-join-btn" data-room-id="${room.RoomId}">Войти</button>
                 </div>
             </div>
         `).join('');
@@ -54,7 +54,15 @@ export class RoomList {
         this.container.querySelectorAll('.room-join-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const roomId = btn.dataset.roomId;
+                if(btn.dataset.RoomId)
+                {
+                    const roomId = btn.dataset.RoomId;
+                }
+                else
+                {
+                    const roomId = btn.dataset.roomId;
+                }
+                //const roomId = btn.dataset.roomId;
                 await this.app.multiUserManager.joinRoom(roomId);
                 this.currentRoomId = roomId;
                 this.render();
@@ -78,7 +86,7 @@ export class RoomList {
         try {
             const result = await this.app.apiService.createRoom({
                 name: name,
-                createdBy: this.app.multiUserManager.localUser.id
+                createdBy: this.app.multiUserManager.localUser.Id
             });
             if (result.success) {
                 this.app.toast.success(`Комната "${name}" создана`);

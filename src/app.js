@@ -620,11 +620,25 @@ class App {
         let shareHtml = '';
         if(window.app) {
             // Собираем HTML для отображения активных пользователей
-            shareHtml = `${window.app.multiUserManager.localUser.avatar} ${window.app.sanitizeHTML(window.app.multiUserManager.localUser.name)} (Вы)`;
+            if(window.app.multiUserManager.localUser.Name)
+            {
+                shareHtml = `${window.app.multiUserManager.localUser.Avatar} ${window.app.sanitizeHTML(window.app.multiUserManager.localUser.Name)} (Вы)`;
+            }
+            else
+            {
+                shareHtml = `${window.app.multiUserManager.localUser.avatar} ${window.app.sanitizeHTML(window.app.multiUserManager.localUser.name)} (Вы)`;
+            }
 
             // Добавляем каждого подключенного пользователя в список
             window.app.multiUserManager.peers.forEach(peer => {
-                shareHtml += `${peer.avatar} ${window.app.sanitizeHTML(peer.name)}`;
+                if(peer.Name)
+                {
+                    shareHtml += `${peer.Avatar} ${window.app.sanitizeHTML(peer.Name)}`;
+                }
+                else
+                {
+                    shareHtml += `${peer.avatar} ${window.app.sanitizeHTML(peer.name)}`;
+                }
             });
         }
 
@@ -1126,11 +1140,11 @@ class App {
                 <h2>👥 Выберите пользователя</h2>
                 <div style="max-height:300px;overflow-y:auto;">
                     ${users.map(u => `
-                        <div class="user-select-item" data-user-id="${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
-                            <span style="font-size:28px;">${u.avatar}</span>
+                        <div class="user-select-item" data-user-id="${u.Id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;transition:background 0.2s;border-bottom:1px solid var(--border-color);">
+                            <span style="font-size:28px;">${u.Avatar}</span>
                             <div>
-                                <div style="font-weight:600;">${this.sanitizeHTML(u.name)}</div>
-                                <div style="font-size:11px;color:var(--text-secondary);">${u.isTyping ? 'печатает...' : 'онлайн'}</div>
+                                <div style="font-weight:600;">${this.sanitizeHTML(u.Name)}</div>
+                                <div style="font-size:11px;color:var(--text-secondary);">${u.IsTyping ? 'печатает...' : 'онлайн'}</div>
                             </div>
                         </div>
                     `).join('')}
@@ -1323,7 +1337,7 @@ class App {
     setupPrivateChatEvents() {
         // Событие открытия приватного чата
         this.eventBus.on('private:chat_opened', (data) => {
-            const peer = this.multiUserManager.peers.get(data.user.id);
+            const peer = this.multiUserManager.peers.get(data.user.Id);
             if (peer) {
                 this.privateChat.open(peer);
             }

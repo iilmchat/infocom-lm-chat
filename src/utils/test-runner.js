@@ -166,10 +166,10 @@ export function runAllTests() {
         if (!mum.localUser) {
             throw new Error('No local user created');
         }
-        if (!mum.localUser.id) {
+        if (!mum.localUser.Id) {
             throw new Error('No user ID');
         }
-        if (!mum.localUser.name) {
+        if (!mum.localUser.Name) {
             throw new Error('No user name');
         }
         if (saved) localStorage.setItem('user_profile', saved);
@@ -191,9 +191,9 @@ export function runAllTests() {
         const peers = Array.from(mum.peers.values());
         if (peers.length > 0) {
             const peer = peers[0];
-            mum.setPeerTyping(peer.id, true);
-            const updated = mum.peers.get(peer.id);
-            if (!updated.typing) {
+            mum.setPeerTyping(peer.Id, true);
+            const updated = mum.peers.get(peer.Id);
+            if (!updated.Typing) {
                 throw new Error('Peer typing status not updated');
             }
         }

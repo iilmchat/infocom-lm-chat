@@ -93,6 +93,18 @@ export class MultiUserManager {
                 // Добавляем поля для авторизации
                 user.token = user.token || null;
                 user.role = user.role || 'Admin';
+                if(user.Id)
+                {user.id = user.Id;}
+                if(user.Name)
+                {user.name = user.Name;}
+                if(user.Avatar)
+                {user.avatar = user.Avatar;}
+                if(user.Color)
+                {user.color = user.Color;}
+                if(user.LastSeen)
+                {user.lastSeen = user.LastSeen;}
+                if(user.Status)
+                {user.status = user.Status;}                
                 return user;
             } catch (e) {
                 console.warn('Ошибка загрузки профиля:', e);
@@ -120,6 +132,15 @@ export class MultiUserManager {
             token: null,
             role: 'Admin'       
         };
+        user.Id = user.id;
+        user.Name = user.name;
+        user.Avatar= user.avatar;
+        user.Color= user.color;
+        user.LastSeen= user.lastSeen;
+        user.Status= user.status;
+        user.Token= user.token;
+        user.Role= user.role;    
+
         this.saveUser(user);        
         //localStorage.setItem('user_profile', JSON.stringify(user));
         return user;
@@ -139,16 +160,25 @@ export class MultiUserManager {
     async updateProfile(name, avatar, color) {
         try {
             const result = await this.api.updateUserProfile({
-                userId: this.localUser.id,
+                userId: this.localUser.Id,
                 name: name,
                 avatar: avatar,
-                color: color
+                color: color,
+
+                Name: name,
+                Avatar: avatar,
+                Color: color                
             });
 
             if (result.success) {
                 this.localUser.name = name;
                 this.localUser.avatar = avatar;
                 this.localUser.color = color;
+
+                this.localUser.Name = name;
+                this.localUser.Avatar = avatar;
+                this.localUser.Color = color;        
+
                 this.saveUser(this.localUser);
                 this.eventBus?.emit('profile:updated', this.localUser);
                 return true;
@@ -165,26 +195,39 @@ export class MultiUserManager {
      */
     async fetchUserInfo() {
         try {
-            const result = this.localUser;//await this.api.getUser(this.localUser.id);
-            if (/*(result.success && result.user)||*/this.localUser) {
-                /*
+            const result = /*this.localUser;*/await this.api.getUser(this.localUser.Id);
+            if ((result.success && result.user)||this.localUser) {
+                
                 const userData = result.user;
                 this.localUser.role = userData.role || 'Admin';
                 this.localUser.status = userData.status || 'online';
                 this.isAdmin = this.localUser.role === 'Admin';
                 this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+
+                this.localUser.Role = userData.role || 'Admin';
+                this.localUser.Status = userData.status || 'online';
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';      
+
                 this.saveUser(this.localUser);
                 this.eventBus?.emit('user:info_updated', this.localUser);
                 return userData;
-                */
+                
+                //Локальная работа
+                /*
                 const userData = result;
                 this.localUser.role = 'Admin';
                 this.localUser.status = 'online';
+                this.localUser.Role = 'Admin';
+                this.localUser.Status = 'online';                
                 this.isAdmin = this.localUser.role === 'Admin';
                 this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';                
                 this.saveUser(this.localUser);
                 this.eventBus?.emit('user:info_updated', this.localUser);
-                return userData;               
+                return userData;       
+                */        
             }
             return null;
         } catch (error) {
@@ -204,7 +247,7 @@ export class MultiUserManager {
             'Guest': 1
         };
 
-        const userPriority = rolePriority[this.localUser.role] || 0;
+        const userPriority = rolePriority[this.localUser.Role] || 0;
         const requiredPriority = rolePriority[requiredRole] || 0;
 
         return userPriority >= requiredPriority;
@@ -236,10 +279,14 @@ export class MultiUserManager {
 
         // Обновление роли пользователя
         this.eventBus.on('user:role_changed', (data) => {
-            if (data.userId === this.localUser.id) {
+            if (data.userId === this.localUser.Id) {
                 this.localUser.role = data.newRole;
                 this.isAdmin = this.localUser.role === 'Admin';
                 this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+
+                this.localUser.Role = data.newRole;
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';                
                 this.saveUser(this.localUser);
                 this.updateAuthUI();
                 this.eventBus?.emit('toast:info', `Ваша роль изменена на: ${data.newRole}`);
@@ -270,7 +317,14 @@ export class MultiUserManager {
                 'User': '👤 Пользователь',
                 'Guest': '👋 Гость'
             };
-            userRoleDisplay.textContent = roleNames[this.localUser.role] || this.localUser.role;
+            if(this.localUser.Role)
+            {
+                userRoleDisplay.textContent = roleNames[this.localUser.Role] || this.localUser.Role;
+            }
+            else
+            {
+                userRoleDisplay.textContent = roleNames[this.localUser.role] || this.localUser.role;
+            }
         }
 
         // Показываем/скрываем элементы для администратора
@@ -337,9 +391,17 @@ export class MultiUserManager {
                 color: colors[i] || '#888',
                 online: true,
                 typing: false,
-                lastSeen: Date.now()
+                lastSeen: Date.now(),
+
+                Id: 'peer_' + i,
+                Name: names[i] || 'User_' + i,
+                Avatar: avatars[i] || '👤',
+                COMMON_ROOM_NAMEolor: colors[i] || '#888',
+                Online: true,
+                Typing: false,
+                LastSeen: Date.now()                
             };
-            this.peers.set(peer.id, peer);
+            this.peers.set(peer.Id, peer);
         }
         this.renderUsers();
     }
@@ -453,13 +515,14 @@ export class MultiUserManager {
             if (roomsResult.success && roomsResult.rooms) {
                 // 2. Ищем общую комнату
                 const commonRoom = roomsResult.rooms.find(room => 
-                    room.name === COMMON_ROOM_NAME || 
-                    room.roomId?.startsWith(COMMON_ROOM_PREFIX) ||
+                    room.Name === COMMON_ROOM_NAME || 
+                    room.RoomId?.startsWith(COMMON_ROOM_PREFIX) ||
+                    room.Id?.startsWith(COMMON_ROOM_PREFIX)||
                     room.id?.startsWith(COMMON_ROOM_PREFIX)
                 );
 
                 if (commonRoom) {
-                    const roomId = commonRoom.roomId || commonRoom.id;
+                    const roomId = commonRoom.RoomId || commonRoom.Id || commonRoom.id;
                     console.log(`🔍 Найдена общая комната: ${roomId}`);
                     return roomId;
                 }
@@ -469,7 +532,7 @@ export class MultiUserManager {
             console.log('🆕 Создаём новую общую комнату...');
             const createResult = await this.api.createRoom({
                 name: COMMON_ROOM_NAME,
-                createdBy: this.localUser.id
+                createdBy: this.localUser.Id
             });
 
             if (createResult.success) {
@@ -512,10 +575,15 @@ export class MultiUserManager {
                 roomId: roomId,
                 //user: this.localUser
                 user: {
-                    id: this.localUser.id,
-                    name: this.localUser.name,
-                    avatar: this.localUser.avatar,
-                    color: this.localUser.color
+                    id: this.localUser.Id,
+                    name: this.localUser.Name,
+                    avatar: this.localUser.Avatar,
+                    color: this.localUser.Color,
+
+                    Id: this.localUser.Id,
+                    Name: this.localUser.Name,
+                    Avatar: this.localUser.Avatar,
+                    Color: this.localUser.Color,                   
                 }                
             });
 
@@ -566,7 +634,7 @@ export class MultiUserManager {
         try {
             await this.api.leaveRoom({
                 roomId: this.roomId,
-                userId: this.localUser.id
+                userId: this.localUser.Id
             });
             
             //this.polling.stop();
@@ -616,9 +684,9 @@ export class MultiUserManager {
 
         const message = {
             roomId: this.roomId,
-            userId: this.localUser.id,
-            userName: this.localUser.name,
-            userAvatar: this.localUser.avatar,
+            userId: this.localUser.Id,
+            userName: this.localUser.Name,
+            userAvatar: this.localUser.Avatar,
             content: content.trim(),
             role: options.role || 'user',
             replyToId: options.replyToId || null,
@@ -676,7 +744,7 @@ export class MultiUserManager {
             const result = await this.api.editMessage({
                 roomId: this.roomId,
                 messageId: messageId,
-                userId: this.localUser.id,
+                userId: this.localUser.Id,
                 newContent: newContent
             });
 
@@ -717,7 +785,7 @@ export class MultiUserManager {
             const result = await this.api.deleteMessage(
                 this.roomId,
                 messageId,
-                this.localUser.id
+                this.localUser.Id
             );
 
             if (result.success) {
@@ -748,16 +816,17 @@ export class MultiUserManager {
         if (!this.roomId) return;
 
         this.localUser.isTyping = isTyping;
+        this.localUser.IsTyping = isTyping;        
         
         // Отправляем статус на сервер
         this.api.setTypingStatus({
             roomId: this.roomId,
-            userId: this.localUser.id,
+            userId: this.localUser.Id,
             isTyping: isTyping
         }).catch(err => console.warn('⚠️ Ошибка отправки статуса печатания:', err));
 
         this.eventBus?.emit('typing:status', {
-            userId: this.localUser.id,
+            userId: this.localUser.Id,
             isTyping: isTyping,
             roomId: this.roomId
         });
@@ -773,43 +842,38 @@ export class MultiUserManager {
         if (!users) return;
         let userList = Array.isArray(users) ? users : Object.values(users);
         // Проверяем, изменился ли список
-        const newUserIds = new Set(userList.map(u => u.id));
+        const newUserIds = new Set(userList.map(u => u.Id));
         const currentUserIds = new Set(this.peers.keys());
         
         // Если списки совпадают, не обновляем
         if (newUserIds.size === currentUserIds.size && 
-            [...newUserIds].every(id => currentUserIds.has(id))) {
+            [...newUserIds].every(Id => currentUserIds.has(Id))) {
             return;
         }
 
         this.peers.clear();
-        /*
-        userList.forEach(user => {
-            if (user.Id !== this.localUser.id) {
-                this.peers.set(user.Id, {
-                    id: user.Id,
-                    name: user.Name || 'User',
-                    avatar: user.Avatar || '👤',
-                    color: user.Color || '#888',
-                    online: true,
-                    typing: user.IsTyping || false
-                });
-            }
-        });
-*/
 
         userList.forEach(user => {
             // Не добавляем себя
-            if (user.id !== this.localUser.id) {
-                this.peers.set(user.id, {
-                    id: user.id,
-                    name: user.name || 'Пользователь',
-                    avatar: user.avatar || '👤',
-                    color: user.color || '#888',
-                    isTyping: user.isTyping || false,
-                    lastSeen: user.lastSeen || Date.now(),
+            if (user.Id !== this.localUser.Id) {
+                this.peers.set(user.Id, {
+                    id: user.Id,
+                    name: user.Name || 'Пользователь',
+                    avatar: user.Avatar || '👤',
+                    color: user.Color || '#888',
+                    isTyping: user.IsTyping || false,
+                    lastSeen: user.LastSeen || Date.now(),
                     online: true,
-                    status: user.status || 'online'
+                    status: user.Status || 'online',
+
+                    Id: user.Id,
+                    Name: user.Name || 'Пользователь',
+                    Avatar: user.Avatar || '👤',
+                    Color: user.Color || '#888',
+                    IsTyping: user.IsTyping || false,
+                    LastSeen: user.LastSeen || Date.now(),
+                    Online: true,
+                    Status: user.Status || 'online'                    
                 });
             }
         });
@@ -853,7 +917,7 @@ export class MultiUserManager {
      * {Promise<string|null>} ID чата
      */
     async openPrivateChat(user) {
-        if (!user || user.id === this.localUser.id) {
+        if (!user || user.Id === this.localUser.Id) {
             this.app?.toast.warning('Нельзя открыть чат с самим собой');
             return null;
         }
@@ -861,8 +925,8 @@ export class MultiUserManager {
         try {
             // Проверяем, не существует ли уже чат
             const existingChat = this.privateChats.find(chat => 
-                (chat.user1Id === this.localUser.id && chat.user2Id === user.id) ||
-                (chat.user1Id === user.id && chat.user2Id === this.localUser.id)
+                (chat.user1Id === this.localUser.Id && chat.user2Id === user.Id) ||
+                (chat.user1Id === user.Id && chat.user2Id === this.localUser.Id)
             );
 
             if (existingChat) {
@@ -875,8 +939,8 @@ export class MultiUserManager {
 
             // Создаём новый приватный чат
             const result = await this.api.createPrivateChat({
-                user1Id: this.localUser.id,
-                user2Id: user.id
+                user1Id: this.localUser.Id,
+                user2Id: user.Id
             });
 
             if (result.success) {
@@ -885,8 +949,8 @@ export class MultiUserManager {
                 // Сохраняем в список приватных чатов
                 const newChat = {
                     id: chatId,
-                    user1Id: this.localUser.id,
-                    user2Id: user.id,
+                    user1Id: this.localUser.Id,
+                    user2Id: user.Id,
                     lastMessage: null,
                     lastMessageAt: null,
                     unreadCount: 0
@@ -915,7 +979,7 @@ export class MultiUserManager {
      */
     async loadPrivateChats() {
         try {
-            const result = await this.api.getUserChats(this.localUser.id);
+            const result = await this.api.getUserChats(this.localUser.Id);
             if (result.success) {
                 //Новое сравнение массивов
                 if (!deepEqual(this.privateChats, result.chats)) 
@@ -948,12 +1012,12 @@ export class MultiUserManager {
             return null;
         }
 
-        const receiverId = chat.user1Id === this.localUser.id ? chat.user2Id : chat.user1Id;
+        const receiverId = chat.user1Id === this.localUser.Id ? chat.user2Id : chat.user1Id;
 
         try {
             const result = await this.api.sendPrivateMessage({
                 chatId: chatId,
-                senderId: this.localUser.id,
+                senderId: this.localUser.Id,
                 receiverId: receiverId,
                 content: content.trim(),
                 replyToId: replyToId
@@ -989,7 +1053,7 @@ export class MultiUserManager {
                 // Отмечаем сообщения как прочитанные
                 await this.api.markPrivateRead({
                     chatId: chatId,
-                    userId: this.localUser.id
+                    userId: this.localUser.Id
                 });
                 return result.messages || [];
             }
@@ -1005,7 +1069,7 @@ export class MultiUserManager {
      */
     async getUnreadCount() {
         try {
-            const result = await this.api.getUnreadCount(this.localUser.id);
+            const result = await this.api.getUnreadCount(this.localUser.Id);
             if (result.success) {
                 this.unreadCount = result.unread || 0;
                 this.eventBus?.emit('private:unread_updated', this.unreadCount);
@@ -1048,7 +1112,7 @@ export class MultiUserManager {
         try {
             const result = await this.api.poll({
                 roomId: this.roomId,
-                userId: this.localUser.id,
+                userId: this.localUser.Id,
                 lastMessageCount: this.messageCount,
                 timeoutSeconds: CONFIG.SERVER.POLLING_TIMEOUT || 30
             });
@@ -1063,7 +1127,7 @@ export class MultiUserManager {
                 if (result.hasNewMessages && result.messages) {
                     for (const msg of result.messages) {
                         // Пропускаем свои сообщения (уже добавлены локально)
-                        if (msg.userId === this.localUser.id) continue;
+                        if (msg.userId === this.localUser.Id) continue;
                         
                         // Проверяем, нет ли уже такого сообщения
                         if (!this.messages.some(m => m.id === msg.id || m.Id === msg.id)) {
@@ -1106,7 +1170,7 @@ export class MultiUserManager {
             if (this.isConnected && this.roomId) {
                 try {
                     await this.api.heartbeat({
-                        userId: this.localUser.id
+                        userId: this.localUser.Id
                     });
                 } catch (error) {
                     console.warn('⚠️ Heartbeat error:', error);
@@ -1212,7 +1276,7 @@ export class MultiUserManager {
     }
 
     addPeer(peer) {
-        this.peers.set(peer.id, peer);
+        this.peers.set(peer.Id, peer);
         this.renderUsers();
         if (this.eventBus) {
             this.eventBus.emit('peer:joined', peer);
@@ -1231,6 +1295,7 @@ export class MultiUserManager {
         const peer = this.peers.get(id);
         if (peer) {
             peer.typing = isTyping;
+            peer.Typing = isTyping;            
             this.renderUsers();
             if (isTyping) {
                 this.showTypingNotification(peer);
@@ -1241,9 +1306,9 @@ export class MultiUserManager {
     showTypingNotification(peer) {
         const notif = document.getElementById('typingNotification');
         if (notif) {
-            notif.textContent = `${peer.avatar} ${peer.name} печатает...`;
+            notif.textContent = `${peer.Avatar} ${peer.Name} печатает...`;
             setTimeout(() => {
-                if (notif.textContent.includes(peer.name)) {
+                if (notif.textContent.includes(peer.Name)) {
                     notif.textContent = '';
                 }
             }, 3000);
@@ -1262,20 +1327,19 @@ export class MultiUserManager {
 
         if (!container) return;
 
-        // Сайдбар — список пользователей
-        //let html = `<span class="user-badge self"><span class="user-avatar">${this.localUser.avatar}</span> ${this.sanitizeHTML(this.localUser.name)} (Вы)</span>`;
+        // Сайдбар — список пользователей        
         let html = `<span class="user-badge self">
-            <span class="user-avatar">${this.localUser.avatar}</span> 
-            ${this.sanitizeHTML(this.localUser.name)} (Вы)
+            <span class="user-avatar">${this.localUser.Avatar}</span> 
+            ${this.sanitizeHTML(this.localUser.Name)} (Вы)
             ${this.isConnected ? '🟢' : '⚪'}
         </span>`;
         
         this.peers.forEach(peer => {
-            if (peer.online !== false) {
-                html += `<span class="user-badge ${peer.isTyping ? 'typing' : ''}" style="border-color:${peer.color};">
-                    <span class="user-avatar">${peer.avatar}</span> 
-                    ${this.sanitizeHTML(peer.name)}
-                    ${peer.isTyping ? '<span class="user-status">печатает...</span>' : ''}
+            if (peer.Online !== false) {
+                html += `<span class="user-badge ${peer.IsTyping ? 'typing' : ''}" style="border-color:${peer.Color};">
+                    <span class="user-avatar">${peer.Avatar}</span> 
+                    ${this.sanitizeHTML(peer.Name)}
+                    ${peer.IsTyping ? '<span class="user-status">печатает...</span>' : ''}
                 </span>`;                
                 /*
                 html += `<span class="user-badge ${peer.typing ? 'typing' : ''}" style="border-color:${peer.color};">
@@ -1300,10 +1364,10 @@ export class MultiUserManager {
         if (collabBar && this.peers.size > 0) {
             collabBar.classList.add('active');        
             if (collabContainer) {
-                let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.color};" title="Вы">${this.localUser.avatar}</span>`;
+                let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${this.localUser.Avatar}</span>`;
                 this.peers.forEach(peer => {
-                    if (peer.online) {
-                        collabHtml += `<span class="collab-user-dot ${peer.isTyping ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;                        
+                    if (peer.Online) {
+                        collabHtml += `<span class="collab-user-dot ${peer.IsTyping ? 'typing' : ''}" style="background:${peer.Color};" title="${this.sanitizeHTML(peer.Name)}">${peer.Avatar}</span>`;                        
                         //collabHtml += `<span class="collab-user-dot ${peer.typing ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;
                     }
                 });
@@ -1319,11 +1383,11 @@ export class MultiUserManager {
         // Обновляем share модалку, если открыта
         const activeUsersEl = document.getElementById('activeUsers');
         if (activeUsersEl) {
-            let shareHtml = `<span class="active-user-badge">${this.localUser.avatar} ${this.sanitizeHTML(this.localUser.name)} (Вы)</span>`;
+            let shareHtml = `<span class="active-user-badge">${this.localUser.Avatar} ${this.sanitizeHTML(this.localUser.Name)} (Вы)</span>`;
             this.peers.forEach(peer => {
-                if (peer.online !== false) 
+                if (peer.Online !== false) 
                 {
-                    shareHtml += `<span class="active-user-badge">${peer.avatar} ${this.sanitizeHTML(peer.name)}</span>`;
+                    shareHtml += `<span class="active-user-badge">${peer.Avatar} ${this.sanitizeHTML(peer.Name)}</span>`;
                 }
             });
             activeUsersEl.innerHTML = shareHtml;
@@ -1347,15 +1411,15 @@ export class MultiUserManager {
         }
 
         container.innerHTML = this.privateChats.map(chat => {
-            const otherUserId = chat.user1Id === this.localUser.id 
+            const otherUserId = chat.user1Id === this.localUser.Id 
                 ? chat.user2Id 
                 : chat.user1Id;
             
             // Получаем имя пользователя из кэша
             const peer = this.peers.get(otherUserId);
-            const name = peer?.name || otherUserId;
-            const avatar = peer?.avatar || '👤';
-            const color = peer?.color || '#888';
+            const name = peer?.Name || otherUserId;
+            const avatar = peer?.Avatar || '👤';
+            const color = peer?.Color || '#888';
             const lastMsg = chat.lastMessage || 'Нет сообщений';
             const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
 
@@ -1401,10 +1465,10 @@ export class MultiUserManager {
 
     startSimulation() {
         setInterval(() => {
-            const peers = Array.from(this.peers.values()).filter(p => p.online);
+            const peers = Array.from(this.peers.values()).filter(p => p.Online);
             if (peers.length > 0) {
                 const randomPeer = peers[Math.floor(Math.random() * peers.length)];
-                this.setPeerTyping(randomPeer.id, Math.random() > 0.7);
+                this.setPeerTyping(randomPeer.Id, Math.random() > 0.7);
             }
         }, 5000);
     }
@@ -1424,7 +1488,7 @@ export class MultiUserManager {
             return;
         }
         */
-        if (message.userId === this.localUser.id) {
+        if (message.userId === this.localUser.Id) {
             return;
         }
 

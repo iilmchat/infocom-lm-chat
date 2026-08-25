@@ -385,7 +385,7 @@ export class ChatView {
         const wrapper = document.createElement('span');
         wrapper.className = 'message-actions-extra';
 
-        const isOwn = userId === this.app.multiUserManager.localUser.id;
+        const isOwn = userId === this.app.multiUserManager.localUser.Id;
         const isModerator = this.app.multiUserManager.isModeratorUser();
 
         // Закрепить (только для модераторов или владельца комнаты)
@@ -424,7 +424,7 @@ export class ChatView {
             const roomId = this.app.multiUserManager.roomId;
             const result = await this.app.apiService.pinMessage(messageId, {
                 roomId,
-                userId: this.app.multiUserManager.localUser.id
+                userId: this.app.multiUserManager.localUser.Id
             });
             if (result.success) {
                 this.app.toast.success('Сообщение закреплено');
@@ -445,7 +445,7 @@ export class ChatView {
         if (!reason) return;
         try {
             const result = await this.app.apiService.reportMessage(messageId, {
-                reporterId: this.app.multiUserManager.localUser.id,
+                reporterId: this.app.multiUserManager.localUser.Id,
                 reason: reason,
                 description: reason
             });
@@ -521,11 +521,11 @@ export class ChatView {
         while ((match = regex.exec(text)) !== null) {
             const username = match[1];
             // Ищем пользователя среди peers и localUser
-            const user = this.app.multiUserManager.peers.find(p => p.name.toLowerCase() === username.toLowerCase());
+            const user = this.app.multiUserManager.peers.find(p => p.Name.toLowerCase() === username.toLowerCase());
             if (user) {
-                mentions.push(user.id);
-            } else if (this.app.multiUserManager.localUser.name.toLowerCase() === username.toLowerCase()) {
-                mentions.push(this.app.multiUserManager.localUser.id);
+                mentions.push(user.Id);
+            } else if (this.app.multiUserManager.localUser.Name.toLowerCase() === username.toLowerCase()) {
+                mentions.push(this.app.multiUserManager.localUser.Id);
             }
         }
         return mentions;
@@ -727,9 +727,9 @@ export class ChatView {
         // Подготовка данных для отправки
         const messageData = {
             roomId: this.app.multiUserManager.roomId,
-            userId: this.app.multiUserManager.localUser.id,
-            userName: this.app.multiUserManager.localUser.name,
-            userAvatar: this.app.multiUserManager.localUser.avatar,
+            userId: this.app.multiUserManager.localUser.Id,
+            userName: this.app.multiUserManager.localUser.Name,
+            userAvatar: this.app.multiUserManager.localUser.Avatar,
             content: text,
             role: 'user',
             replyToId: this.app.replyTarget ? this.app.replyTarget.messageId : null,

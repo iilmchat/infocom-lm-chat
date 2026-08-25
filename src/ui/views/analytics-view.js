@@ -201,7 +201,7 @@ export class AnalyticsView {
     }
 
     async showUserActivity(userId = null) {
-        const targetUserId = userId || this.app.multiUserManager.localUser.id;
+        const targetUserId = userId || this.app.multiUserManager.localUser.Id;
         const container = document.getElementById('analyticsContent');
         container.innerHTML = '<div style="text-align:center;padding:20px;">⏳ Загрузка...</div>';
         try {

@@ -210,8 +210,8 @@ export function runAllTests() {
         localStorage.removeItem('user_profile');
         const mum = new MultiUserManager();
         if (!mum.localUser) throw new Error('No local user created');
-        if (!mum.localUser.id) throw new Error('No user ID');
-        if (!mum.localUser.name) throw new Error('No user name');
+        if (!mum.localUser.Id) throw new Error('No user ID');
+        if (!mum.localUser.Name) throw new Error('No user name');
         if (saved) localStorage.setItem('user_profile', saved);
     });
 

@@ -228,7 +228,7 @@ export class MessageRenderer {
         if (files && files.length) {
             const fd = document.createElement('div');
             fd.className = 'file-attachment';
-            const currentUserId = window.app?.multiUserManager?.localUser?.id;
+            const currentUserId = window.app?.multiUserManager?.localUser?.Id;
             const isModerator = window.app?.multiUserManager?.isModeratorUser?.() || false;
             const messageId = this.currentMessageId || null;
             

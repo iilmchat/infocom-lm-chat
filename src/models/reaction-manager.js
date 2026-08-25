@@ -9,7 +9,7 @@ export class ReactionManager {
         try {
             const result = await this.app.apiService.addReaction({
                 messageId,
-                userId: this.app.multiUserManager.localUser.id,
+                userId: this.app.multiUserManager.localUser.Id,
                 reaction: emoji
             });
             if (result.success) {
@@ -27,7 +27,7 @@ export class ReactionManager {
         try {
             const result = await this.app.apiService.removeReaction({
                 messageId,
-                userId: this.app.multiUserManager.localUser.id
+                userId: this.app.multiUserManager.localUser.Id
             });
             if (result.success) {
                 this.updateLocalReactions(messageId, result.reactions, null);
