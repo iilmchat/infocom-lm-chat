@@ -636,6 +636,18 @@ class App {
         document.getElementById('newPrivateChatBtn')?.addEventListener('click', () => {
             this.privateChat.showUserSelector();
         });        
+
+        // ===== CLEAR RAG =====
+        document.getElementById('clearRagBtn')?.addEventListener('click', () => {
+            if (confirm('Очистить все RAG документы?')) {
+                app.ragManager.clear();
+                app.sessionManager.setRAG(null);
+                this.updateRagFilesUI();
+                document.getElementById('ragBtn').style.color = 'var(--text-accent)';
+                app.toast.info('RAG контекст очищен');
+                this.updateStats();
+            }
+        });        
     }
 
     /**
