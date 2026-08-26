@@ -1,6 +1,7 @@
 // src/ui/components/drop-zone.js
 import { CONFIG } from '../../config.js';
-import { getFileText, isFileAllowed, isFileSizeValid } from '../../utils/file-helpers.js';
+//import { getFileText, isFileAllowed, isFileSizeValid } from '../../utils/file-helpers.js';
+import { readFileAsText, isFileAllowed, isFileSizeValid } from '../../utils/file-helpers.js';
 
 /**
  * Компонент Drag-and-Drop зоны
@@ -144,7 +145,7 @@ export class DropZone {
             }
 
             try {
-                const content = await getFileText(file);
+                const content = await readFileAsText(file);
                 validFiles.push({
                     content,
                     name: file.name,

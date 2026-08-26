@@ -1,11 +1,13 @@
 // src/ui/views/chat-view.js
 import { CONFIG } from '../../config.js';
 import { sanitizeHTML, validateInput, validateLength } from '../../services/sanitizer.js';
-import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
+// Удалено в 5.2: import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
+import { markdownService } from '../../services/markdown-service.js';
 import { MessageRenderer } from '../renderers/message-renderer.js';
 import { copyToClipboard } from '../../utils/dom-helpers.js';
 import { FileManager } from '../../models/file-manager.js';
 import { ReactionManager } from '../../models/reaction-manager.js';
+import { addCopyButtonsToCodeBlocks } from '../../utils/dom-helpers.js';
 
 /**
  * Основное представление чата
@@ -49,6 +51,9 @@ export class ChatView {
         this.fileList = document.getElementById('fileList');
 
         this.setupEventListeners();
+
+        // Добавлено в 5.2: hljs из глобального объекта
+        this.hljs = window.hljs;        
     }
 
     render() {
@@ -561,24 +566,31 @@ export class ChatView {
         return uploaded;
     }   
 
-    //ТУТ ЕЩЕ ЧТО-то из СТАРОГО или НОВОГо
+    // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
     loadMessages() {
+        // ... рендеринг сообщений        
         this.messagesEl.innerHTML = '';
         //Устарело, теперь с подсвветкой
         //const messages = this.app.sessionManager.getMessages();
         // Используем getMessagesWithHighlight для получения подсвеченных сообщений
-        const messages = this.app.sessionManager.getMessagesWithHighlight();        
-        
+        //const messages = this.app.sessionManager.getMessagesWithHighlight();        
+
+        const messages = this.app.sessionManager.getMessages();
+
+        // Теперь рендерим через markdownService в MessageRenderer   
+
         messages.forEach(msg => {
             if (msg.role !== 'system') {
                 const replyTo = msg.replyTo ? { content: msg.replyTo.content, role: msg.replyTo.role } : null;
                 const msgData = {
                     role: msg.role,
-                    content: msg.content, // Уже с подсветкой
+                    content: msg.content,                    
+                    //content: msg.content, // Уже с подсветкой
                     replyTo: replyTo,
                     isEdit: msg.isEdit || false
                 };
-                const el = this.messageRenderer.render(msgData);
+                //const el = this.messageRenderer.render(msgData);
+                const el = this.messageRenderer.render(msgData, this.app.markdownService);
                 this.messagesEl.appendChild(el);
             }
         });
@@ -588,10 +600,29 @@ export class ChatView {
             this.messagesEl.appendChild(welcome);
         }
 
-        this.scrollToBottom();
-        
-        // Добавляем кнопки копирования для уже загруженных блоков кода
-        this.addCopyButtonsToCodeBlocks();
+        // Добавляем кнопки копирования для уже загруженных блоков кода УДАЛЕНО в 5.2
+        //this.addCopyButtonsToCodeBlocks();
+        // Кнопки копирования добавляются в messageRenderer автоматически        
+        // Добавляем кнопки копирования (уже есть)
+        // И подсвечиваем все блоки кода (на случай, если markdownService не сработал)
+        if (window.hljs) {
+            // Подсвечиваем все блоки кода внутри контейнера
+            this.messagesEl.querySelectorAll('pre code').forEach((block) => {
+                // Если у блока уже есть класс hljs, пропускаем
+                if (!block.classList.contains('hljs')) {
+                    try {
+                        const language = block.className.replace('language-', '') || 'text';
+                        const result = hljs.highlight(block.textContent, { language });
+                        block.innerHTML = result.value;
+                        block.classList.add('hljs');
+                    } catch (e) {
+                        console.warn('Highlight fallback error:', e);
+                    }
+                }
+            });
+        }
+
+        this.scrollToBottom();        
     }
 
     /**
@@ -842,8 +873,8 @@ export class ChatView {
         const ragSourcesUsed = ragContext?.sources || null;
 
         try {
-            // Передаём signal в apiService            
-            await this.app.apiService.sendMessage(
+            // Передаём signal в api         (Запрос модели)   
+            await this.app.api.sendMessage(
                 payload,
                 async (chunk) => {
                     // Проверяем, не был ли запрос отменён
@@ -988,6 +1019,7 @@ export class ChatView {
         return el;
     }
 
+    // ===== ОБНОВЛЕНИЕ СТРИМИНГОВОГО СООБЩЕНИЯ =====    
     /**
      * Обновление стримингового сообщения с асинхронной подсветкой
      */
@@ -995,7 +1027,17 @@ export class ChatView {
         const bubble = el.querySelector('.bubble');
         if (!bubble) return;
 
+        // Очищаем старый контент
         bubble.innerHTML = '';
+
+        // Рендерим Markdown через markdownService
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = this.app.markdownService.render(content);
+        // Добавляем кнопки копирования для стриминговых сообщений
+        addCopyButtonsToCodeBlocks(wrapper);
+        bubble.appendChild(wrapper);   
+
+        /* УДАЛЕНО 5.2        
         const parts = this.messageRenderer.formatMessage(content);
         
         // Создаём контейнер для частей
@@ -1028,8 +1070,8 @@ export class ChatView {
         
         // Асинхронно подсвечиваем все блоки кода
         await this.highlightCodeBlocks(container);
-        
-        // Добавляем источники RAG
+        */
+        // Добавляем источники RAG (если есть)
         if (ragSources && ragSources.length) {
             const rd = document.createElement('div');
             rd.className = 'rag-sources';
@@ -1042,10 +1084,14 @@ export class ChatView {
         this.scrollToBottom();
     }
 
+    // ===== ПОДСВЕТКА БЛОКОВ КОДА (устарело, теперь через markdownService) =====
+    // Удалено в 5.2: метод highlightCodeBlocks больше не нужен, т.к. всё делает markdownService
+    // Оставляем заглушку для обратной совместимости, если где-то вызывается
     /**
      * Асинхронная подсветка всех блоков кода в контейнере
      */
     async highlightCodeBlocks(container) {
+        /* // УДАЛЕНО 5.2
         const pres = container.querySelectorAll('pre[data-highlighting="pending"]');
         
         for (const pre of pres) {
@@ -1105,6 +1151,9 @@ export class ChatView {
                 pre.classList.add('has-copy-btn');
             }
         }
+        */
+        // Ничего не делаем, все блоки уже подсвечены через markdownService
+        // Можно оставить пустым или удалить        
     }
 
     showWelcome() {

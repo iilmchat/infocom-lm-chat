@@ -5,6 +5,9 @@ import { sanitizeHTML } from '../../services/sanitizer.js';
 /**
  * Панель администратора/модератора
  * Изменено в 5.1: добавлены все действия (бан, мут, кик, управление комнатами)
+  * Изменено в 5.2: добавлены:
+ * - Отображение списка пользователей в комнате (по клику на количество)
+ * - Расширенный поиск по сообщениям с фильтрами (дата, автор, комната)
  */
 export class AdminPanel {
     constructor(app) {
@@ -16,11 +19,30 @@ export class AdminPanel {
         this.logs = [];
         this.stats = null;
         this.currentTab = 'users';
+
+        // Для комнат: кэш пользователей и состояние раскрытия
+        this.roomUsersCache = new Map(); // roomId -> users[]
+        this.expandedRooms = new Set();   // roomId
+
+        // Для поиска сообщений: пагинация
+        this.searchOffset = 0;
+        this.searchLimit = 20;
+        this.searchTotal = 0;
+        this.searchResults = [];
+
         this.setupEventListeners();
         this.setupTabSwitching();
         this.setupRoleManagement();  
 
-        // Привязываем метод, чтобы он всегда ссылался на правильный this
+        // Привязка методов
+        this.toggleRoomUsers = this.toggleRoomUsers.bind(this);
+        this.loadRoomUsers = this.loadRoomUsers.bind(this);
+        this.renderRoomUsersHTML = this.renderRoomUsersHTML.bind(this);
+        this.loadMessagesWithFilters = this.loadMessagesWithFilters.bind(this);
+        this.renderSearchUI = this.renderSearchUI.bind(this);
+        this.populateRoomSelect = this.populateRoomSelect.bind(this);
+        this.populateUserSelect = this.populateUserSelect.bind(this);
+        this.renderPagination = this.renderPagination.bind(this);
         this.handleRoomAction = this.handleRoomAction.bind(this);              
     }
 
@@ -120,7 +142,9 @@ export class AdminPanel {
             this.app.toast.error('Ошибка сохранения роли');
         }
     }
-    
+
+    // ===== ОТКРЫТИЕ / ЗАКРЫТИЕ =====
+
     /**
      * Открыть панель администрирования
      */
@@ -137,6 +161,8 @@ export class AdminPanel {
     close() {
         this.modal.close();
     }
+
+    // ===== ВКЛАДКИ =====    
 
     /**
      * Настройка переключения вкладок
@@ -174,6 +200,13 @@ export class AdminPanel {
 
         this.currentTab = tabName;
 
+        // Добавляем вызов renderSearchUI() при переходе на вкладку messages
+        /*
+        if (tabName === 'messages') {
+            this.renderSearchUI();
+        }
+        */
+
         // Загружаем данные для вкладки
         switch (tabName) {
             case 'users':
@@ -183,7 +216,8 @@ export class AdminPanel {
                 this.renderRooms();
                 break;
             case 'messages':
-                this.loadMessages();
+                //this.loadMessages();
+                this.renderSearchUI();
                 break;
             case 'stats':
                 this.renderStats();
@@ -197,6 +231,8 @@ export class AdminPanel {
                 break;
         }
     }
+
+    // ===== ЗАГРУЗКА ДАННЫХ =====
 
     /**
      * Загрузка всех данных
@@ -215,7 +251,12 @@ export class AdminPanel {
             if (users.success) this.users = users.users || [];
             if (rooms.success) this.rooms = rooms.rooms || [];
             if (stats.success) this.stats = stats.stats || {};
-            if (logs.success) this.logs = logs.logs || [];            
+            if (logs.success) this.logs = logs.logs || [];
+
+            // Сброс кэша комнат при обновлении
+            this.roomUsersCache.clear();
+            this.expandedRooms.clear();       
+
             // Рендерим текущую вкладку
             this.renderCurrentTab();
 
@@ -226,163 +267,12 @@ export class AdminPanel {
             this.hideLoading();
         }
     }
-
-    /**
-     * Загрузка всех данных для пользователей только
-     */
-    async loadUserData() {
-        // Показываем индикатор загрузки
-        this.showLoading();        
-        try {
-            // Загружаем всё параллельно
-            const [users] = await Promise.all([
-                this.app.apiService.getAllUsers().catch(() => ({ success: false })),
-
-            ]);
-            if (users.success) this.users = users.users || [];
-    
-            // Рендерим текущую вкладку
-            this.renderCurrentTab();
-
-        } catch (error) {
-            console.error('Ошибка загрузки данных пользователей:', error);            
-            this.app.toast.error('❌ Ошибка загрузки данных админки для пользователей');
-        } finally {
-            this.hideLoading();
-        }
-    }
-
-    /**
-     * Загрузка всех данных для комнат только
-     */
-    async loadRoomData() {
-        // Показываем индикатор загрузки
-        this.showLoading();        
-        try {
-            // Загружаем всё параллельно
-            const [ rooms] = await Promise.all([
-                this.app.apiService.getAdminRooms().catch(() => ({ success: false })),
-            ]);
-
-            if (rooms.success) this.rooms = rooms.rooms || [];
-    
-            // Рендерим текущую вкладку
-            this.renderCurrentTab();
-
-        } catch (error) {
-            console.error('Ошибка загрузки данных комнат:', error);            
-            this.app.toast.error('❌ Ошибка загрузки данных админки для комнат');
-        } finally {
-            this.hideLoading();
-        }
-    }
-
-    /**
-     * Рендеринг текущей вкладки
-     */
-    renderCurrentTab() {
-        switch (this.currentTab) {
-            case 'users':
-                this.renderUsers();
-                break;
-            case 'rooms':
-                this.renderRooms();
-                break;
-            case 'messages':
-                this.renderMessages();
-                break;
-            case 'stats':
-                this.renderStats();
-                break;
-            case 'logs':
-                this.renderLogs();
-                break;
-            case 'settings':
-                this.renderSettings();
-                break;
-        }
-    }
-
-    /**
-     * Показать индикатор загрузки
-     */
-    showLoading() {
-        // Можно добавить индикатор загрузки
-        // Создаем элемент индикатора загрузки, если он еще не существует
-        let loadingElement = document.getElementById('loadingStatsIndicator');
-        
-        // Если элемент не найден, создаем его
-        if (!loadingElement) {
-            loadingElement = document.createElement('div');
-            loadingElement.id = 'loadingStatsIndicator';
-            
-            // Создаем элемент для отображения анимации загрузки (круглый спиннер)
-            const spinner = document.createElement('div');
-            spinner.className = 'spinner';
-            
-            // Добавляем спиннер в контейнер
-            loadingElement.appendChild(spinner);
-            
-            // Добавляем стили для индикатора загрузки
-            const style = document.createElement('style');
-            style.textContent = `
-                #loadingStatsIndicator {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(255, 255, 255, 0.8);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 9999;
-                }
-                
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 4px solid #f3f3f3;
-                    border-top: 4px solid #3498db;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `;
-            
-            document.head.appendChild(style);
-            document.body.appendChild(loadingElement);
-        }
-        
-        // Показываем индикатор загрузки
-        loadingElement.style.display = 'flex';
-
-    }
-
-    /**
-     * Скрыть индикатор загрузки
-     */
-    hideLoading() {
-        // Скрыть индикатор загрузки
-        // Ищет элемент индикатора загрузки по ID
-        const d = document.getElementById('loadingStatsIndicator');
-
-        // Проверяет, существует ли элемент перед попыткой его скрыть
-            // Применяет анимацию исчезновения
-            // Удаляет элемент после завершения анимации (через 300мс)
-        if (d) { d.style.animation = 'fadeOut 0.3s ease'; setTimeout(() => d.remove(), 300); }        
-    }
-
-    // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ =====
-    
+  
     /**
      * Отображение пользователей с возможностью управления
      * Изменено в 5.1: добавлены кнопки бан, мут, кик, смена роли
      */
+    // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ (без изменений) =====    
     renderUsers() {
         const container = document.getElementById('adminUserList');
         if (!container) return;
@@ -475,19 +365,6 @@ export class AdminPanel {
     }
 
     /**
-     * Получение иконки для роли
-     */
-    getRoleIcon(role) {
-        const icons = {
-            'Admin': '🛡️',
-            'Manager': '🔧',
-            'User': '👤',
-            'Guest': '👋'
-        };
-        return icons[role] || '👤';
-    }
-
-    /**
      * Изменение роли пользователя
      * Добавлено в 5.1.
      */
@@ -512,6 +389,82 @@ export class AdminPanel {
         } catch (error) {
             this.app.toast.error('❌ Ошибка изменения роли');
         }
+    }    
+
+    /**
+     * Загрузка всех данных для пользователей только
+     */
+    async loadUserData() {
+        // Показываем индикатор загрузки
+        this.showLoading();        
+        try {
+            // Загружаем всё параллельно
+            const [users] = await Promise.all([
+                this.app.apiService.getAllUsers().catch(() => ({ success: false })),
+
+            ]);
+            if (users.success) this.users = users.users || [];
+    
+            // Рендерим текущую вкладку
+            this.renderCurrentTab();
+
+        } catch (error) {
+            console.error('Ошибка загрузки данных пользователей:', error);            
+            this.app.toast.error('❌ Ошибка загрузки данных админки для пользователей');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Загрузка всех данных для комнат только
+     */
+    async loadRoomData() {
+        // Показываем индикатор загрузки
+        this.showLoading();        
+        try {
+            // Загружаем всё параллельно
+            const [ rooms] = await Promise.all([
+                this.app.apiService.getAdminRooms().catch(() => ({ success: false })),
+            ]);
+
+            if (rooms.success) this.rooms = rooms.rooms || [];
+    
+            // Рендерим текущую вкладку
+            this.renderCurrentTab();
+
+        } catch (error) {
+            console.error('Ошибка загрузки данных комнат:', error);            
+            this.app.toast.error('❌ Ошибка загрузки данных админки для комнат');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Рендеринг текущей вкладки
+     */
+    renderCurrentTab() {
+        switch (this.currentTab) {
+            case 'users':
+                this.renderUsers();
+                break;
+            case 'rooms':
+                this.renderRooms();
+                break;
+            case 'messages':
+                this.renderSearchUI();
+                break;
+            case 'stats':
+                this.renderStats();
+                break;
+            case 'logs':
+                this.renderLogs();
+                break;
+            case 'settings':
+                this.renderSettings();
+                break;           
+        }
     }
 
     // ===== ВКЛАДКА: КОМНАТЫ =====
@@ -520,7 +473,10 @@ export class AdminPanel {
      * Отображение комнат с возможностью управления
      * Изменено в 5.1: добавлены действия с комнатами
      */
+
+        // ===== ВКЛАДКА: КОМНАТЫ (с изменениями для отображения пользователей) =====
     renderRooms() {
+
         const container = document.getElementById('adminRoomList');
         if (!container) return;
 
@@ -528,11 +484,14 @@ export class AdminPanel {
         //container.removeEventListener('click', this.handleRoomAction); // Предполагаем, что метод будет привязан к экземпляру
 
         if (!this.rooms || this.rooms.length === 0) {
+container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-secondary);">💬 Комнат нет</div>`;            
+            /* //ЗАменено в 5.2
             container.innerHTML = `
                 <div style="padding:16px;text-align:center;color:var(--text-secondary);">
                     💬 Комнат нет
                 </div>
             `;
+            */
             return;
         }
 
@@ -544,6 +503,40 @@ export class AdminPanel {
 
 */
 
+        container.innerHTML = this.rooms.map(room => {
+            const roomId = room.RoomId || room.id;
+            const userCount = room.UserCount || room.userCount || 0;
+            const isExpanded = this.expandedRooms.has(roomId);
+            // Кэшированные пользователи            
+            const cachedUsers = this.roomUsersCache.get(roomId);
+            const usersHtml = cachedUsers ? this.renderRoomUsersHTML(roomId, cachedUsers) : '';
+
+            return `
+                <div class="admin-room-item" data-room-id="${roomId}">
+                    <div class="admin-room-info">
+                        <span class="admin-room-name">💬 ${sanitizeHTML(room.Name || room.RoomId)}</span>
+                        <span class="admin-room-users" data-room-id="${roomId}" style="cursor:pointer;" title="Кликните для просмотра пользователей">
+                            👥 ${userCount}
+                        </span>
+                        <span class="admin-room-messages">💬 ${room.MessageCount || 0}</span>
+                        <span class="admin-room-status ${room.IsActive ? 'active' : 'inactive'}">
+                            ${room.IsActive ? '🟢 Активна' : '⚪ Неактивна'}
+                        </span>
+                    </div>
+                    <div class="admin-room-actions">
+                        <button class="admin-room-clear" data-room-id="${roomId}" title="Очистить историю">🗑️</button>
+                        <button class="admin-room-delete" data-room-id="${roomId}" title="Удалить комнату">❌</button>
+                        <button class="admin-room-close" data-room-id="${roomId}" title="Закрыть комнату">🔒</button>
+                        <button class="admin-room-export" data-room-id="${roomId}" title="Экспортировать">💾</button>
+                    </div>
+                    <div id="room-users-${roomId}" class="room-users-list" style="${isExpanded ? 'display:block;' : 'display:none;'}">
+                        ${isExpanded ? usersHtml : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        /* //Заменено в 5.2
         container.innerHTML = this.rooms.map(room => `
             <div class="admin-room-item">
                 <div class="admin-room-info">
@@ -562,7 +555,17 @@ export class AdminPanel {
                 </div>
             </div>
         `).join('');
+        */
 
+        // Обработчики кликов на количество пользователей (делегирование)
+        container.querySelectorAll('.admin-room-users').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const roomId = el.dataset.roomId;
+                this.toggleRoomUsers(roomId);
+            });
+        });
+          
         // Добавляем один обработчик событий на контейнер (делегирование)
         //container.addEventListener('click', this.handleRoomAction.bind(this));   
              
@@ -598,28 +601,169 @@ export class AdminPanel {
                 await this.loadData();
             }
         });    
-        */       
+        */      
+
+        // Обработчики кнопок действий (делегирование)
+        container.addEventListener('click', this.handleRoomAction);        
     }
 
-    // Объявляем метод для делегирования действий
-    handleRoomAction(event) {
-        const target = event.target;
+    // ===== МЕТОДЫ ДЛЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ В КОМНАТЕ =====
+    async toggleRoomUsers(roomId) {
+        const container = document.getElementById(`room-users-${roomId}`);
+        if (!container) return;
 
-        if (target.classList.contains('admin-room-delete')) {
-            const roomId = target.dataset.roomId;
-            this.deleteRoom(roomId).then(() => this.loadData());
-        } else if (target.classList.contains('admin-room-close')) {
-            const roomId = target.dataset.roomId;
-            this.closeRoom(roomId).then(() => this.loadData());
-        } else if (target.classList.contains('admin-room-clear')) {
-            const roomId = target.dataset.roomId;
-            this.clearRoom(roomId).then(() => this.loadData());
-        } else if (target.classList.contains('admin-room-export')) {
-            const roomId = target.dataset.roomId;
-            this.exportRoom(roomId).then(() => this.loadData());
+        if (this.expandedRooms.has(roomId)) {
+            // Свернуть
+            this.expandedRooms.delete(roomId);
+            container.style.display = 'none';
+            return;
         }
+
+        // Развернуть
+        this.expandedRooms.add(roomId);
+        container.style.display = 'block';
+
+        // Проверить кэш
+        let users = this.roomUsersCache.get(roomId);
+        if (users) {
+            container.innerHTML = this.renderRoomUsersHTML(roomId, users);
+            return;
+        }
+
+        // Загрузить
+        container.innerHTML = '<div class="loading-users">⏳ Загрузка...</div>';
+        try {
+            users = await this.loadRoomUsers(roomId);
+            this.roomUsersCache.set(roomId, users);
+            container.innerHTML = this.renderRoomUsersHTML(roomId, users);
+        } catch (error) {
+            container.innerHTML = `<div class="error-users">❌ Ошибка загрузки: ${error.message}</div>`;
+        }
+    }
+
+    async loadRoomUsers(roomId) {
+        // Используем админский эндпоинт        
+        const result = await this.app.apiService.getAdminRoomInfo(roomId);
+        if (result.success && result.room) {
+            return result.room.users || [];
+        }
+        throw new Error(result.error || 'Не удалось загрузить пользователей');
+    }
+
+    renderRoomUsersHTML(roomId, users) {
+        if (!users || users.length === 0) {
+            return '<div class="no-users">👤 Нет пользователей в комнате</div>';
+        }
+        let html = `
+            <table class="room-users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Онлайн</th>
+                        <th>Роль</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        users.forEach(user => {
+            const online = user.IsOnline || user.isOnline ? '✅' : '❌';
+            const role = user.Role || user.role || 'User';
+            html += `
+                <tr>
+                    <td>${sanitizeHTML(user.Id || user.id)}</td>
+                    <td>${sanitizeHTML(user.Name || user.name)}</td>
+                    <td>${online}</td>
+                    <td>${sanitizeHTML(role)}</td>
+                </tr>
+            `;
+        });
+        html += `</tbody></table>`;
+        return html;
+    }
+
+    // ===== ВКЛАДКА: СООБЩЕНИЯ (расширенный поиск) =====
+    // Добавлено в 5.2: форма фильтров и пагинация
+    renderSearchUI() {
+        const container = document.getElementById('tab-messages');
+        if (!container) return;
+
+        // Если форма фильтров уже есть, не добавляем повторно
+        let filters = container.querySelector('.admin-search-filters');
+        if (!filters) {
+            filters = document.createElement('div');
+            filters.className = 'admin-search-filters';
+            filters.innerHTML = `
+                <div class="filter-row">
+                    <input type="text" id="adminMsgQuery" placeholder="🔍 Текст сообщения..." class="filter-input">
+                    <select id="adminMsgRoom" class="filter-select"></select>
+                    <select id="adminMsgUser" class="filter-select"></select>
+                </div>
+                <div class="filter-row">
+                    <label>С: <input type="date" id="adminMsgDateFrom" class="filter-date"></label>
+                    <label>По: <input type="date" id="adminMsgDateTo" class="filter-date"></label>
+                    <button id="adminMsgSearchBtn" class="btn-primary">🔍 Искать</button>
+                    <button id="adminMsgResetBtn" class="btn-secondary">↺ Сбросить</button>
+                </div>
+            `;
+            // Вставляем перед списком сообщений
+            const list = container.querySelector('.admin-message-list');
+            container.insertBefore(filters, list);
+
+            // Заполняем выпадающие списки
+            this.populateRoomSelect();
+            this.populateUserSelect();
+
+            // Обработчики
+            document.getElementById('adminMsgSearchBtn').addEventListener('click', () => {
+                this.searchOffset = 0;
+                this.loadMessagesWithFilters();
+            });
+            document.getElementById('adminMsgResetBtn').addEventListener('click', () => {
+                document.getElementById('adminMsgQuery').value = '';
+                document.getElementById('adminMsgRoom').value = '';
+                document.getElementById('adminMsgUser').value = '';
+                document.getElementById('adminMsgDateFrom').value = '';
+                document.getElementById('adminMsgDateTo').value = '';
+                this.searchOffset = 0;
+                this.loadMessagesWithFilters();
+            });
+        }
+
+        // Пагинация
+        let pagination = container.querySelector('.admin-search-pagination');
+        if (!pagination) {
+            pagination = document.createElement('div');
+            pagination.className = 'admin-search-pagination';
+            pagination.id = 'adminMsgPagination';
+            container.appendChild(pagination);
+        }
+        this.renderPagination();
+    }
+
+    populateRoomSelect() {
+        const select = document.getElementById('adminMsgRoom');
+        if (!select) return;
+        select.innerHTML = '<option value="">Все комнаты</option>';
+        (this.rooms || []).forEach(room => {
+            const opt = document.createElement('option');
+            opt.value = room.RoomId || room.id;
+            opt.textContent = room.Name || room.RoomId;
+            select.appendChild(opt);
+        });
     }    
-    // ===== ВКЛАДКА: СООБЩЕНИЯ =====
+
+    populateUserSelect() {
+        const select = document.getElementById('adminMsgUser');
+        if (!select) return;
+        select.innerHTML = '<option value="">Все авторы</option>';
+        (this.users || []).forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user.UserId || user.id;
+            opt.textContent = user.Name || user.name;
+            select.appendChild(opt);
+        });
+    }
 
     /**
      * Загрузка и поиск сообщений
@@ -655,6 +799,42 @@ export class AdminPanel {
         }
     }
 
+    async loadMessagesWithFilters() {
+        const query = document.getElementById('adminMsgQuery')?.value || '';
+        const roomId = document.getElementById('adminMsgRoom')?.value || '';
+        const userId = document.getElementById('adminMsgUser')?.value || '';
+        const dateFrom = document.getElementById('adminMsgDateFrom')?.value || '';
+        const dateTo = document.getElementById('adminMsgDateTo')?.value || '';
+
+        const params = {
+            query,
+            limit: this.searchLimit,
+            offset: this.searchOffset
+        };
+        if (roomId) params.roomId = roomId;
+        if (userId) params.userId = userId;
+        if (dateFrom) params.dateFrom = dateFrom;
+        if (dateTo) params.dateTo = dateTo;
+
+        const container = document.getElementById('adminMessageList');
+        if (container) container.innerHTML = '<div class="loading-msg">⏳ Поиск...</div>';
+
+        try {
+            const result = await this.app.apiService.adminSearchMessages(params);
+            if (result.success) {
+                this.searchResults = result.results || [];
+                this.searchTotal = result.total || 0;
+                this.renderMessages(this.searchResults);
+                this.renderPagination();
+            } else {
+                throw new Error(result.error || 'Ошибка поиска');
+            }
+        } catch (error) {
+            if (container) container.innerHTML = `<div class="error-msg">❌ ${error.message}</div>`;
+            this.app.toast.error('Ошибка поиска сообщений');
+        }
+    }
+
     /**
      * Отображение сообщений
      */
@@ -662,17 +842,34 @@ export class AdminPanel {
         const container = document.getElementById('adminMessageList');
         if (!container) return;
 
-        const msgList = messages || this.messages || [];
+        const msgList = messages || this.searchResults || [];        
+        //const msgList = messages || this.messages || []; // Заменено в 5.2
 
         if (msgList.length === 0) {
+            /* // Заменено в 5.2
             container.innerHTML = `
                 <div style="padding:16px;text-align:center;color:var(--text-secondary);">
                     📝 Введите запрос для поиска сообщений
                 </div>
             `;
+            */
+           container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-secondary);">📝 Сообщения не найдены</div>`;
             return;
         }
 
+        container.innerHTML = msgList.map(msg => `
+            <div class="admin-message-item">
+                <div class="admin-message-header">
+                    <span class="admin-message-user">${sanitizeHTML(msg.userName || 'Unknown')}</span>
+                    <span class="admin-message-room">${sanitizeHTML(msg.roomName || msg.roomId || '')}</span>
+                    <span class="admin-message-time">${new Date(msg.timestamp).toLocaleString()}</span>
+                    <button class="admin-message-delete" data-message-id="${msg.id}" title="Удалить">🗑️</button>
+                </div>
+                <div class="admin-message-content">${sanitizeHTML(msg.content)}</div>
+            </div>
+        `).join('');
+
+        /* //Заменено в 5.2
         container.innerHTML = msgList.map(msg => `
             <div class="admin-message-item">
                 <div class="admin-message-header">
@@ -684,7 +881,42 @@ export class AdminPanel {
                 <div class="admin-message-content">${sanitizeHTML(msg.content)}</div>
             </div>
         `).join('');
+        */
+
+        // Обработчики удаления (делегирование)
+        container.querySelectorAll('.admin-message-delete').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.messageId;
+                this.deleteMessage(id);
+            });
+        });       
     }
+
+    renderPagination() {
+        const container = document.getElementById('adminMsgPagination');
+        if (!container) return;
+        const totalPages = Math.ceil(this.searchTotal / this.searchLimit);
+        const currentPage = Math.floor(this.searchOffset / this.searchLimit) + 1;
+
+        container.innerHTML = `
+            <button id="adminMsgPrev" ${this.searchOffset <= 0 ? 'disabled' : ''}>◀ Назад</button>
+            <span>Страница ${currentPage} из ${totalPages || 1}</span>
+            <button id="adminMsgNext" ${(this.searchOffset + this.searchLimit) >= this.searchTotal ? 'disabled' : ''}>Вперёд ▶</button>
+        `;
+
+        document.getElementById('adminMsgPrev')?.addEventListener('click', () => {
+            if (this.searchOffset > 0) {
+                this.searchOffset -= this.searchLimit;
+                this.loadMessagesWithFilters();
+            }
+        });
+        document.getElementById('adminMsgNext')?.addEventListener('click', () => {
+            if ((this.searchOffset + this.searchLimit) < this.searchTotal) {
+                this.searchOffset += this.searchLimit;
+                this.loadMessagesWithFilters();
+            }
+        });
+    }    
         
     // ===== ВКЛАДКА: СТАТИСТИКА =====
 
@@ -925,7 +1157,7 @@ export class AdminPanel {
         return div.innerHTML;
     }
     */
-    // ===== ДЕЙСТВИЯ МОДЕРАТОРА =====    
+    // ===== ДЕЙСТВИЯ МОДЕРАТОРА (без изменений) =====
 
     /**
      * Заглушить пользователя
@@ -1048,7 +1280,7 @@ export class AdminPanel {
     }
 
 
-    // ===== ДЕЙСТВИЯ С КОМНАТАМИ =====
+    // ===== ДЕЙСТВИЯ С КОМНАТАМИ (без изменений) =====
 
     /**
      * Очистить историю комнаты
@@ -1147,7 +1379,7 @@ export class AdminPanel {
         }
     }
 
-    // Действия с сообщениями   
+    // ===== ДЕЙСТВИЯ С СООБЩЕНИЯМИ (без изменений) =====
 
     /**
      * Удалить сообщение (админ)
@@ -1175,7 +1407,8 @@ export class AdminPanel {
             this.app.toast.error('❌ Ошибка удаления сообщения');
         }
     }
-        
+
+    // ===== ОЧИСТКА ВСЕХ ДАННЫХ =====    
     /**
      * Очистить все данные
      * Добавлено в 5.1.
@@ -1196,7 +1429,7 @@ export class AdminPanel {
         }
     }    
 
-    // ===== НАСТРОЙКА ОБРАБОТЧИКОВ =====
+    // ===== НАСТРОЙКА ОБРАБОТЧИКОВ (добавлена обработка для поиска) =====
 
     /**
      * Настройка обработчиков событий
@@ -1211,7 +1444,16 @@ export class AdminPanel {
         // Обновление
         document.getElementById('adminRefreshBtn')?.addEventListener('click', () => this.loadData());
 
-        // Поиск сообщений
+        // Поиск сообщений (старый обработчик заменяем на новый)
+        // Удаляем старые, добавляем новые
+        const oldSearchBtn = document.getElementById('adminMsgSearchBtn');
+        if (oldSearchBtn) {
+            oldSearchBtn.removeEventListener('click', this.loadMessages);
+        }        
+        // Новый обработчик будет добавлен в renderSearchUI    
+
+        /*   
+        //Закрыли в 5.2
         document.getElementById('adminMsgSearchBtn')?.addEventListener('click', () => {
             this.loadMessages();
         });
@@ -1221,6 +1463,7 @@ export class AdminPanel {
                 this.loadMessages();
             }
         });
+        */
 
         // Очистка логов
         document.getElementById('adminLogClear')?.addEventListener('click', async () => {
@@ -1237,6 +1480,115 @@ export class AdminPanel {
             }
         });
     }
+
+    // ===== ВСПОМОГАТЕЛЬНЫЕ =====
+
+    /**
+     * Показать индикатор загрузки
+     */
+    showLoading() {
+        // Можно добавить индикатор загрузки
+        // Создаем элемент индикатора загрузки, если он еще не существует
+        let loadingElement = document.getElementById('loadingStatsIndicator');
+        
+        // Если элемент не найден, создаем его
+        if (!loadingElement) {
+            loadingElement = document.createElement('div');
+            loadingElement.id = 'loadingStatsIndicator';
+            
+            // Создаем элемент для отображения анимации загрузки (круглый спиннер)
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner';
+            
+            // Добавляем спиннер в контейнер
+            loadingElement.appendChild(spinner);
+            
+            // Добавляем стили для индикатора загрузки
+            const style = document.createElement('style');
+            style.textContent = `
+                #loadingStatsIndicator {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(255, 255, 255, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                }
+                
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(loadingElement);
+        }
+        
+        // Показываем индикатор загрузки
+        loadingElement.style.display = 'flex';
+
+    }
+
+    /**
+     * Скрыть индикатор загрузки
+     */
+    hideLoading() {
+        // Скрыть индикатор загрузки
+        // Ищет элемент индикатора загрузки по ID
+        const d = document.getElementById('loadingStatsIndicator');
+
+        // Проверяет, существует ли элемент перед попыткой его скрыть
+            // Применяет анимацию исчезновения
+            // Удаляет элемент после завершения анимации (через 300мс)
+        if (d) { d.style.animation = 'fadeOut 0.3s ease'; setTimeout(() => d.remove(), 300); }        
+    }
+
+    /**
+     * Получение иконки для роли
+     */
+    getRoleIcon(role) {
+        const icons = {
+            'Admin': '🛡️',
+            'Manager': '🔧',
+            'User': '👤',
+            'Guest': '👋'
+        };
+        return icons[role] || '👤';
+    }
+
+    // ===== ОБРАБОТЧИК ДЕЙСТВИЙ С КОМНАТАМИ (делегирование) =====    
+    // Объявляем метод для делегирования действий
+    handleRoomAction(event) {
+        const target = event.target;
+
+        if (target.classList.contains('admin-room-delete')) {
+            const roomId = target.dataset.roomId;
+            this.deleteRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-close')) {
+            const roomId = target.dataset.roomId;
+            this.closeRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-clear')) {
+            const roomId = target.dataset.roomId;
+            this.clearRoom(roomId).then(() => this.loadData());
+        } else if (target.classList.contains('admin-room-export')) {
+            const roomId = target.dataset.roomId;
+            this.exportRoom(roomId).then(() => this.loadData());
+        }
+    }      
 }
 
 // Для доступа из HTML

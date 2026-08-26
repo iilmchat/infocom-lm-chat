@@ -1,6 +1,6 @@
 // src/app.js
 /**
- * Главный файл приложения Infocom LM Chat Pro v5.1
+ * Главный файл приложения Infocom LM Chat Pro v5.2
  * 
  * Архитектура:
  * - Используется EventBus для слабосвязанной коммуникации между модулями
@@ -14,6 +14,12 @@
  * - Добавлена аналитика AnalyticsView
  * - Улучшена обработка ошибок
  * - Добавлена поддержка приватных чатов и общих комнат
+  * Изменено в 5.2:
+ * - Добавлена поддержка Markdown через markdownService
+ * - Удалён самописный syntaxHighlighter, используется highlight.js (подключается глобально)
+ * - Добавлена поддержка DOCX через file-helpers
+ * - Расширенный поиск в админ-панели (интеграция с AdminPanel)
+ * - Отображение пользователей в комнате (админка) 
  */
 
 import { CONFIG, SERVER_CONFIG, loadServerConfig, saveServerConfig } from './config.js';
@@ -32,6 +38,9 @@ import { ApiService } from './services/api-service.js';
 import { ChatApiClient } from './services/http-client.js';
 import { AuthService } from './services/auth-service.js'; // Добавлено в 5.1.
 import { NotificationManager } from './models/notification-manager.js'; // Добавлено в 5.1.
+// Добавлено в 5.2: сервис Markdown
+import { markdownService } from './services/markdown-service.js';
+
 import { applyTheme, cycleTheme } from './ui/theme.js';
 import { ChatView } from './ui/views/chat-view.js';
 import { Sidebar } from './ui/views/sidebar.js';
@@ -50,6 +59,11 @@ import { UserModal } from './ui/views/user-modal.js';
 import { AdminPanel } from './ui/views/admin-panel.js';
 import { PrivateChat } from './ui/views/private-chat.js';
 import { AuthModal } from './ui/views/auth-modal.js'; // Добавлено в 5.1.
+
+
+// Удалено в 5.2: импорт syntaxHighlighter и связанных модулей
+// import { syntaxHighlighter } from './services/syntax-highlighter.js';
+// import './services/syntax-highlighter-optimizations.js';
 
 /**
  * Главный класс приложения
@@ -99,10 +113,12 @@ class App {
         // Сервис для работы с API
         this.apiService = new ChatApiClient(this.eventBus);
         // Сервис для работы с API проверки статуса сервера
-        this.api= new ApiService(this.eventBus);
+        this.api = new ApiService(this.eventBus);
 
         // Добавлено в 5.1: Сервис аутентификации и управления сессиями
         this.authService = new AuthService(this.eventBus);
+        // Добавлено в 5.2: сервис Markdown
+        this.markdownService = markdownService;
 
         // ===== Состояние приложения =====
         // Текущая модель для генерации ответов
@@ -178,6 +194,7 @@ class App {
         this.authModal = new AuthModal(this);
 
         // Добавлено в 5.1: Инициализация сервиса аутентификации и модального окна
+        // Обработчик входа        
         this.authModal.onLogin = (user) => {
             // После успешного входа обновляем приложение
             this.multiUserManager.localUser = user;
@@ -207,8 +224,21 @@ class App {
         this.setupNotificationUI(); // Добавлено в 5.1.
 
         // ===== Подписка на события приватных чатов =====
-        this.setupPrivateChatEvents();        
+        this.setupPrivateChatEvents();    
+
+        // Добавлено в 5.2: убедимся, что highlight.js применён к уже существующим блокам кода
+        // (это будет сделано в ChatView после загрузки сообщений)            
     }
+
+    // ... остальные методы (init, openPrivateChat, stopGeneration, setupEventListeners, etc.) ...
+    // Поскольку они не меняются, пропускаю для краткости, но в полной сборке они остаются без изменений.
+    // Однако в методе init нужно убрать вызовы, связанные со старым syntaxHighlighter.
+    // Например, в init() удаляем вызовы типа: setTimeout(() => { document.querySelectorAll(...) ... }) 
+    // и заменяем на использование hljs (если нужно).
+    // Также в renderModelDropdown и других местах убираем ссылки на syntaxHighlighter.
+
+    // Изменения в init: удаляем старую подсветку и полагаемся на markdownService и highlight.js
+    // (в chat-view и message-renderer уже используется markdownService)
 
     /**
 
@@ -288,6 +318,7 @@ class App {
         this.multiUserManager.startSimulation();
 
         // Добавлено в 5.1: Проверка сессии при загрузке
+        // Проверка сессии        
         const user = await this.authService.restoreSession();
         if (user) {
             // Пользователь уже авторизован
@@ -318,7 +349,11 @@ class App {
             runAllTests();
         }, 500);
 
-        // Применение подсветки синтаксиса после загрузки
+        // Удалено в 5.2: ручная подсветка синтаксиса через старый syntaxHighlighter
+        // Теперь подсветка выполняется через markdownService и highlight.js при рендеринге  
+
+        /*
+        // Применение подсветки синтаксиса после загрузки Удалено в 5.2
         setTimeout(() => {
             document.querySelectorAll('.message .bubble pre code').forEach(el => {
                 if (!el.classList.contains('hljs')) {
@@ -328,7 +363,7 @@ class App {
                 }
             });
         }, 500);
-
+        */
         // Настройка периодических задач
         setInterval(() => this.api.checkServer(), CONFIG.SERVER.CHECK_INTERVAL);
         setInterval(() => this.updateStats(), CONFIG.DEBOUNCE.STATS);
@@ -340,10 +375,12 @@ class App {
         this.toast.info(`🚀 Infocom LM Chat Pro v${CONFIG.VERSION}`, 2000);
         this.toast.info('💡 Используйте Ctrl+↑ и Ctrl+↓ для истории сообщений', 3000);
         this.toast.info('🚀 v5.1 — Multi-user, кастомные ассистенты, тесты!', 3000);
+        this.toast.info('🚀 v5.2 — Markdown, DOCX, расширенный поиск в админке!', 3000);        
 
         console.log(`✅ Infocom LM Chat Pro v${CONFIG.VERSION}`);
-        console.log('🛡️ XSS-защита: активна');
+        console.log('🛡️ XSS-защита: активна (DOMPurify)');
         console.log('♿ Доступность: ARIA + клавиатура');
+        console.log('📝 Markdown: включён');        
         console.log('⚡ EventBus: активен');
     }
 

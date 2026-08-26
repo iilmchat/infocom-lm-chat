@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infocom LM Chat Pro · v5.1</title>
+    <title>Infocom LM Chat Pro · v5.2</title>
 
     <!-- ===== СТИЛИ ===== -->
     <link rel="stylesheet" href="src/styles/main.css">
@@ -14,8 +14,17 @@
     <link rel="stylesheet" href="src/styles/games.css">
     <link rel="stylesheet" href="src/styles/private-chat.css">
     <link rel="stylesheet" href="src/styles/admin.css">
+    <!-- Добавлено в 5.2: стили для Markdown и подсветки кода -->
+    <link rel="stylesheet" href="src/styles/markdown.css">
+    <!-- Стиль подсветки highlight.js (локальный) -->
+    <link rel="stylesheet" href="src/styles/atom-one-dark.min.css">
 
-    <!-- ===== ВНЕШНИЕ БИБЛИОТЕКИ ===== -->
+    <!-- ===== ВНЕШНИЕ БИБЛИОТЕКИ (локальные, подключаются как обычные скрипты) ===== -->
+    <script src="src/components/highlight.min.js"></script>
+    <script src="src/components/marked.min.js"></script>
+    <script src="src/components/purify.min.js"></script>
+    <script src="src/components/mammoth.browser.min.js"></script>
+    <!-- html2pdf.bundle.min.js оставляем как есть -->
     <script src="/src/components/html2pdf.bundle.min.js" 
             crossorigin="anonymous" 
             referrerpolicy="no-referrer">
@@ -296,7 +305,7 @@
             <div class="chat-header">
                 <div class="header-left">
                     <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
-                    <span>💻 Infocom LM Chat Pro v5.1</span>
+                    <span>💻 Infocom LM Chat Pro v5.2</span>
                     <span class="active-assistant-indicator" id="activeAssistantIndicator">
                         <span id="activeAssistantIcon"></span>
                         <span id="activeAssistantName"></span>

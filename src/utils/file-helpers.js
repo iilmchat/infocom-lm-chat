@@ -1,34 +1,63 @@
 // src/utils/file-helpers.js
-import { CONFIG } from '../config.js';
-
 /**
  * Утилиты для работы с файлами
+  * Добавлено в 5.2: поддержка DOCX через mammoth, обработка .doc
  */
+import { CONFIG } from '../config.js';
+
+// Глобальный объект mammoth (подключается через скрипт)
+const mammoth = window.mammoth;
 
 /**
- * Читает содержимое файла как текст
- * @param {File} file - Объект файла
- * @returns {Promise<string>} Текстовое содержимое
+ * Читает содержимое файла как текст.
+ * Для DOCX использует mammoth.js для извлечения текста.
+ * Для текстовых файлов использует FileReader.
+ * Для DOC выбрасывает ошибку.
+ * @param {File} file - Объект файла (файл для чтения)
+ * @returns {Promise<string>} Текстовое содержимое (текст файла)
  */
-export function getFileText(file) {
+export async function readFileAsText(file) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const type = file.type;
+
+    // Проверка на DOCX
+    if (ext === '.docx' || type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        if (!mammoth) {
+            throw new Error('Библиотека mammoth не загружена');
+        }
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value; // извлечённый текст
+        } catch (error) {
+            throw new Error(`Не удалось прочитать DOCX: ${error.message}`);
+        }
+    }
+
+    // Проверка на DOC (старый бинарный формат)
+    if (ext === '.doc' || type === 'application/msword') {
+        throw new Error('Формат .doc не поддерживается. Пожалуйста, конвертируйте файл в .docx или используйте текстовый формат.');
+    }
+
+    // Для всех остальных файлов используем FileReader (текстовые)
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
+        reader.onerror = () => reject(new Error('Ошибка чтения файла'));
         reader.readAsText(file);
     });
 }
 
 /**
- * Проверяет, разрешен ли тип файла
+ * Проверяет, разрешён ли файл для загрузки
+ * (дополнено поддержкой .docx)
  * @param {File} file - Объект файла
  * @returns {boolean}
  */
 export function isFileAllowed(file) {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (CONFIG.SECURITY.ALLOWED_EXTENSIONS.includes(ext)) return true;
-    if (file.type.startsWith('text/')) return true;
-    return false;
+    const allowed = CONFIG.SECURITY.ALLOWED_EXTENSIONS;
+    return allowed.includes(ext) || file.type.startsWith('text/');
 }
 
 /**
@@ -59,6 +88,9 @@ export function formatFileSize(bytes) {
  * @returns {string} Расширение в нижнем регистре
  */
 export function getFileExtension(file) {
+    /*
+    return file.name.split('.').pop().toLowerCase();
+    */
     const name = typeof file === 'string' ? file : file.name;
     return name.split('.').pop().toLowerCase();
 }

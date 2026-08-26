@@ -8,7 +8,10 @@ import { Modal } from '../components/modal.js';
 export class SettingsView {
     constructor(app) {
         this.app = app;
+        // Инициализация модального окна        
         this.modal = new Modal(document.getElementById('serverSettingsModal'));
+
+        // DOM элементы управления        
         this.ipInput = document.getElementById('serverIpInput');
         this.portInput = document.getElementById('serverPortInput');
         this.ipLMInput = document.getElementById('serverIpLMInput');
@@ -18,14 +21,21 @@ export class SettingsView {
         this.apiPathInput = document.getElementById('serverApiPathInput');
         this.testResult = document.getElementById('serverTestResult');
 
+        // Настройка обработчиков событий        
         this.setupEventListeners();
     }
 
+    /**
+     * Открытие модального окна настроек
+     */
     open() {
         this.loadConfigToUI();
         this.modal.open();
     }
 
+    /**
+     * Закрытие модального окна настроек
+     */
     close() {
         this.modal.close();
     }

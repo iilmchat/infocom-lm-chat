@@ -1,0 +1,11 @@
+<!-- Вариант 1: Как ES-модуль -->
+<script type="module">
+  import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.es.mjs';
+  const clean = DOMPurify.sanitize(dirty);
+</script>
+
+<!-- Вариант 2: Как обычный скрипт -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script>
+  const clean = DOMPurify.sanitize(dirty);
+</script>

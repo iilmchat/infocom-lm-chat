@@ -1,4 +1,5 @@
 // src/utils/dom-helpers.js
+//import { copyToClipboard } from './copy-to-clipboard.js'; // если такого нет, то импортируем из существующего файла
 
 /**
  * Утилиты для работы с DOM
@@ -159,7 +160,7 @@ function fallbackCopy(text, onSuccess, onError) {
         if (successful) {
             if (onSuccess) onSuccess();
         } else {
-            throw new Error('execCommand copy failed');
+            throw new Error('Ошибка копирования : execCommand copy failed');
         }
     } catch (err) {
         console.warn('Fallback copy failed:', err);
@@ -189,4 +190,44 @@ export function isSecureContext() {
            window.location.hostname === 'localhost' ||
            window.location.hostname === '127.0.0.1' ||
            window.location.hostname === '[::1]';
+}
+
+/**
+ * Добавляет кнопки копирования ко всем pre-блокам с кодом
+ * @param {HTMLElement} container - контейнер, в котором искать pre
+ */
+export function addCopyButtonsToCodeBlocks(container) {
+    if (!container) return;
+    const pres = container.querySelectorAll('pre:not(.has-copy-btn), pre.hljs-pre:not(.has-copy-btn)');
+    for (const pre of pres) {
+        if (pre.querySelector('.copy-btn')) continue;
+
+        let codeText = '';
+        const codeEl = pre.querySelector('code');
+        if (codeEl) {
+            codeText = codeEl.textContent || '';
+        } else {
+            codeText = pre.textContent || '';
+        }
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = '📋 Копировать';
+        copyBtn.setAttribute('aria-label', 'Копировать код');
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(codeText, () => {
+                copyBtn.textContent = '✅ Скопировано!';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Копировать';
+                }, 2000);
+            });
+        });
+
+        pre.appendChild(copyBtn);
+        pre.classList.add('has-copy-btn');
+        if (!pre.classList.contains('hljs-pre')) {
+            pre.classList.add('hljs-pre');
+        }
+    }
 }

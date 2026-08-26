@@ -1,6 +1,24 @@
 // src/models/session-manager.js
+// Изменено в 5.2: удалена ручная подсветка синтаксиса, теперь используется markdownService
 import { CONFIG } from '../config.js';
-import { syntaxHighlighter } from '../services/syntax-highlighter.js';
+// Удалено: import { syntaxHighlighter } from '../services/syntax-highlighter.js';
+
+/* //Изменено в 5.2:
+export class SessionManager {
+    // ... конструктор и другие методы без изменений
+
+    // Удалены методы: upgradeSessions, extractCodeBlocks, createCodeBlockHTML, highlightMessageSync, getMessagesWithHighlight
+
+    // Вместо getMessagesWithHighlight теперь используется обычный getMessages, 
+    // а рендеринг выполняется через markdownService в message-renderer
+    getMessages() {
+        const session = this.getCurrent();
+        return session ? session.messages : [];
+    }
+
+    // ... остальные методы (save, create, addMessage, etc.) без изменений
+}
+*/
 
 /**
  * Управление диалогами (сессиями чата)
@@ -23,7 +41,7 @@ export class SessionManager {
                 this.currentId = parsedData.currentId || null;
 
                 // Обновляем сообщения в сессиях для поддержки подсветки синтаксиса
-                this.upgradeSessions();
+                //this.upgradeSessions(); // УДАЛЕНО в 5.2
             }
             if (!this.sessions.length) {
                 this.create('Новый диалог');
@@ -36,8 +54,10 @@ export class SessionManager {
 
     /**
      * Обновление сессий для поддержки подсветки синтаксиса
+     * УДАЛЕНО в 5.2
      */
     upgradeSessions() {
+        /* // УДАЛЕНО в 5.2
         let needsSave = false;
         
         for (const session of this.sessions) {
@@ -61,10 +81,12 @@ export class SessionManager {
         if (needsSave) {
             this.save();
         }
+        */
     }
 
     /**
      * Извлечение блоков кода из текста
+     * УДАЛЕНО в 5.2
      */
     extractCodeBlocks(content) {
         const blocks = [];
@@ -81,6 +103,7 @@ export class SessionManager {
 
     /**
      * Создание HTML для блока кода с подсветкой и кнопкой копирования
+     * УДАЛЕНО в 5.2
      */
     createCodeBlockHTML(code, language) {
         let highlighted;
@@ -108,6 +131,7 @@ export class SessionManager {
      * Используется для быстрой загрузки истории
      * Возвращает HTML с подсветкой и включает кнопки копирования
      * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
+     * УДАЛЕНО в 5.2
      */
     highlightMessageSync(content) {
         if (!content || typeof content !== 'string') return content;
@@ -196,6 +220,7 @@ export class SessionManager {
      * Используется при загрузке истории
      * Возвращает HTML с подсветкой и включает кнопки копирования
      * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
+     * УДАЛЕНО в 5.2
      */
     getMessagesWithHighlight() {
         const session = this.getCurrent();
@@ -366,6 +391,8 @@ export class SessionManager {
         return currentSession || this.sessions[0];
     }
 
+    // Вместо getMessagesWithHighlight теперь используется обычный getMessages, 
+    // а рендеринг выполняется через markdownService в message-renderer    
     getMessages() {
         const session = this.getCurrent();
         return session ? session.messages : [];

@@ -1,14 +1,20 @@
 // src/ui/renderers/message-renderer.js
 import { sanitizeHTML } from '../../services/sanitizer.js';
+//Возможно надо удалить с 5.2
 import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
-import { copyToClipboard } from '../../utils/dom-helpers.js';
+import { copyToClipboard, addCopyButtonsToCodeBlocks } from '../../utils/dom-helpers.js';
 
 /**
  * Рендеринг сообщений чата
  * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
+ * Изменено в 5.2: используется markdownService для рендеринга Markdown и подсветки кода
  */
 export class MessageRenderer {
-    render(msgData) {
+    constructor() {
+        // markdownService будет передан извне
+    }    
+    
+    render(msgData, markdownService) {
         const { role, content, messageId, files, ragSources, isEdit, replyTo } = msgData;
         const div = document.createElement('div');
         div.className = `message ${role}`;
@@ -21,7 +27,8 @@ export class MessageRenderer {
         div.appendChild(label);
 
         // Баббл
-        const bubble = this.renderBubble(role, content, files, ragSources, isEdit, replyTo);
+        //const bubble = this.renderBubble(role, content, files, ragSources, isEdit, replyTo);
+        const bubble = this.renderBubble(role, content, files, ragSources, isEdit, replyTo, markdownService);
         div.appendChild(bubble);
 
         return div;
@@ -99,7 +106,7 @@ export class MessageRenderer {
      * Рендеринг баббла с вложениями
      * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
      */
-    renderBubble(role, content, files, ragSources, isEdit, replyTo) {
+    renderBubble(role, content, files, ragSources, isEdit, replyTo, markdownService) {
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
 
@@ -115,7 +122,31 @@ export class MessageRenderer {
             bubble.appendChild(ctx);
         }
 
-        // Основное содержимое
+        // Основное содержимое – рендерим через markdownService
+        if (content && typeof content === 'string') {
+            const wrapper = document.createElement('div');
+            // Если markdownService не передан, используем fallback
+            if (markdownService && markdownService.render) {
+                wrapper.innerHTML = markdownService.render(content);
+            } else {
+                // fallback: просто экранируем
+                const div = document.createElement('div');
+                div.textContent = content;
+                wrapper.innerHTML = div.innerHTML.replace(/\n/g, '<br>');
+            }
+            // Добавляем кнопки копирования ко всем блокам кода
+            //this.addCopyButtonsToCodeBlocks(wrapper);          
+            // Добавляем кнопки копирования
+            addCopyButtonsToCodeBlocks(wrapper);          
+            bubble.appendChild(wrapper);
+        } else {
+            const td = document.createElement('div');
+            td.textContent = content || '';
+            bubble.appendChild(td);
+        }
+
+        /*
+        // Основное содержимое УДАЛЕНО 5.2
         if ((role === 'bot' || role === 'assistant') && typeof content === 'string' && content) {
             // Проверяем, не содержит ли контент уже HTML-разметку подсветки
             // Ищем как span.hljs-* так и pre.hljs-pre
@@ -203,10 +234,11 @@ export class MessageRenderer {
             td.textContent = typeof content === 'string' ? content : JSON.stringify(content);
             bubble.appendChild(td);
         }
+        */
 
-        // Вложения 
+        // Вложения НО Почему-то оставлено в 5.2
         /*
-        //старое
+        // Вложения
         if (files && files.length) {
             const fd = document.createElement('div');
             fd.className = 'file-attachment';
@@ -221,10 +253,11 @@ export class MessageRenderer {
             bubble.appendChild(fd);
         }
         */
+
         /**
          * Вложения с кнопками скачивания и удаления
          * Добавлено в 5.1.
-         */       
+         */          
         if (files && files.length) {
             const fd = document.createElement('div');
             fd.className = 'file-attachment';
@@ -279,7 +312,69 @@ export class MessageRenderer {
             bubble.appendChild(fd);
         }
 
+        // Источники RAG (если есть)
+        if (ragSources && ragSources.length) {
+            const rd = document.createElement('div');
+            rd.className = 'rag-sources';
+            rd.innerHTML = `<strong>📚 Источники:</strong> ${ragSources.map(s =>
+                `<span style="background:var(--border-color);padding:2px 8px;border-radius:12px;margin:2px;">${sanitizeHTML(s.source)} (${(s.similarity * 100).toFixed(1)}%)</span>`
+            ).join(' ')}`;
+            bubble.appendChild(rd);
+        }
+
+        // Индикатор редактирования
+        if (isEdit) {
+            const ei = document.createElement('div');
+            ei.className = 'edit-indicator';
+            ei.textContent = '✏️ Отредактировано';
+            bubble.appendChild(ei);
+        }
+
         return bubble;
+    }
+
+    /**
+     * Добавляет кнопки копирования ко всем pre-блокам с кодом
+     * @param {HTMLElement} container - контейнер, в котором искать pre
+     */
+    addCopyButtonsToCodeBlocks(container) {
+        const pres = container.querySelectorAll('pre:not(.has-copy-btn), pre.hljs-pre:not(.has-copy-btn)');
+        for (const pre of pres) {
+            // Если уже есть кнопка, пропускаем
+            if (pre.querySelector('.copy-btn')) continue;
+
+            // Получаем код из pre
+            let codeText = '';
+            const codeEl = pre.querySelector('code');
+            if (codeEl) {
+                codeText = codeEl.textContent || '';
+            } else {
+                // Если нет code внутри, берём текст pre
+                codeText = pre.textContent || '';
+            }
+
+            // Создаём кнопку копирования
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = '📋 Копировать';
+            copyBtn.setAttribute('aria-label', 'Копировать код');
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                copyToClipboard(codeText, () => {
+                    copyBtn.textContent = '✅ Скопировано!';
+                    setTimeout(() => {
+                        copyBtn.textContent = '📋 Копировать';
+                    }, 2000);
+                });
+            });
+
+            pre.appendChild(copyBtn);
+            pre.classList.add('has-copy-btn');
+            // Убедимся, что pre имеет нужный класс для стилей
+            if (!pre.classList.contains('hljs-pre')) {
+                pre.classList.add('hljs-pre');
+            }
+        }
     }
 
     /**
@@ -458,6 +553,6 @@ export class MessageRenderer {
         return this.render({
             role: 'bot',
             content: '👋 Начните новый диалог!'
-        });
+        }, null);
     }
 }

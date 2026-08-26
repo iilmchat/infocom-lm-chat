@@ -592,3 +592,8 @@ pre.hljs-pre .copy-btn:active {
 .file-item[style*="cursor:pointer"]:hover {
     background: var(--bg-accent);
 }
+
+/* Добавлено в 5.2: контейнер для Markdown-контента */
+.message .bubble .markdown-content {
+    /* уже определено в markdown.css */
+}

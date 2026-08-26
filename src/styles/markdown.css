@@ -1,0 +1,87 @@
+/* src/styles/markdown.css */
+/* Стили для Markdown-контента, рендеримого в сообщениях */
+.markdown-content {
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin: 1.2em 0 0.6em 0;
+    font-weight: 600;
+    color: var(--text-accent);
+}
+
+.markdown-content h1 { font-size: 1.8em; }
+.markdown-content h2 { font-size: 1.5em; }
+.markdown-content h3 { font-size: 1.3em; }
+.markdown-content h4 { font-size: 1.1em; }
+.markdown-content h5 { font-size: 1.0em; }
+.markdown-content h6 { font-size: 0.9em; }
+
+.markdown-content ul,
+.markdown-content ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+.markdown-content li {
+    margin-bottom: 0.2em;
+}
+.markdown-content blockquote {
+    border-left: 4px solid var(--text-accent);
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: var(--text-secondary);
+    background: var(--bg-accent);
+    border-radius: 0 8px 8px 0;
+}
+
+.markdown-content pre {
+    background: var(--code-bg, #1e1e2e);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    margin: 0.8em 0;
+}
+.markdown-content pre code {
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    display: block;
+}
+
+.markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.8em 0;
+}
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    text-align: left;
+}
+.markdown-content th {
+    background: var(--bg-accent);
+    font-weight: 600;
+}
+.markdown-content tr:nth-child(even) {
+    background: var(--bg-secondary);
+}
+
+.markdown-content a {
+    color: var(--text-accent);
+    text-decoration: underline;
+}
+.markdown-content img {
+    max-width: 100%;
+    border-radius: 4px;
+}
+
+.markdown-content .hljs {
+    background: transparent;
+}

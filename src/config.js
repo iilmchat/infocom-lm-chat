@@ -1,9 +1,10 @@
 // src/config.js
 /**
  * Глобальная конфигурация приложения
+ * Изменено в 5.2: добавлены MARKDOWN, расширения для DOCX
  */
 export const CONFIG = {
-    VERSION: '5.1',
+    VERSION: '5.2',
     SERVER: {
         /*
         DEFAULT_IP: '222.1.1.31',
@@ -60,7 +61,13 @@ export const CONFIG = {
         SANITIZE_INPUT: true,
         SANITIZE_HTML: true,
         ALLOW_CODE_EXECUTION: false,
-        ALLOWED_EXTENSIONS: ['.txt', '.js', '.py', '.java', '.cpp', '.cs', '.sql', '.md', '.json', '.xml', '.csv', '.html', '.css', '.rb', '.go', '.rs', '.php', '.sh', '.ps1'],
+        // Добавлено в 5.2: поддержка .docx
+        ALLOWED_EXTENSIONS: [
+            '.txt', '.js', '.py', '.java', '.cpp', '.cs', '.sql', '.md',
+            '.json', '.xml', '.csv', '.html', '.css', '.rb', '.go', '.rs',
+            '.php', '.sh', '.ps1'
+            , '.docx'
+        ],
         FORBIDDEN_PATTERNS: [
             /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
             /<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi,
@@ -103,6 +110,11 @@ export const CONFIG = {
         MAX_HISTORY_PREVIEW: 30,
         DEFAULT_MODEL: 'local-model',
         MAX_TOASTS: 5
+    },
+    // Добавлено в 5.2: настройки Markdown
+    MARKDOWN: {
+        ENABLED: true,
+        SANITIZE_HTML: true
     }
 };
 

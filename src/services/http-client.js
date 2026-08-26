@@ -13,8 +13,8 @@ export class ChatApiClient {
         this.eventBus = eventBus;        
         // Устанавливаем базовый URL для всех запросов к API        
         this.baseUrl = this.getBaseUrl();
-        // Таймаут по умолчанию для каждого запроса (30 секунд)        
-        this.timeout = 30000;
+        // Таймаут по умолчанию для каждого запроса (60 секунд)        
+        this.timeout = 60000;
         // Количество попыток повторного выполнения запроса при ошибке        
         this.retryAttempts = 3;
     }
@@ -69,7 +69,7 @@ export class ChatApiClient {
                 }
 
                 // Вычисляем задержку перед следующей попыткой с экспоненциальным backoff                
-                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
@@ -472,6 +472,10 @@ export class ChatApiClient {
         });
     }
 
+    async getAdminRoomInfo(roomId) {
+        return this.request('GET', `/api/admin/room/${roomId}`);
+    }
+
     async getAdminStats() {
         return this.request('/admin/stats');
     }
@@ -490,6 +494,20 @@ export class ChatApiClient {
             method: 'POST',
             body: data
         });
+        /* 
+            //в 5.2 
+            const { query, roomId, userId, dateFrom, dateTo, limit = 50, offset = 0 } = params;
+            const body = {
+                query: query || '',
+                limit,
+                offset
+            };
+            if (roomId) body.roomId = roomId;
+            if (userId) body.userId = userId;
+            if (dateFrom) body.dateFrom = dateFrom;
+            if (dateTo) body.dateTo = dateTo;
+            return this.request('POST', '/api/admin/messages/search', body);
+        */
     }    
         
     async getModerationLog(userId = null) {
