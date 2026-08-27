@@ -3,10 +3,33 @@
  * Утилиты для работы с файлами
   * Добавлено в 5.2: поддержка DOCX через mammoth, обработка .doc
  */
+/* Изменено в 5.3 — добавлена поддержка PDF через динамический импорт */
+
 import { CONFIG } from '../config.js';
 
 // Глобальный объект mammoth (подключается через скрипт)
 const mammoth = window.mammoth;
+
+/* Добавлено в 5.3 */
+export async function readPDFAsText(file) {
+    try {
+        const pdfjsLib = await import('/src/components/pdf.min.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/src/components/pdf.worker.min.mjs';
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
+        }
+        return fullText;
+    } catch (error) {
+        console.error('Ошибка чтения PDF:', error);
+        throw new Error(`Не удалось прочитать PDF: ${error.message}`);
+    }
+}
 
 /**
  * Читает содержимое файла как текст.
@@ -19,6 +42,11 @@ const mammoth = window.mammoth;
 export async function readFileAsText(file) {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     const type = file.type;
+
+    // Проверка на PDF
+    if (ext === '.pdf' || type === 'application/pdf') {
+        return readPDFAsText(file);
+    }
 
     // Проверка на DOCX
     if (ext === '.docx' || type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {

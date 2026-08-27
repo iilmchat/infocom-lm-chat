@@ -1,8 +1,10 @@
-// src/models/multi-user-manager.js (исправленная версия) (добавлена авторизация)
+// src/models/multi-user-manager.js
+/* Изменено в 5.3 — добавлен WorkspaceManager */
 import { CONFIG } from '../config.js';
 import { ChatApiClient } from '../services/http-client.js';
 import { LongPollingClient } from '../services/long-polling-client.js';
 import { deepEqual } from '../utils/string-helpers.js';
+import { WorkspaceManager } from './workspace-manager.js';   /* Добавлено в 5.3 */
 
 // Константы
 const COMMON_ROOM_NAME = 'Общая комната';
@@ -38,6 +40,8 @@ export class MultiUserManager {
         //this.api = new ChatApiClient();
         this.polling = new LongPollingClient(eventBus);
         
+        this.workspaceManager = new WorkspaceManager(eventBus);   /* Добавлено в 5.3 */
+
         // Состояние
         this.isConnected = false;
         this.isPolling = false;   
@@ -72,7 +76,9 @@ export class MultiUserManager {
         // Подписка на события
         // Настройка обработчиков        
         this.setupEventListeners();
-        this.setupAuthEvents();        
+        this.setupAuthEvents();     
+
+        this.setupWorkspaceEvents();   /* Добавлено в 5.3 */           
     }
 
     // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -503,11 +509,32 @@ export class MultiUserManager {
         }
     }
 
+    // 5.3 ===== Рабочие места =====
+    /* Добавлено в 5.3 */
+    setupWorkspaceEvents() {
+        this.eventBus.on('workspace:switched', (ws) => {
+            // Перезагружаем комнаты и чаты
+            this.loadPrivateChats();
+            this.findOrCreateCommonRoom();
+            this.app?.sidebar.render();
+            this.app?.chatView.loadMessages();
+        });
+    }
+
     /**
      * Поиск существующей общей комнаты или создание новой
      * {Promise<string|null>} ID комнаты или null
      */
+    // 5.3 В методе findOrCreateCommonRoom можно использовать текущий workspace    
     async findOrCreateCommonRoom() {
+        // Добавлено 5.3 (Начало)
+        const currentWs = this.workspaceManager.getCurrentWorkspace();
+        // Здесь можно искать комнату в текущем workspace, либо использовать общий ID
+        // Например, если в workspace хранится ID общей комнаты:
+        // const commonRoomId = currentWs.commonRoomId;
+        // ...
+        // Создаём новую и сохраняем в workspace, если её нет        
+        // Добавлено 5.3 (Окончание)
         try {
             // 1. Получаем список всех комнат
             const roomsResult = await this.api.getRooms();
@@ -977,6 +1004,7 @@ export class MultiUserManager {
      * Загрузка списка приватных чатов пользователя
      * {Promise<Array>} Список приватных чатов
      */
+    // 5.3 В loadPrivateChats можно загружать чаты, сохранённые в workspace    
     async loadPrivateChats() {
         try {
             const result = await this.api.getUserChats(this.localUser.Id);
@@ -987,6 +1015,14 @@ export class MultiUserManager {
                     this.privateChats = result.chats || [];
                     this.eventBus?.emit('private:chats_updated', this.privateChats);
                 }
+
+                // Добавлено 5.3 (Начало)
+                // После загрузки сохраняем в текущий workspace
+                const currentWs = this.workspaceManager.getCurrentWorkspace();
+                currentWs.privateChats = this.privateChats;
+                this.workspaceManager.saveToStorage();    
+                // Добавлено 5.3 (Окончание)
+
                 return this.privateChats;
             }
         } catch (error) {

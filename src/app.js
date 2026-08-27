@@ -21,6 +21,7 @@
  * - Расширенный поиск в админ-панели (интеграция с AdminPanel)
  * - Отображение пользователей в комнате (админка) 
  */
+/* Изменено в 5.3 — замена модальных окон на ProfileModal */
 
 import { CONFIG, SERVER_CONFIG, loadServerConfig, saveServerConfig } from './config.js';
 import { EventBus } from './core/event-bus.js';
@@ -55,11 +56,14 @@ import { runAllTests } from './utils/test-runner.js';
 import { DropZone } from './ui/components/drop-zone.js';
 import sectionToggle from './ui/components/section-toggle.js';
 import { SectionHelpers } from './utils/section-helpers.js';
-import { UserModal } from './ui/views/user-modal.js';
+// 5.3 Удалены импорты AuthModal и UserModal
+//import { UserModal } from './ui/views/user-modal.js';
 import { AdminPanel } from './ui/views/admin-panel.js';
 import { PrivateChat } from './ui/views/private-chat.js';
-import { AuthModal } from './ui/views/auth-modal.js'; // Добавлено в 5.1.
-
+// 5.3 Удалены импорты AuthModal и UserModal
+//import { AuthModal } from './ui/views/auth-modal.js'; // Добавлено в 5.1.
+import { ProfileModal } from './ui/views/profile-modal.js';   /* Добавлено в 5.3 */
+// 5.3 Удалены импорты AuthModal и UserModal
 
 // Удалено в 5.2: импорт syntaxHighlighter и связанных модулей
 // import { syntaxHighlighter } from './services/syntax-highlighter.js';
@@ -181,8 +185,8 @@ class App {
         // Добавлено в 5.1: Аналитика
         this.analyticsView = new AnalyticsView(this);
 
-        // Модальное окно профиля пользователя
-        this.userModal = new UserModal(this);
+        // Модальное окно профиля пользователя // Удалено 5.3
+        // this.userModal = new UserModal(this);  // Удалено 5.3
         
         // Панель администратора
         this.adminPanel = new AdminPanel(this);
@@ -190,11 +194,16 @@ class App {
         // Приватные чаты
         this.privateChat = new PrivateChat(this);
 
-        // Добавлено в 5.1: Модальное окно аутентификации
-        this.authModal = new AuthModal(this);
+        // Добавлено в 5.1: Модальное окно аутентификации // Удалено 5.3
+        // this.authModal = new AuthModal(this);  // Удалено 5.3
+
+        // Модальное (общее) окно профиля пользователя
+        this.profileModal = new ProfileModal(this);   /* Добавлено в 5.3 */
 
         // Добавлено в 5.1: Инициализация сервиса аутентификации и модального окна
-        // Обработчик входа        
+        // Обработчик входа   
+        // Удалено 5.3
+        /*     
         this.authModal.onLogin = (user) => {
             // После успешного входа обновляем приложение
             this.multiUserManager.localUser = user;
@@ -207,6 +216,7 @@ class App {
             // Загружаем уведомления
             this.notificationManager.fetchNotifications(true);
         };
+        */
 
         // ===== Инициализация компонентов =====
         // Компонент Drag-and-Drop для загрузки файлов
@@ -318,7 +328,7 @@ class App {
         this.multiUserManager.startSimulation();
 
         // Добавлено в 5.1: Проверка сессии при загрузке
-        // Проверка сессии        
+        // Восстановление сессии     
         const user = await this.authService.restoreSession();
         if (user) {
             // Пользователь уже авторизован
@@ -326,13 +336,18 @@ class App {
             this.multiUserManager.saveUser(user);
             this.multiUserManager.renderUsers();
             this.multiUserManager.connectToServer();
-            this.userModal.loadUserProfile();
+            // this.userModal.loadUserProfile();  // Удалено 5.3
+            
+            //Добавлено 5.3
+            this.profileModal.loadUserProfile();
+
             this.updateAuthUI();
             // Загружаем уведомления
             this.notificationManager.fetchNotifications(true);
         } else {
             // Показываем форму входа
-            this.authModal.open();
+            //this.authModal.open(); // Удалено 5.3
+            this.profileModal.open();  // Показываем вход
         }
 
         // Фокус на поле ввода
@@ -1162,18 +1177,19 @@ class App {
     /**
      * Обновление UI в зависимости от статуса аутентификации
      * Добавлено в 5.1.
+     * 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа      
      */
-    updateAuthUI() {
+    updateAuthUI() {  
         const isAuth = this.authService.isAuthenticated;
         // Показываем/скрываем элементы
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const profileBtn = document.getElementById('userProfileBtn');
+        //const loginBtn = document.getElementById('loginBtn'); // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
+        //const logoutBtn = document.getElementById('logoutBtn'); // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
+        //const profileBtn = document.getElementById('userProfileBtn'); // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
         const adminBtn = document.getElementById('adminBtn');
         
-        if (loginBtn) loginBtn.style.display = isAuth ? 'none' : 'inline-block';
-        if (logoutBtn) logoutBtn.style.display = isAuth ? 'inline-block' : 'none';
-        if (profileBtn) profileBtn.style.display = isAuth ? 'inline-block' : 'none';
+        //if (loginBtn) loginBtn.style.display = isAuth ? 'none' : 'inline-block'; // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
+        //if (logoutBtn) logoutBtn.style.display = isAuth ? 'inline-block' : 'none'; // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
+        //if (profileBtn) profileBtn.style.display = isAuth ? 'inline-block' : 'none'; // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
         if (adminBtn) {
             adminBtn.style.display = (isAuth && this.multiUserManager.isAdminUser()) ? 'inline-block' : 'none';
         }
@@ -1224,6 +1240,7 @@ class App {
     /**
      * Настройка UI для многопользовательского режима
      * Добавлено в 5.1: кнопки для администрирования и приватных чатов
+     * 5.3  В методе setupMultiUserUI заменяем вызовы    
      */
     setupMultiUserUI() {
         // Кнопка подключения
@@ -1326,11 +1343,15 @@ class App {
     /**
      * Открытие профиля пользователя
      */
+    // 5.3 Обновляем метод openProfileInfo    
     openProfileInfo() {
-        this.userModal.open();
+        //this.userModal.open(); /* Удалено в 5.3 */
         //document.getElementById('roomInfoModal').classList.add('active');
+        this.profileModal.open();   /* Изменено в 5.3 */        
     }    
 
+    // 5.3 Удаляем старую updateAuthUI, если есть, или оставляем только для кнопки админа
+    // 5.3  В методе setupMultiUserUI заменяем вызовы    
 
     /**
      * Открытие панели администратора

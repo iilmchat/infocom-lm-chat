@@ -6,6 +6,8 @@ import { RoomList } from './room-list.js';
  * Боковая панель со списком диалогов и статистикой
  * Изменено в 5.1: добавлены общие комнаты
  */
+/* Изменено в 5.3 — добавлен рендеринг Workspaces */
+
 export class Sidebar {
     constructor(app) {
         this.app = app;
@@ -17,7 +19,9 @@ export class Sidebar {
         this.roomList = new RoomList(app);
         
         this.setupEventListeners();
-        this.setupSectionToggles();        
+        this.setupSectionToggles();
+
+        this.renderWorkspaces();   /* Добавлено в 5.3 */                
     }
 
     render() {
@@ -27,10 +31,58 @@ export class Sidebar {
         this.renderUnreadBadge();
         // Добавлено в 5.1: загрузка комнат
         this.roomList.loadRooms();
+        this.renderWorkspaces();   /* Добавлено в 5.3 */        
         // Обновляем состояния секций после рендеринга
         this.updateSectionStates();        
     }
 
+    /* Добавлено в 5.3 */
+    renderWorkspaces() {
+        const container = document.getElementById('workspaceList');
+        if (!container) return;
+        const wsManager = this.app.multiUserManager.workspaceManager;
+        const workspaces = wsManager.getAllWorkspaces();
+        const current = wsManager.getCurrentWorkspace();
+        container.innerHTML = workspaces.map(ws => `
+            <div class="workspace-item ${ws.id === current.id ? 'active' : ''}" data-workspace-id="${ws.id}">
+                <span>📁 ${sanitizeHTML(ws.name)}</span>
+                ${ws.id !== current.id ? `<button class="ws-delete" data-id="${ws.id}">✕</button>` : ''}
+            </div>
+        `).join('');
+        container.querySelectorAll('.workspace-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const id = item.dataset.workspaceId;
+                if (id !== current.id) {
+                    wsManager.switchWorkspace(id);
+                    // Обновляем UI (при событии workspace:switched)
+                    this.render();
+                    this.app.chatView.loadMessages();
+                }
+            });
+            const delBtn = item.querySelector('.ws-delete');
+            if (delBtn) {
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = delBtn.dataset.id;
+                    if (confirm('Удалить рабочее пространство?')) {
+                        wsManager.deleteWorkspace(id);
+                        this.renderWorkspaces();
+                        this.render();
+                    }
+                });
+            }
+        });
+        // Кнопка создания
+        document.getElementById('createWorkspaceBtn')?.addEventListener('click', () => {
+            const name = prompt('Название рабочего пространства:');
+            if (name) {
+                wsManager.createWorkspace(name.trim());
+                this.renderWorkspaces();
+                this.render();
+            }
+        });
+    }
+    
     renderChatList() {
         this.chatList.innerHTML = '';
         

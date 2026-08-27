@@ -1,0 +1,188 @@
+/* src/styles/responsive.css */
+/* Добавлено в 5.3 - адаптивная вёрстка */
+
+/* ===== Медиазапросы для планшетов и телефонов ===== */
+@media (max-width: 768px) {
+    /* Сайдбар превращается в выдвижную панель */
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        width: 80%;
+        max-width: 300px;
+        z-index: 1000;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: var(--bg-primary);
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .sidebar-overlay.active {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+    .main-container {
+        margin-left: 0;
+        width: 100%;
+    }
+    #menuToggle {
+        display: block !important;
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    /* Шапка */
+    .chat-header .header-left {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .chat-header .header-actions button {
+        font-size: 14px;
+        padding: 4px 6px;
+    }
+    .model-badge .model-dropdown {
+        right: 0;
+        left: auto;
+        min-width: 200px;
+    }
+
+    /* Поле ввода */
+    .chat-input-area .input-row {
+        flex-wrap: wrap;
+    }
+    .chat-input-area textarea {
+        width: 100%;
+        margin-bottom: 8px;
+        min-height: 50px;
+    }
+    .chat-input-area .input-actions {
+        order: 2;
+        flex: 1;
+        justify-content: flex-start;
+    }
+    .chat-input-area .send-btn {
+        order: 3;
+        width: 100%;
+        margin-top: 4px;
+    }
+    .quick-actions {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .quick-actions .quick-btn {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+
+    /* Модальные окна */
+    .modal-content {
+        max-width: 95% !important;
+        margin: 10px;
+        max-height: 90vh;
+        padding: 16px;
+    }
+    .modal-content .modal-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Админ-панель */
+    .admin-tabs {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .admin-tab {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    .admin-user-item, .admin-room-item, .admin-message-item {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px;
+    }
+    .admin-user-actions {
+        flex-wrap: wrap;
+        margin-top: 8px;
+        gap: 4px;
+    }
+    .admin-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .room-users-table, .admin-stats-grid, .admin-message-list,
+    .admin-user-list, .admin-room-list {
+        overflow-x: auto;
+        display: block;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    .room-users-table th, .room-users-table td {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    /* Секции в сайдбаре */
+    .sidebar-section .section-header {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+    .section-content {
+        padding: 4px 8px;
+    }
+
+    /* Рабочие пространства */
+    .workspace-item {
+        font-size: 13px;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Телефоны */
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .chat-header .header-actions button {
+        font-size: 12px;
+        padding: 2px 4px;
+    }
+    .chat-input-area .input-actions button {
+        font-size: 14px;
+        padding: 4px 6px;
+    }
+    .modal-content {
+        padding: 12px;
+    }
+    .modal-content h2 {
+        font-size: 18px;
+    }
+    .user-preview {
+        flex-direction: column;
+        text-align: center;
+    }
+    .user-preview #userPreviewAvatar {
+        font-size: 36px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+    .avatar-presets span, .color-presets span {
+        width: 24px;
+        height: 24px;
+        font-size: 20px;
+    }
+}

@@ -7,6 +7,7 @@ import { CONFIG } from '../config.js';
  * Этот класс предоставляет базовые функции для выполнения HTTP-запросов к API,
  * включая обработку ошибок, повторные попытки и таймауты.
  * Изменено в 5.1: добавлены все методы API (реакции, администрирование, аналитика, файлы)
+ * Изменено в 5.3 — добавлен метод getUsersPaginated 
  */
 export class ChatApiClient {
     constructor(eventBus) {
@@ -386,6 +387,13 @@ export class ChatApiClient {
         return this.request('/admin/users/online');
     }
 
+    /* Добавлено в 5.3 */
+    async getUsersPaginated(page = 1, pageSize = 20, searchTerm = '', sortBy = 'name', sortDescending = false) {
+        const params = new URLSearchParams({ page, pageSize, sortBy, sortDescending });
+        if (searchTerm) params.append('searchTerm', searchTerm);
+        return this.request(`/admin/users/paginated?${params}`);
+    }
+        
     async getUserStats(userId) {
         // Проверяем, является ли userId объектом        
         const actualUserId = typeof userId === 'object' && userId !== null 

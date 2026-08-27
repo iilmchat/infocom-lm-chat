@@ -8,6 +8,8 @@ import { copyToClipboard } from '../../utils/dom-helpers.js';
 import { FileManager } from '../../models/file-manager.js';
 import { ReactionManager } from '../../models/reaction-manager.js';
 import { addCopyButtonsToCodeBlocks } from '../../utils/dom-helpers.js';
+/* Добавлено в 5.3 — внедрён виртуальный скроллинг */
+//import { VirtualScroll } from '../components/virtual-scroll.js';
 
 /**
  * Основное представление чата
@@ -27,15 +29,26 @@ export class ChatView {
 
         // Добавлено в 5.1: менеджер реакций
         this.reactionManager = new ReactionManager(app);
+
         // Добавлено в 5.1: состояние пагинации
         this.currentOffset = 0;
         this.pageSize = 50;
+
         this.hasMore = true;
         this.isLoadingHistory = false;
         // Добавлено в 5.1: закреплённые сообщения
         this.pinnedMessages = [];
         // Добавлено в 5.1: загруженные вложения
         this.uploadedAttachments = [];
+
+        this.virtualScroll = null;              /* Добавлено в 5.3 */
+        this.itemHeight = 80;                   /* Добавлено в 5.3 */
+        this.isLoadingHistory = false;          /* Добавлено в 5.3 */
+        this.hasMore = true;                    /* Добавлено в 5.3 */
+        this.currentOffset = 0;                 /* Добавлено в 5.3 */
+        this.pageSize = 50;                     /* Добавлено в 5.3 */       
+        
+
 
         // DOM элементы
         this.messagesEl = document.getElementById('messages');
@@ -66,7 +79,7 @@ export class ChatView {
      * Загрузка сообщений с пагинацией
      * Изменено в 5.1: добавлена пагинация
      */
-    async loadMessages(append = false) {
+    async loadMessages(append = false) {        /* Изменено в 5.3 */
         if (this.isLoadingHistory) return;
         this.isLoadingHistory = true;
         try {
@@ -86,10 +99,48 @@ export class ChatView {
             if (result.success) {
                 const messages = result.messages || [];
                 this.hasMore = result.hasMore || false;
+                /* Добавлено в 5.3 (начало) */
+                const messageData = messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content,
+                    messageId: msg.id,
+                    attachments: msg.attachments,
+                    isEdited: msg.isEdited,
+                    replyTo: msg.replyTo
+                }));
+                // Добавлено в 5.3 (окончание)
                 if (!append) {
                     // Заменяем всю историю
-                    this.messagesEl.innerHTML = '';
+                    this.messagesEl.innerHTML = ''; // /* Удалено в 5.3 ОСТАВИМ*/
+                    /* Добавлено в 5.3 (начало) ОСТАВИМ**/
+                    /*
+                    // Инициализация виртуального скролла
+                    if (!this.virtualScroll) {
+                        this.virtualScroll = new VirtualScroll(this.messagesEl, {
+                            itemHeight: this.itemHeight,
+                            buffer: 5,
+                            renderItem: (item) => {
+                                const msgData = {
+                                    role: item.role,
+                                    content: item.content,
+                                    messageId: item.messageId,
+                                    files: item.attachments,
+                                    isEdit: item.isEdited,
+                                    replyTo: item.replyTo ? { content: item.replyTo.content, role: item.replyTo.role } : null
+                                };
+                                return this.messageRenderer.render(msgData, this.app.markdownService);
+                            }
+                        });
+                        // Обработчик скролла для подгрузки
+                        this.virtualScroll.container.addEventListener('scroll', this.handleScroll.bind(this));
+                    } else {
+                        this.virtualScroll.clear();
+                    }
+                    this.virtualScroll.setItems(messageData);
+                    */
+                    // Добавлено в 5.3 (окончание) ОСТАВИМ*
                     this.currentOffset = messages.length;
+                    /* //Удалено в 5.3   ОСТАВИМ   */                 
                     // Добавляем закреплённые сообщения сверху
                     await this.loadPinnedMessages();
                     // Добавляем сообщения
@@ -97,9 +148,13 @@ export class ChatView {
                     if (messages.length === 0) {
                         this.showWelcome();
                     }
+                    /*ОСТАВИМ*/                        
                     this.scrollToBottom();
                 } else {
                     // Добавляем старые сообщения в начало
+                    // Добавлено в 5.3 ОСТАВИМ
+                    //this.virtualScroll.prependItems(messageData.reverse()); 
+                    /* //Удалено в 5.3  ОСТАВИМ */
                     const fragment = document.createDocumentFragment();
                     const scrollHeight = this.messagesEl.scrollHeight;
                     messages.reverse().forEach(msg => {
@@ -109,9 +164,10 @@ export class ChatView {
                     this.messagesEl.prepend(fragment);
                     // Сохраняем позицию скролла
                     this.messagesEl.scrollTop = this.messagesEl.scrollHeight - scrollHeight;
+                    /*ОСТАВИМ*/
                     this.currentOffset += messages.length;
                 }
-                // Если есть кнопка "Загрузить ещё", обновляем её видимость
+                // Если есть кнопка "Загрузить ещё", обновляем её видимость В 5.3 Надо ли?
                 this.updateLoadMoreButton();
             }
         } catch (error) {
@@ -121,6 +177,13 @@ export class ChatView {
             this.isLoadingHistory = false;
         }
     }    
+
+    /* Добавлено в 5.3 */
+    handleScroll() {
+        if (this.virtualScroll && this.virtualScroll.container.scrollTop === 0 && !this.isLoadingHistory && this.hasMore) {
+            this.loadMessages(true);
+        }
+    }
 
     /**
      * Загрузка закреплённых сообщений
@@ -520,7 +583,9 @@ export class ChatView {
      * Добавлено в 5.1.
      */
     extractMentions(text) {
+        
         const mentions = [];
+        /*
         const regex = /@(\w+)/g;
         let match;
         while ((match = regex.exec(text)) !== null) {
@@ -533,6 +598,7 @@ export class ChatView {
                 mentions.push(this.app.multiUserManager.localUser.Id);
             }
         }
+            */
         return mentions;
     }
 
@@ -768,11 +834,13 @@ export class ChatView {
             mentions: mentions
         };
 
-        // Загрузка файлов, если есть
+        // Загрузка файлов НА Сервер, если есть (ТУТ НЕ НАДО)
+        /* ОТКЛЮЧИМ ОТПРАВКУ НА СЕРВЕР
         if (currentFiles.length) {
             const uploaded = await this.uploadAttachments(currentFiles);
             messageData.attachments = uploaded;
         }
+        */
         /*        
         //ТУТ Надо понять
             // Если есть прикреплённые файлы, загружаем их сначала
@@ -985,37 +1053,64 @@ export class ChatView {
     // Они уже реализованы в исходном коде    
 
     addMessage(role, content, messageId = null, files = null, ragSources = null, isEdit = false, replyTo = null) {
+        //let el; // Объявляем переменную для элемента        
         const msgData = { role, content, messageId, files, ragSources, isEdit, replyTo };
+        /* ОСТАВИМ 5.3
+        const item = {
+            role,
+            content,
+            messageId,
+            attachments: files,
+            isEdited: isEdit,
+            replyTo: replyTo ? { content: replyTo.content, role: replyTo.role } : null
+        };
+        if (this.virtualScroll) {
+            this.virtualScroll.appendItem(item);
+            el = this.messagesEl.lastElementChild;
+        } else {
+            // fallback
+            el = this.messageRenderer.render(msgData, this.app.markdownService);
+            this.messagesEl.appendChild(el);
+        }
+        */
+       /* Удалено в 5.3 ОСТАВИМ */
         const el = this.messageRenderer.render(msgData);
         this.messagesEl.appendChild(el);
+        /* ОСТАВИМ */
         this.scrollToBottom();
         
         // Добавляем кнопки копирования для новых блоков кода
         setTimeout(() => {
-            const preElements = el.querySelectorAll('pre:not(.has-copy-btn)');
-            preElements.forEach(pre => {
-                const codeElement = pre.querySelector('code');
-                if (!codeElement) return;
-                
-                const codeText = codeElement.textContent || '';
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn';
-                copyBtn.textContent = '📋 Копировать';
-                copyBtn.setAttribute('aria-label', 'Копировать код');
-                copyBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    copyToClipboard(codeText, () => {
-                        copyBtn.textContent = '✅ Скопировано!';
-                        setTimeout(() => {
-                            copyBtn.textContent = '📋 Копировать';
-                        }, 2000);
-                    });
-                };
-                pre.appendChild(copyBtn);
-                pre.classList.add('has-copy-btn');
-            });
+            // Проверяем, был ли рендеринг через DOM (fallback)
+            //if (!this.virtualScroll && el) {
+                const preElements = el.querySelectorAll('pre:not(.has-copy-btn)');
+                preElements.forEach(pre => {
+                    const codeElement = pre.querySelector('code');
+                    if (!codeElement) return;
+
+                    const codeText = codeElement.textContent || '';
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = '📋 Копировать';
+                    copyBtn.setAttribute('aria-label', 'Копировать код');
+                    copyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        copyToClipboard(codeText, () => {
+                            copyBtn.textContent = '✅ Скопировано!';
+                            setTimeout(() => {
+                                copyBtn.textContent = '📋 Копировать';
+                            }, 2000);
+                        });
+                    };
+                    pre.appendChild(copyBtn);
+                    pre.classList.add('has-copy-btn');
+                });
+            //}
         }, 50);
         
+        //return el; //Удалено 5.3
+        //Добавлено 5.3
+        return this.messagesEl.lastElementChild;
         return el;
     }
 
@@ -1024,6 +1119,18 @@ export class ChatView {
      * Обновление стримингового сообщения с асинхронной подсветкой
      */
     async updateStreamMessage(el, content, ragSources = null) {
+        /* в 5.3 ОСТАВИМ
+        // Находим индекс элемента в виртуальном скролле
+        if (this.virtualScroll) {
+            const index = this.virtualScroll.items.findIndex(item => item.messageId === el.dataset.messageId);
+            if (index !== -1) {
+                this.virtualScroll.updateItem(index, content);
+                // Для простоты источники RAG не обновляем (можно расширить)
+                return;
+            }
+        }         
+        // fallback - старый код (оставляем для совместимости)
+        */    
         const bubble = el.querySelector('.bubble');
         if (!bubble) return;
 

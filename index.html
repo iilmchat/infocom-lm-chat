@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infocom LM Chat Pro · v5.2</title>
+    <title>Infocom LM Chat Pro · v5.3</title>
 
     <!-- ===== СТИЛИ ===== -->
     <link rel="stylesheet" href="src/styles/main.css">
@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="src/styles/markdown.css">
     <!-- Стиль подсветки highlight.js (локальный) -->
     <link rel="stylesheet" href="src/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="src/styles/responsive.css">   <!-- Добавлено в 5.3 -->    
 
     <!-- ===== ВНЕШНИЕ БИБЛИОТЕКИ (локальные, подключаются как обычные скрипты) ===== -->
     <script src="src/components/highlight.min.js"></script>
@@ -204,6 +205,19 @@
                 </div>
             </div>
 
+            <!-- 5.3 Внутри sidebar добавляем секцию Workspaces (перед общими комнатами) -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
+                    <span class="section-icon">📁</span>
+                    <span class="section-title">Рабочие пространства</span>
+                    <span class="section-arrow">▶</span>
+                    <button id="createWorkspaceBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
+                </div>
+                <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
+                    <div id="workspaceList" style="padding:4px 8px;"></div>
+                </div>
+            </div>
+
             <!-- ===== ПРОГРЕСС РАЗВИТИЯ ===== -->
             <div class="sidebar-section collapsed">
                 <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
@@ -305,7 +319,7 @@
             <div class="chat-header">
                 <div class="header-left">
                     <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
-                    <span>💻 Infocom LM Chat Pro v5.2</span>
+                    <span>💻 Infocom LM Chat Pro v5.3</span>
                     <span class="active-assistant-indicator" id="activeAssistantIndicator">
                         <span id="activeAssistantIcon"></span>
                         <span id="activeAssistantName"></span>
@@ -329,7 +343,10 @@
                     </button>   
 
                     <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
-                    <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button>
+                    <!-- Добавлено в 5.3: Кнопка Приватный чат -->
+                    <button id="privateChatBtn" title="Приватный чат">👥<span class="tooltip">Приватный чат</span></button>   
+
+                    <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button>                    
                     <button id="gameBtn" title="Игры">🎮</button>
 
                     <!-- Добавлено в 5.1: Кнопка аналитики -->

@@ -3,8 +3,10 @@
  * Глобальная конфигурация приложения
  * Изменено в 5.2: добавлены MARKDOWN, расширения для DOCX
  */
+/* Изменено в 5.3 — добавлен .pdf в разрешённые расширения */
+
 export const CONFIG = {
-    VERSION: '5.2',
+    VERSION: '5.3',
     SERVER: {
         /*
         DEFAULT_IP: '222.1.1.31',
@@ -66,7 +68,8 @@ export const CONFIG = {
             '.txt', '.js', '.py', '.java', '.cpp', '.cs', '.sql', '.md',
             '.json', '.xml', '.csv', '.html', '.css', '.rb', '.go', '.rs',
             '.php', '.sh', '.ps1'
-            , '.docx'
+            ,'.docx' /* Добавлено в 5.2 */
+            ,'.pdf'   /* Добавлено в 5.3 */
         ],
         FORBIDDEN_PATTERNS: [
             /<script[\s\S]*?>[\s\S]*?<\/script>/gi,

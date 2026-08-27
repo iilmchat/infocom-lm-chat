@@ -9,6 +9,8 @@ import { sanitizeHTML } from '../../services/sanitizer.js';
  * - Отображение списка пользователей в комнате (по клику на количество)
  * - Расширенный поиск по сообщениям с фильтрами (дата, автор, комната)
  */
+/* Изменено в 5.3 — пагинация пользователей, URL-фильтры, экспорт */
+
 export class AdminPanel {
     constructor(app) {
         this.app = app;
@@ -29,6 +31,12 @@ export class AdminPanel {
         this.searchLimit = 20;
         this.searchTotal = 0;
         this.searchResults = [];
+
+        //пагинация пользователей
+        this.userPage = 1;                 /* Добавлено в 5.3 */
+        this.userPageSize = 20;            /* Добавлено в 5.3 */
+        this.userTotal = 0;                /* Добавлено в 5.3 */
+        this.userSearch = '';              /* Добавлено в 5.3 */
 
         this.setupEventListeners();
         this.setupTabSwitching();
@@ -276,7 +284,8 @@ export class AdminPanel {
     renderUsers() {
         const container = document.getElementById('adminUserList');
         if (!container) return;
-
+        // ... рендеринг списка, используя this.users
+        // добавляем кнопки пагинации
         const currentUser = this.app.multiUserManager.localUser;
         const isAdmin = this.app.multiUserManager.isAdminUser();
 
@@ -394,19 +403,32 @@ export class AdminPanel {
     /**
      * Загрузка всех данных для пользователей только
      */
-    async loadUserData() {
+    // === 5.3 Обновлённый метод загрузки пользователей ===      
+    async loadUserData() {                 /* Изменено в 5.3 */
         // Показываем индикатор загрузки
         this.showLoading();        
         try {
             // Загружаем всё параллельно
+            /* Удалено 5.3
             const [users] = await Promise.all([
                 this.app.apiService.getAllUsers().catch(() => ({ success: false })),
 
             ]);
             if (users.success) this.users = users.users || [];
-    
+            */
+            const result = await this.app.apiService.getUsersPaginated(
+                this.userPage,
+                this.userPageSize,
+                this.userSearch
+            );    
+            if (result.success) {
+                this.users = result.data || [];
+                this.userTotal = result.pagination?.total || 0;
+                this.renderUsers();
+                this.renderUserPagination();
+            }                   
             // Рендерим текущую вкладку
-            this.renderCurrentTab();
+            //this.renderCurrentTab(); //Удалено 5.3
 
         } catch (error) {
             console.error('Ошибка загрузки данных пользователей:', error);            
@@ -414,6 +436,73 @@ export class AdminPanel {
         } finally {
             this.hideLoading();
         }
+    }
+
+    /* Добавлено в 5.3 */
+    renderUserPagination() {
+        const container = document.getElementById('adminUserPagination');
+        if (!container) return;
+        const totalPages = Math.ceil(this.userTotal / this.userPageSize);
+        container.innerHTML = `
+            <button ${this.userPage <= 1 ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage - 1})">◀</button>
+            <span>Стр. ${this.userPage} из ${totalPages || 1}</span>
+            <button ${this.userPage >= totalPages ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage + 1})">▶</button>
+            <input type="text" id="adminUserSearchPage" placeholder="Поиск..." value="${this.userSearch}">
+            <button onclick="window.adminPanel.searchUsers()">🔍</button>
+        `;
+    }
+
+    /* Добавлено в 5.3 */
+    goToUserPage(page) {
+        this.userPage = page;
+        this.loadUserData();
+    }
+
+    /* Добавлено в 5.3 */
+    searchUsers() {
+        const input = document.getElementById('adminUserSearchPage');
+        if (input) {
+            this.userSearch = input.value.trim();
+            this.userPage = 1;
+            this.loadUserData();
+        }
+    }
+
+    // === Расширенный поиск: сохранение в URL ===
+    /* Добавлено в 5.3 */
+    _updateURL() {
+        const params = new URLSearchParams();
+        const query = document.getElementById('adminMsgQuery')?.value;
+        const room = document.getElementById('adminMsgRoom')?.value;
+        const user = document.getElementById('adminMsgUser')?.value;
+        const from = document.getElementById('adminMsgDateFrom')?.value;
+        const to = document.getElementById('adminMsgDateTo')?.value;
+        if (query) params.set('q', query);
+        if (room) params.set('room', room);
+        if (user) params.set('user', user);
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        params.set('offset', this.searchOffset);
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.pushState({}, '', newUrl);
+    }
+
+    /* Добавлено в 5.3 */
+    _loadFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get('q');
+        const room = params.get('room');
+        const user = params.get('user');
+        const from = params.get('from');
+        const to = params.get('to');
+        const offset = parseInt(params.get('offset')) || 0;
+        if (query) document.getElementById('adminMsgQuery').value = query;
+        if (room) document.getElementById('adminMsgRoom').value = room;
+        if (user) document.getElementById('adminMsgUser').value = user;
+        if (from) document.getElementById('adminMsgDateFrom').value = from;
+        if (to) document.getElementById('adminMsgDateTo').value = to;
+        this.searchOffset = offset;
+        this.loadMessagesWithFilters();
     }
 
     /**
@@ -684,6 +773,8 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
 
     // ===== ВКЛАДКА: СООБЩЕНИЯ (расширенный поиск) =====
     // Добавлено в 5.2: форма фильтров и пагинация
+    // 5.3 Обновлённый renderSearchUI
+    /* Добавлено в 5.3: вызываем при открытии вкладки сообщений */        
     renderSearchUI() {
         const container = document.getElementById('tab-messages');
         if (!container) return;
@@ -713,12 +804,20 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
             // Заполняем выпадающие списки
             this.populateRoomSelect();
             this.populateUserSelect();
+            
+            // После создания элементов, загружаем из URL
+            // Добавлено 5.3
+            this._loadFromURL();
 
             // Обработчики
+            // При нажатии "Искать" вызываем _updateURL
             document.getElementById('adminMsgSearchBtn').addEventListener('click', () => {
                 this.searchOffset = 0;
                 this.loadMessagesWithFilters();
+                // Добавлено 5.3
+                this._updateURL(); 
             });
+            // При сбросе тоже обновляем URL            
             document.getElementById('adminMsgResetBtn').addEventListener('click', () => {
                 document.getElementById('adminMsgQuery').value = '';
                 document.getElementById('adminMsgRoom').value = '';
@@ -727,10 +826,26 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                 document.getElementById('adminMsgDateTo').value = '';
                 this.searchOffset = 0;
                 this.loadMessagesWithFilters();
+                // Добавлено 5.3                
+                this._updateURL();                
             });
         }
 
+        //Добавлено 5.3 (начало)
+        // Добавляем кнопки экспорта 
+        const exportDiv = document.createElement('div');
+        exportDiv.className = 'export-buttons';
+        exportDiv.innerHTML = `
+            <button onclick="window.adminPanel.exportSearchResults('json')">📥 JSON</button>
+            <button onclick="window.adminPanel.exportSearchResults('csv')">📥 CSV</button>
+            <button onclick="window.adminPanel.exportSearchResults('txt')">📥 TXT</button>
+        `;
+        const list = container.querySelector('.admin-message-list');
+        container.insertBefore(exportDiv, list);
+        //Добавлено 5.3 (окончание)
+
         // Пагинация
+        /* //Удалено 5.3
         let pagination = container.querySelector('.admin-search-pagination');
         if (!pagination) {
             pagination = document.createElement('div');
@@ -739,8 +854,58 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
             container.appendChild(pagination);
         }
         this.renderPagination();
+        */
     }
 
+   /* Добавлено в 5.3 */
+    async exportSearchResults(format = 'json') {
+        const query = document.getElementById('adminMsgQuery')?.value || '';
+        const roomId = document.getElementById('adminMsgRoom')?.value || '';
+        const userId = document.getElementById('adminMsgUser')?.value || '';
+        const dateFrom = document.getElementById('adminMsgDateFrom')?.value || '';
+        const dateTo = document.getElementById('adminMsgDateTo')?.value || '';
+        const params = { query, limit: 10000, offset: 0 };
+        if (roomId) params.roomId = roomId;
+        if (userId) params.userId = userId;
+        if (dateFrom) params.dateFrom = dateFrom;
+        if (dateTo) params.dateTo = dateTo;
+        const result = await this.app.apiService.adminSearchMessages(params);
+        if (!result.success) {
+            this.app.toast.error('Ошибка получения данных');
+            return;
+        }
+        const messages = result.results || [];
+        let content = '';
+        if (format === 'json') {
+            content = JSON.stringify(messages, null, 2);
+        } else if (format === 'csv') {
+            const headers = ['id', 'userName', 'roomName', 'content', 'timestamp'];
+            content = headers.join(',') + '\n';
+            messages.forEach(m => {
+                const row = headers.map(h => {
+                    let val = m[h] || '';
+                    if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+                        val = `"${val.replace(/"/g, '""')}"`;
+                    }
+                    return val;
+                });
+                content += row.join(',') + '\n';
+            });
+        } else if (format === 'txt') {
+            messages.forEach(m => {
+                content += `${m.timestamp} - ${m.userName}: ${m.content}\n`;
+            });
+        }
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `search_results.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.app.toast.success(`Экспортировано ${messages.length} сообщений`);
+    }
+        
     populateRoomSelect() {
         const select = document.getElementById('adminMsgRoom');
         if (!select) return;

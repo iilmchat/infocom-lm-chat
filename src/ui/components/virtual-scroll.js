@@ -4,11 +4,18 @@ import { CONFIG } from '../../config.js';
 /**
  * Виртуальный скролл для оптимизации отображения большого количества сообщений
  */
+/* Изменено в 5.3 — добавлены методы prependItems, updateItem, clear */
 export class VirtualScroll {
-    constructor(container, itemHeight = CONFIG.VIRTUAL_SCROLL.ITEM_HEIGHT, buffer = CONFIG.VIRTUAL_SCROLL.BUFFER) {
+    //constructor(container, itemHeight = CONFIG.VIRTUAL_SCROLL.ITEM_HEIGHT, buffer = CONFIG.VIRTUAL_SCROLL.BUFFER) {
+    constructor(container, options = {}) {    
         this.container = container;
-        this.itemHeight = itemHeight;
-        this.buffer = buffer;
+        this.itemHeight = options.itemHeight || 80;
+        this.buffer = options.buffer || 5;
+        this.renderItem = options.renderItem || ((item) => {
+            const div = document.createElement('div');
+            div.textContent = item.content;
+            return div;
+        });        
         this.items = [];
         this._visibleItems = new Map();
         this._rendered = new Set();
@@ -19,7 +26,8 @@ export class VirtualScroll {
         this._resizeObserver = null;
 
         this._initSpacers();
-        this.container.addEventListener('scroll', this._scrollListener);
+        //this.container.addEventListener('scroll', this._scrollListener);
+        this.container.addEventListener('scroll', this._onScroll.bind(this));        
         this._setupResizeObserver();
     }
 
@@ -155,13 +163,54 @@ export class VirtualScroll {
         this.scrollToBottom();
     }
 
+
+
+    /* Добавлено в 5.3 */
+    /**
+     * Добавляет элементы в начало списка (для подгрузки истории)
+     * @param {Array} items - массив элементов для добавления
+     */
+    prependItems(items) {
+        this.items = [...items, ...this.items];
+        this.totalHeight = this.items.length * this.itemHeight;
+        this._clearRendered();
+        this._updateSpacers();
+        this._renderVisible();
+    }
+
+    /* Добавлено в 5.3 */
+    /**
+     * Обновляет содержимое элемента по индексу (для стриминга)
+     * @param {number} index - индекс элемента
+     * @param {*} content - новое содержимое
+     */
+    updateItem(index, content) {
+        const el = this._visibleItems.get(index);
+        if (el) {
+            // Используем кастомный рендер или заменяем содержимое
+            // В нашем случае мы просто обновляем текст в bubble
+            const bubble = el.querySelector('.bubble');
+            if (bubble) {
+                // Очищаем и добавляем новое содержимое
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = content;
+                bubble.innerHTML = '';
+                bubble.appendChild(contentDiv);
+            }
+        }
+    }
+
+    /* Добавлено в 5.3 */
+    /**
+     * Полностью очищает все элементы
+     */
     clear() {
         this._clearRendered();
         this.items = [];
         this.totalHeight = 0;
         this._updateSpacers();
     }
-
+    
     destroy() {
         this.container.removeEventListener('scroll', this._scrollListener);
         if (this._resizeObserver) {
@@ -171,20 +220,7 @@ export class VirtualScroll {
         if (this._spacerTop) this._spacerTop.remove();
         if (this._spacerBottom) this._spacerBottom.remove();
     }
-
-    updateItem(index, content) {
-        const el = this._visibleItems.get(index);
-        if (el) {
-            const bubble = el.querySelector('.bubble');
-            if (bubble) {
-                const contentDiv = document.createElement('div');
-                contentDiv.textContent = content;
-                bubble.innerHTML = '';
-                bubble.appendChild(contentDiv);
-            }
-        }
-    }
-
+        
     scrollToBottom() {
         this.container.scrollTop = this.container.scrollHeight;
     }
