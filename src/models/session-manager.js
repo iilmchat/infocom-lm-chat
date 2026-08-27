@@ -343,7 +343,7 @@ export class SessionManager {
         return result;
     }
         
-    save() {
+    save_old() {
         try {
             const dataToSave = {
                 sessions: this.sessions,
@@ -354,7 +354,110 @@ export class SessionManager {
                 this.eventBus.emit('sessions:updated');
             }
         } catch (error) {
-            console.error('Ошибка при сохранении сессий чата:', error);
+            if (error.name === "QuotaExceededError" || error instanceof DOMException) {
+                console.error("Ошибка при сохранении сессии: превышен лимит хранилища", error);
+
+                // Очистка старых данных и повторная попытка
+                this.clearOldSessions();
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (retryError) {
+                    console.error("Ошибка при сохранении после очистки:", retryError);
+                }
+            } else        
+            {   
+                console.error('Ошибка при сохранении сессий чата:', error);
+            }
+        }
+    }
+
+    //обновленный метод save с обработкой ошибок
+    save() {
+        try {
+            const dataToSave = {
+                sessions: this.sessions,
+                currentId: this.currentId
+            };
+            
+            // Проверяем размер данных перед сохранением
+            const serializedData = JSON.stringify(dataToSave);
+            const dataSize = new Blob([serializedData]).size;
+            
+            // Если данные слишком большие, очищаем старые сессии
+            if (dataSize > 5 * 1024 * 1024) { // Примерно 5MB лимит
+                console.warn(`Данные размером "${dataSize}" превышают лимит, происходит очистка старых сессий`);
+                this.clearOldSessions();
+                
+                // Повторная попытка сохранения после очистки
+                try {
+                    localStorage.setItem('chat_sessions_v5', serializedData);
+                    if (this.eventBus) {
+                        this.eventBus.emit('sessions:updated');
+                    }
+                } catch (retryError) {
+                    console.error('Ошибка при повторном сохранении:', retryError);
+                    // Если все еще ошибка, показываем пользователю сообщение
+                    this.handleStorageExceeded();
+                }
+            } else {
+                localStorage.setItem('chat_sessions_v5', serializedData);
+                if (this.eventBus) {
+                    this.eventBus.emit('sessions:updated');
+                }
+            }
+        } catch (error) {
+            // Обработка ошибки QuotaExceededError
+            if (error.name === "QuotaExceededError" || error instanceof DOMException) {
+                console.error("Ошибка при сохранении сессии: превышен лимит хранилища", error);
+                
+                // Попытка очистить старые данные и повторить попытку
+                this.clearOldSessions();
+                try {
+                    localStorage.setItem('chat_sessions_v5', JSON.stringify({
+                        sessions: this.sessions,
+                        currentId: this.currentId
+                    }));
+                } catch (retryError) {
+                    console.error("Ошибка при сохранении после очистки:", retryError);
+                    this.handleStorageExceeded();
+                }
+            } else {
+                console.error('Ошибка при сохранении сессий чата:', error);
+            }
+        }
+    }
+
+    // Метод для обработки превышения лимита хранилища
+    handleStorageExceeded() {
+        // Показываем пользователю сообщение об ошибке
+        const errorEvent = new CustomEvent('storage-exceeded', {
+            detail: {
+                message: 'Превышен лимит хранилища. Некоторые старые сессии были удалены.'
+            }
+        });
+        
+        // Если есть eventBus, отправляем событие
+        if (this.eventBus) {
+            this.eventBus.emit('storage-exceeded', errorEvent);
+        } else {
+            // Альтернативное решение: показываем уведомление в интерфейсе
+            console.warn('Превышен лимит хранилища. Удалены старые сессии.');
+        }
+    }
+
+    // Добавляем метод для очистки старых сессий
+    clearOldSessions(maxSessions = 50) {
+        // Сортируем сессии по дате создания (новые первыми)
+        this.sessions.sort((a, b) => new Date(b.created) - new Date(a.created));
+        
+        // Оставляем только последние maxSessions сессий
+        if (this.sessions.length > maxSessions) {
+            this.sessions = this.sessions.slice(0, maxSessions);
+            
+            // Если текущая сессия была удалена, устанавливаем первую в списке как активную
+            if (this.currentId && !this.sessions.some(s => s.id === this.currentId)) {
+                this.currentId = this.sessions.length > 0 ? this.sessions[0].id : null;
+            }
         }
     }
 
