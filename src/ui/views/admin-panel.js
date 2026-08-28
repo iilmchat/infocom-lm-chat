@@ -14,7 +14,8 @@ import { sanitizeHTML } from '../../services/sanitizer.js';
 export class AdminPanel {
     constructor(app) {
         this.app = app;
-        this.modal = new Modal(document.getElementById('adminModal'));
+        //this.modal = new Modal(document.getElementById('adminModal'));
+        this.modal = new Modal(document.getElementById('app-admin'));
         this.users = [];
         this.rooms = [];
         this.messages = [];
@@ -861,12 +862,12 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
 
    /* Добавлено в 5.3 */
     async exportSearchResults(format = 'json') {
-        const query = document.getElementById('adminMsgQuery')?.value || '';
+        const query = document.getElementById('adminMsgQuery')?.value || '*';
         const roomId = document.getElementById('adminMsgRoom')?.value || '';
         const userId = document.getElementById('adminMsgUser')?.value || '';
         const dateFrom = document.getElementById('adminMsgDateFrom')?.value || '';
         const dateTo = document.getElementById('adminMsgDateTo')?.value || '';
-        const params = { query, limit: 10000, offset: 0 };
+        const params = { Query: query, Limit: 10000, offset: 0 };
         if (roomId) params.roomId = roomId;
         if (userId) params.userId = userId;
         if (dateFrom) params.dateFrom = dateFrom;
@@ -937,7 +938,7 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
      */
     async loadMessages() {
         const searchInput = document.getElementById('adminMsgSearch');
-        const query = searchInput?.value || '';
+        const query = searchInput?.value || '*';
 
         try {
             if (query.length < 2) {
@@ -946,8 +947,8 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
             }
 
             const result = await this.app.apiService.adminSearchMessages({
-                query: query,
-                limit: 100
+                Query: query,
+                Limit: 100
             });
 
             if (result.success) {
@@ -967,15 +968,15 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
     }
 
     async loadMessagesWithFilters() {
-        const query = document.getElementById('adminMsgQuery')?.value || '';
+        const query = document.getElementById('adminMsgQuery')?.value || '*';
         const roomId = document.getElementById('adminMsgRoom')?.value || '';
         const userId = document.getElementById('adminMsgUser')?.value || '';
         const dateFrom = document.getElementById('adminMsgDateFrom')?.value || '';
         const dateTo = document.getElementById('adminMsgDateTo')?.value || '';
 
         const params = {
-            query,
-            limit: this.searchLimit,
+            Query: query,
+            Limit: this.searchLimit,
             offset: this.searchOffset
         };
         if (roomId) params.roomId = roomId;

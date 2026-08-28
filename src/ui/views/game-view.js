@@ -11,7 +11,7 @@ import { BlockBlastGame } from '../../games/block-blast.js';
 export class GameView {
     constructor(app) {
         this.app = app;
-        this.modal = new Modal(document.getElementById('gameModal'));
+        this.modal = new Modal(document.getElementById('app-games'));
         this.container = document.getElementById('gameContainer');
         this.currentGame = null;
         this.currentGameType = '2048';
@@ -191,8 +191,8 @@ export class GameView {
         });
 
         // Закрытие по клику на overlay
-        document.getElementById('gameModal')?.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('gameModal')) {
+        document.getElementById('app-games')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('app-games')) {
                 this.close();
             }
         });

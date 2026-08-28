@@ -24,7 +24,8 @@ export class Router {
             const link = e.target.closest('[data-link]');
             if (link) {
                 e.preventDefault();
-                const href = link.getAttribute('href');
+                //const href = link.getAttribute('href');
+                const href = link.getAttribute('data-link');
                 if (href) {
                     this.navigate(href);
                 }

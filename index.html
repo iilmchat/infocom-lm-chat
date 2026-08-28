@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infocom LM Chat Pro · v5.3</title>
+    <title>Infocom LM Chat Pro · v6.0</title> <!-- Изменено в 6.0 -->
 
     <!-- ===== СТИЛИ ===== -->
     <link rel="stylesheet" href="src/styles/main.css">
@@ -35,458 +35,669 @@
     <!-- Основной контейнер приложения -->
     <div id="app">
         <!-- Копирайт -->
-        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v5.1</div>
+        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.0</div> <!-- Изменено в 6.0 -->
 
-        <!-- ===== SIDEBAR ===== -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <div class="sidebar" id="sidebar">
-            <!-- Заголовок боковой панели -->
-            <div class="sidebar-header">
-                <h3>💬 Диалоги</h3>
-                <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
-            </div>
-            <!--
-            <div class="sidebar-section">
-                <div class="section-header collapsed" onclick="toggleSection('statsPanel')"><span>📊 Статистика</span><span>▼</span></div>
-                <div class="section-content stats-panel collapsed" id="statsPanel">
-                    <div style="padding:8px 16px;font-size:11px;">
-                        <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
-                        <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
-                        <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
-                        <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
-                        <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
-                        <div class="rag-progress" id="ragProgress">
-                            <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
+        <!-- ============================================================ -->
+        <!-- ===== КОНТЕЙНЕР ОСНОВНОГО ЧАТА (по умолчанию виден) ===== -->
+        <!-- ============================================================ -->
+        <div id="app-chat" class="app-view active" style="display:flex; width:100%; height:100%;">
+            
+            <!-- ===== SIDEBAR ===== -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <div class="sidebar" id="sidebar">
+                <!-- Заголовок боковой панели -->
+                <div class="sidebar-header">
+                    <h3>💬 Диалоги</h3>
+                    <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
+                </div>
+                <!--
+                <div class="sidebar-section">
+                    <div class="section-header collapsed" onclick="toggleSection('statsPanel')"><span>📊 Статистика</span><span>▼</span></div>
+                    <div class="section-content stats-panel collapsed" id="statsPanel">
+                        <div style="padding:8px 16px;font-size:11px;">
+                            <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
+                            <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
+                            <div class="rag-progress" id="ragProgress">
+                                <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="sidebar-section">
-                <div class="section-header collapsed" onclick="toggleSection('usersOnlinePanel')"><span>👥 Пользователи</span><span>▼</span></div>
-                <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
-                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                        <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-section">
-                <div class="section-header collapsed" onclick="toggleSection('roadmapPanel')"><span>📊 Прогресс развития</span><span>▼</span></div>
-                <div class="section-content roadmap-panel collapsed" id="roadmapPanel">
-                    <div id="milestoneList"></div>
-                </div>
-            </div>
-            -->
-            <!-- В sidebar -->
-
-            <!-- ===== СТАТИСТИКА ===== -->
-            <div class="sidebar-section collapsed">
-                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
-                    <span class="section-icon">📊</span>
-                    <span class="section-title">Статистика</span>
-                    <span class="section-arrow">▶</span>
-                </div>
-                <div class="section-content collapsed" id="statsPanel">
-                    <div style="padding:8px 16px;font-size:11px;">
-                        <div class="stat-row">
-                            <span class="stat-label">💬 Сообщения</span>
-                            <span class="stat-value" id="statMessages">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">📎 Файлы</span>
-                            <span class="stat-value" id="statFiles">0</span>
-                        </div>   
-                        <div class="stat-row">
-                            <span class="stat-label">📚 RAG чанки</span>
-                            <span class="stat-value" id="statRagChunks">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">📊 RAG статус</span>
-                            <span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">🏆 Достижения</span>
-                            <span class="stat-value" id="statAchievements">0</span>
-                        </div>
-                        <div class="rag-progress" id="ragProgress">
-                            <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
+                <div class="sidebar-section">
+                    <div class="section-header collapsed" onclick="toggleSection('usersOnlinePanel')"><span>👥 Пользователи</span><span>▼</span></div>
+                    <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
+                        <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+                            <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ===== ОБЩИЕ КОМНАТЫ ===== -->
-            <!-- Добавлено в 5.1. -->
-            <div class="sidebar-section">
-                <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
-                    <span class="section-icon">💬</span>
-                    <span class="section-title">Общие комнаты</span>
-                    <span class="section-arrow">▶</span>
-                    <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
-                </div>
-                <div class="section-content rooms-panel collapsed" id="roomsPanel">
-                    <div style="padding:4px 8px;">
-                        <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
-                        <div id="roomList" style="margin-top:4px;"></div>
+                <div class="sidebar-section">
+                    <div class="section-header collapsed" onclick="toggleSection('roadmapPanel')"><span>📊 Прогресс развития</span><span>▼</span></div>
+                    <div class="section-content roadmap-panel collapsed" id="roadmapPanel">
+                        <div id="milestoneList"></div>
                     </div>
                 </div>
-            </div>
+                -->
+                <!-- В sidebar -->
 
-            <!-- ===== ПРИВАТНЫЕ ЧАТЫ ===== -->
-            <div class="sidebar-section">
-                <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
-                    <span class="section-icon">💬</span>
-                    <span class="section-title">Приватные чаты</span>
-                    <span class="section-arrow">▶</span>
-                    <button id="newPrivateChatBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
-                    <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
-                </div>
-                <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
-                    <div id="privateChatsList" style="padding:4px 8px;">
-                        <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
-                            Загрузка...
+                <!-- ===== СТАТИСТИКА ===== -->
+                <div class="sidebar-section collapsed">
+                    <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
+                        <span class="section-icon">📊</span>
+                        <span class="section-title">Статистика</span>
+                        <span class="section-arrow">▶</span>
+                    </div>
+                    <div class="section-content collapsed" id="statsPanel">
+                        <div style="padding:8px 16px;font-size:11px;">
+                            <div class="stat-row">
+                                <span class="stat-label">💬 Сообщения</span>
+                                <span class="stat-value" id="statMessages">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">📎 Файлы</span>
+                                <span class="stat-value" id="statFiles">0</span>
+                            </div>   
+                            <div class="stat-row">
+                                <span class="stat-label">📚 RAG чанки</span>
+                                <span class="stat-value" id="statRagChunks">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">📊 RAG статус</span>
+                                <span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">🏆 Достижения</span>
+                                <span class="stat-value" id="statAchievements">0</span>
+                            </div>
+                            <div class="rag-progress" id="ragProgress">
+                                <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ===== USERS ONLINE ===== -->
-             <!-- 
-            <div class="sidebar-section collapsed"">
-                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="usersOnlinePanel">
-                    <span class="section-icon">👥</span>
-                    <span class="section-title">Пользователи</span>
-                    <span class="section-arrow">▶</span>
-                </div>
-                <div class="section-content users-online-panel collapsed"" id="usersOnlinePanel">
-                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                        <span class="user-badge self">
-                            <span class="user-avatar">👤</span> Вы
-                        </span>                  
-                    </div>        
-                </div>
-            </div>
-            -->
-            <!-- Общие комнаты -->
-             <!-- 
-            <div class="sidebar-section">
-                <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
-                    <span class="section-icon">💬</span>
-                    <span class="section-title">Общие комнаты</span>
-                    <span class="section-arrow">▶</span>
-                    <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
-                </div>
-                <div class="section-content rooms-panel collapsed" id="roomsPanel">
-                    <div style="padding:4px 8px;">
-                        <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
-                        <div id="roomList" style="margin-top:4px;"></div>
+                <!-- ===== ОБЩИЕ КОМНАТЫ ===== -->
+                <!-- Добавлено в 5.1. -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
+                        <span class="section-icon">💬</span>
+                        <span class="section-title">Общие комнаты</span>
+                        <span class="section-arrow">▶</span>
+                        <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
                     </div>
-                </div>
-            </div>
-            -->
-
-            <!-- ===== ПОЛЬЗОВАТЕЛИ ОНЛАЙН ===== -->
-            <div class="sidebar-section">
-                <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
-                    <span class="section-icon">👥</span>
-                    <span class="section-title">Пользователи</span>
-                    <span class="section-arrow">▶</span>
-                </div>
-                <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
-                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                        <span class="user-badge self">
-                            <span class="user-avatar">👤</span> Вы
-                        </span>
-                    </div>
-                    <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
-                        <span id="userCountDisplay">👥 1 онлайн</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5.3 Внутри sidebar добавляем секцию Workspaces (перед общими комнатами) -->
-            <div class="sidebar-section">
-                <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
-                    <span class="section-icon">📁</span>
-                    <span class="section-title">Рабочие пространства</span>
-                    <span class="section-arrow">▶</span>
-                    <button id="createWorkspaceBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
-                </div>
-                <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
-                    <div id="workspaceList" style="padding:4px 8px;"></div>
-                </div>
-            </div>
-
-            <!-- ===== ПРОГРЕСС РАЗВИТИЯ ===== -->
-            <div class="sidebar-section collapsed">
-                <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
-                    <span class="section-icon">📊</span>
-                    <span class="section-title">Прогресс развития</span>
-                    <span class="section-arrow">▶</span>
-                </div>         
-                <div class="section-content collapsed" id="roadmapPanel">
-                    <div id="milestoneList"></div>
-                </div>
-            </div>
-
-            <!-- ===== ТЕСТЫ ===== -->
-            <div class="test-panel" id="testPanel">
-                <h4>🧪 Тесты <button onclick="window.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
-                <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
-            </div>
-
-            <!-- ===== ПОИСК ДИАЛОГОВ ===== -->
-            <div class="search-chats"><input type="text" id="chatSearch" placeholder="🔍 Поиск диалогов..."></div>
-            <div class="chat-list" id="chatList"></div>
-        </div>
-
-        <!-- ===== MAIN CONTAINER ===== -->
-        <div class="main-container" id="mainContainer">
-            <!-- Drag-and-Drop Overlay -->
-            <div class="drag-overlay" id="dragOverlay">
-                <div class="drag-icon" id="dragIcon">📚</div>
-                <div class="drag-text">Отпустите файлы для загрузки</div>
-                <div class="drag-subtext">
-                    Выберите режим клавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
-                </div>
-
-                <div class="drag-mode-selector" id="dragModeSelector">
-                    <label class="selected" id="dragModeAttachment" data-mode="attachment">
-                        <span class="mode-icon">📎</span>
-                        <div>
-                            <div class="mode-label">Вложение</div>
-                            <span class="mode-desc">Прикрепить к сообщению</span>
+                    <div class="section-content rooms-panel collapsed" id="roomsPanel">
+                        <div style="padding:4px 8px;">
+                            <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
+                            <div id="roomList" style="margin-top:4px;"></div>
                         </div>
-                        <span class="mode-hotkey"><kbd>1</kbd></span>
-                    </label>
-                    <label id="dragModeRag" data-mode="rag">
-                        <span class="mode-icon">📚</span>
-                        <div>
-                            <div class="mode-label">RAG документ</div>
-                            <span class="mode-desc">Добавить в контекст</span>
-                        </div>
-                        <span class="mode-hotkey"><kbd>2</kbd></span>
-                    </label>
+                    </div>
                 </div>
-                <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
-                <div class="drag-files-preview" id="dragFilesPreview"></div>
-                <div class="drag-progress" id="dragProgress">
-                    <div class="drag-progress-fill" id="dragProgressFill"></div>
-                </div>
-                <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
-            </div>     
 
-            <!-- DRAG-DROP OVERLAY -->
-             <!-- 
-            <div class="drag-overlay" id="dragOverlay">
-                <div class="drag-icon" id="dragIcon">📚</div>
-                <div class="drag-text">Отпустите файлы для загрузки</div>
-                <div class="drag-subtext">Выберите режим наведением или клавишами <kbd>1</kbd> <kbd>2</kbd></div>
-                <div class="drag-mode-selector" id="dragModeSelector">
-                    <label class="selected" id="dragModeAttachment" data-mode="rag">
-                        <span class="mode-icon">📎</span>
-                        <div><div class="mode-label">Вложение</div><span class="mode-desc">Прикрепить к сообщению</span></div>
-                        <span class="mode-hotkey"><kbd>1</kbd></span>
-                    </label>
-                    <label id="dragModeRag" data-mode="rag">
-                        <span class="mode-icon">📚</span>
-                        <div><div class="mode-label">RAG документ</div><span class="mode-desc">Добавить в контекст</span></div>
-                        <span class="mode-hotkey"><kbd>2</kbd></span>
-                    </label>
+                <!-- ===== ПРИВАТНЫЕ ЧАТЫ ===== -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
+                        <span class="section-icon">💬</span>
+                        <span class="section-title">Приватные чаты</span>
+                        <span class="section-arrow">▶</span>
+                        <button id="newPrivateChatBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
+                        <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
+                    </div>
+                    <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
+                        <div id="privateChatsList" style="padding:4px 8px;">
+                            <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
+                                Загрузка...
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
-                <div class="drag-files-preview" id="dragFilesPreview"></div>
-                <div class="drag-progress" id="dragProgress">
-                    <div class="drag-progress-fill" id="dragProgressFill"></div>
+
+                <!-- ===== ПОЛЬЗОВАТЕЛИ ОНЛАЙН ===== -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
+                        <span class="section-icon">👥</span>
+                        <span class="section-title">Пользователи</span>
+                        <span class="section-arrow">▶</span>
+                    </div>
+                    <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
+                        <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+                            <span class="user-badge self">
+                                <span class="user-avatar">👤</span> Вы
+                            </span>
+                        </div>
+                        <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
+                            <span id="userCountDisplay">👥 1 онлайн</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
+
+                <!-- 5.3 Внутри sidebar добавляем секцию Workspaces (перед общими комнатами) -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
+                        <span class="section-icon">📁</span>
+                        <span class="section-title">Рабочие пространства</span>
+                        <span class="section-arrow">▶</span>
+                        <button id="createWorkspaceBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
+                    </div>
+                    <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
+                        <div id="workspaceList" style="padding:4px 8px;"></div>
+                    </div>
+                </div>
+
+                <!-- ===== ПРОГРЕСС РАЗВИТИЯ ===== -->
+                <div class="sidebar-section collapsed">
+                    <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
+                        <span class="section-icon">📊</span>
+                        <span class="section-title">Прогресс развития</span>
+                        <span class="section-arrow">▶</span>
+                    </div>         
+                    <div class="section-content collapsed" id="roadmapPanel">
+                        <div id="milestoneList"></div>
+                    </div>
+                </div>
+
+                <!-- ===== ТЕСТЫ ===== -->
+                <div class="test-panel" id="testPanel">
+                    <h4>🧪 Тесты <button onclick="window.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
+                    <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
+                </div>
+
+                <!-- ===== ПОИСК ДИАЛОГОВ ===== -->
+                <div class="search-chats"><input type="text" id="chatSearch" placeholder="🔍 Поиск диалогов..."></div>
+                <div class="chat-list" id="chatList"></div>
             </div>
+
+            <!-- ===== MAIN CONTAINER ===== -->
+            <div class="main-container" id="mainContainer">
+                <!-- Drag-and-Drop Overlay -->
+                <div class="drag-overlay" id="dragOverlay">
+                    <div class="drag-icon" id="dragIcon">📚</div>
+                    <div class="drag-text">Отпустите файлы для загрузки</div>
+                    <div class="drag-subtext">
+                        Выберите режим клавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
+                    </div>
+
+                    <div class="drag-mode-selector" id="dragModeSelector">
+                        <label class="selected" id="dragModeAttachment" data-mode="attachment">
+                            <span class="mode-icon">📎</span>
+                            <div>
+                                <div class="mode-label">Вложение</div>
+                                <span class="mode-desc">Прикрепить к сообщению</span>
+                            </div>
+                            <span class="mode-hotkey"><kbd>1</kbd></span>
+                        </label>
+                        <label id="dragModeRag" data-mode="rag">
+                            <span class="mode-icon">📚</span>
+                            <div>
+                                <div class="mode-label">RAG документ</div>
+                                <span class="mode-desc">Добавить в контекст</span>
+                            </div>
+                            <span class="mode-hotkey"><kbd>2</kbd></span>
+                        </label>
+                    </div>
+                    <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
+                    <div class="drag-files-preview" id="dragFilesPreview"></div>
+                    <div class="drag-progress" id="dragProgress">
+                        <div class="drag-progress-fill" id="dragProgressFill"></div>
+                    </div>
+                    <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
+                </div>     
+
+                <!-- DRAG-DROP OVERLAY (закомментирован, оставлен на случай) -->
+                <!-- 
+                <div class="drag-overlay" id="dragOverlay">
+                    <div class="drag-icon" id="dragIcon">📚</div>
+                    <div class="drag-text">Отпустите файлы для загрузки</div>
+                    <div class="drag-subtext">Выберите режим наведением или клавишами <kbd>1</kbd> <kbd>2</kbd></div>
+                    <div class="drag-mode-selector" id="dragModeSelector">
+                        <label class="selected" id="dragModeAttachment" data-mode="rag">
+                            <span class="mode-icon">📎</span>
+                            <div><div class="mode-label">Вложение</div><span class="mode-desc">Прикрепить к сообщению</span></div>
+                            <span class="mode-hotkey"><kbd>1</kbd></span>
+                        </label>
+                        <label id="dragModeRag" data-mode="rag">
+                            <span class="mode-icon">📚</span>
+                            <div><div class="mode-label">RAG документ</div><span class="mode-desc">Добавить в контекст</span></div>
+                            <span class="mode-hotkey"><kbd>2</kbd></span>
+                        </label>
+                    </div>
+                    <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
+                    <div class="drag-files-preview" id="dragFilesPreview"></div>
+                    <div class="drag-progress" id="dragProgress">
+                        <div class="drag-progress-fill" id="dragProgressFill"></div>
+                    </div>
+                    <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
+                </div>
                 -->
 
-            <!-- MULTI-USER BAR -->
-            <!-- Collaboration Bar (под шапкой) -->             
-            <div class="collaboration-bar" id="collaborationBar">
-                <span>👥 Совместная работа:</span>
-                <div class="collab-users" id="collabUsers"></div>
-                <div class="typing-notification" id="typingNotification"></div>
-            </div>
-
-            <!-- Assistant Bar -->
-            <div class="assistant-bar" id="assistantBar"></div>
-
-            <!-- ===== HEADER ===== -->
-            <div class="chat-header">
-                <div class="header-left">
-                    <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
-                    <span>💻 Infocom LM Chat Pro v5.3</span>
-                    <span class="active-assistant-indicator" id="activeAssistantIndicator">
-                        <span id="activeAssistantIcon"></span>
-                        <span id="activeAssistantName"></span>
-                        <button onclick="window.__APP?.assistantManager.deactivate();">✕</button>
-                    </span>
-                    <span class="model-badge" id="modelBadge">
-                        <span id="currentModelLabel">Модель: загрузка...</span>
-                        <span class="arrow">▼</span>
-                        <div class="model-dropdown" id="modelDropdown"></div>
-                    </span>
-                    <span class="perf-indicator" id="perfIndicator"></span>
+                <!-- MULTI-USER BAR -->
+                <!-- Collaboration Bar (под шапкой) -->             
+                <div class="collaboration-bar" id="collaborationBar">
+                    <span>👥 Совместная работа:</span>
+                    <div class="collab-users" id="collabUsers"></div>
+                    <div class="typing-notification" id="typingNotification"></div>
                 </div>
 
-                <!-- ===== HEADER ACTIONS ===== -->
-                <!-- Кнопка подключения в шапке -->                
-                <div class="header-actions">
-                    <!-- Добавлено в 5.1: Кнопка уведомлений -->
-                    <button id="notificationBtn" title="Уведомления" aria-label="Уведомления" style="position:relative;">
-                        🔔
-                        <span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:red;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;">0</span>
-                    </button>   
+                <!-- Assistant Bar -->
+                <div class="assistant-bar" id="assistantBar"></div>
 
-                    <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
-                    <!-- Добавлено в 5.3: Кнопка Приватный чат -->
-                    <button id="privateChatBtn" title="Приватный чат">👥<span class="tooltip">Приватный чат</span></button>   
+                <!-- ===== HEADER ===== -->
+                <div class="chat-header">
+                    <div class="header-left">
+                        <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
+                        <span>💻 Infocom LM Chat Pro v6.0</span> <!-- Изменено в 6.0 -->
+                        <span class="active-assistant-indicator" id="activeAssistantIndicator">
+                            <span id="activeAssistantIcon"></span>
+                            <span id="activeAssistantName"></span>
+                            <button onclick="window.__APP?.assistantManager.deactivate();">✕</button>
+                        </span>
+                        <span class="model-badge" id="modelBadge">
+                            <span id="currentModelLabel">Модель: загрузка...</span>
+                            <span class="arrow">▼</span>
+                            <div class="model-dropdown" id="modelDropdown"></div>
+                        </span>
+                        <span class="perf-indicator" id="perfIndicator"></span>
+                    </div>
 
-                    <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button>                    
-                    <button id="gameBtn" title="Игры">🎮</button>
+                    <!-- ===== HEADER ACTIONS ===== -->
+                    <!-- Кнопка подключения в шапке -->                
+                    <div class="header-actions">
+                        <!-- Добавлено в 5.1: Кнопка уведомлений -->
+                        <button id="notificationBtn" title="Уведомления" aria-label="Уведомления" style="position:relative;">
+                            🔔
+                            <span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:red;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;">0</span>
+                        </button>   
+                        <!-- Удалено в 6.0    
+                        <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
+                        -->
+                        <!-- Добавлено в 5.3: Кнопка Приватный чат -->
+                        <button id="privateChatBtn" title="Приватный чат">👥<span class="tooltip">Приватный чат</span></button>   
+                        <!-- Удалено в 6.0
+                        <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button> 
+                        -->
+                        <!-- Удалено в 6.0                   
+                        <button id="gameBtn" title="Игры">🎮</button>
+                        -->
 
-                    <!-- Добавлено в 5.1: Кнопка аналитики -->
-                    <button id="analyticsBtn" title="Аналитика">📊<span class="tooltip">Аналитика</span></button>
+                         <!-- Добавлено в 6.0: Они будут обрабатываться роутером через data-link -->    
+                        <button id="chatNavBtn" class="nav-btn active" data-link="/">💬 Чат с ИИ</button>
+                        <button id="privateNavBtn" class="nav-btn" data-link="/private">👥 Приватные</button>
+                        <button id="adminNavBtn" class="nav-btn" data-link="/admin">🛡️ Админ</button>
+                        <button id="gamesNavBtn" class="nav-btn" data-link="/games">🎮 Игры</button>
+                        <button id="profileNavBtn" class="nav-btn" data-link="/profile">👤 Профиль</button>   
 
-                    <!-- Существующие кнопки -->
-                    <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
-                        🌐<span class="tooltip">Подключиться</span>
-                    </button>
-                    <button id="roomInfoBtn" title="Информация о комнате" aria-label="Информация о комнате">
-                        ℹ️<span class="tooltip">Комната</span>
-                    </button>
-                    <!-- ... остальные кнопки -->                               
-                    <button id="shareBtn" title="Поделиться">🔗</button>
-                    <button class="info-btn" id="wikiBtn" title="Вики" aria-label="Открыть вики">📖</button>
-                    <button class="info-btn" id="suggestionsBtn" title="Предложения" aria-label="Предложения">💡</button>
-                    <button class="info-btn" id="achievementsBtn" title="Достижения" aria-label="Достижения">🏆</button>
-                    <button id="themeBtn" title="Сменить тему" aria-label="Сменить тему">🎨<span class="tooltip">Тема</span></button>
-                    <button id="clearRagBtn" class="clear-rag-btn" title="Очистить RAG контекст" aria-label="Очистить RAG">🗑️ RAG</button>
-                    <button id="exportBtn" title="Экспорт" aria-label="Экспорт (Ctrl+E)">💾<span class="tooltip">Экспорт (Ctrl+E)</span></button>
-                    <button id="serverSettingsBtn" title="Настройки сервера" aria-label="Настройки сервера">⚙️<span class="tooltip">Настройки сервера</span></button>
-    
-                    <span class="status" id="statusDisplay">● Подключение...</span>
+                        <!-- Добавлено в 5.1: Кнопка аналитики -->
+                        <button id="analyticsBtn" title="Аналитика">📊<span class="tooltip">Аналитика</span></button>
+
+                        <!-- Существующие кнопки -->
+                        <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
+                            🌐<span class="tooltip">Подключиться</span>
+                        </button>
+                        <button id="roomInfoBtn" title="Информация о комнате" aria-label="Информация о комнате">
+                            ℹ️<span class="tooltip">Комната</span>
+                        </button>
+                        <!-- ... остальные кнопки -->                               
+                        <button id="shareBtn" title="Поделиться">🔗</button>
+                        <button class="info-btn" id="wikiBtn" title="Вики" aria-label="Открыть вики">📖</button>
+                        <button class="info-btn" id="suggestionsBtn" title="Предложения" aria-label="Предложения">💡</button>
+                        <button class="info-btn" id="achievementsBtn" title="Достижения" aria-label="Достижения">🏆</button>
+                        <button id="themeBtn" title="Сменить тему" aria-label="Сменить тему">🎨<span class="tooltip">Тема</span></button>
+                        <button id="clearRagBtn" class="clear-rag-btn" title="Очистить RAG контекст" aria-label="Очистить RAG">🗑️ RAG</button>
+                        <button id="exportBtn" title="Экспорт" aria-label="Экспорт (Ctrl+E)">💾<span class="tooltip">Экспорт (Ctrl+E)</span></button>
+                        <button id="serverSettingsBtn" title="Настройки сервера" aria-label="Настройки сервера">⚙️<span class="tooltip">Настройки сервера</span></button>
+        
+                        <span class="status" id="statusDisplay">● Подключение...</span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ===== MODALS ===== -->
+                <!-- ===== MODALS (остаются только всплывающие) ===== -->
 
-            <!-- Room Info Modal -->
-            <div class="modal-overlay" id="roomInfoModal">
-                <div class="modal-content" style="max-width:400px;">
-                    <button class="modal-close" id="roomInfoModalClose">✕</button>
-                    <h2>ℹ️ Информация о комнате</h2>
-                    <div id="roomInfoContent">
-                        <p><strong>ID:</strong> <span id="roomInfoId">—</span></p>
-                        <p><strong>Название:</strong> <span id="roomInfoName">—</span></p>
-                        <p><strong>Пользователей:</strong> <span id="roomInfoUsers">0</span></p>
-                        <p><strong>Сообщений:</strong> <span id="roomInfoMessages">0</span></p>
-                        <p><strong>Статус:</strong> <span id="roomInfoStatus">Отключен</span></p>
+                <!-- Room Info Modal -->
+                <div class="modal-overlay" id="roomInfoModal">
+                    <div class="modal-content" style="max-width:400px;">
+                        <button class="modal-close" id="roomInfoModalClose">✕</button>
+                        <h2>ℹ️ Информация о комнате</h2>
+                        <div id="roomInfoContent">
+                            <p><strong>ID:</strong> <span id="roomInfoId">—</span></p>
+                            <p><strong>Название:</strong> <span id="roomInfoName">—</span></p>
+                            <p><strong>Пользователей:</strong> <span id="roomInfoUsers">0</span></p>
+                            <p><strong>Сообщений:</strong> <span id="roomInfoMessages">0</span></p>
+                            <p><strong>Статус:</strong> <span id="roomInfoStatus">Отключен</span></p>
+                        </div>
+                        <div class="modal-actions" style="margin-top:12px;">
+                            <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+                            <!-- Удалено в 5.4: кнопка дублирует roomInfoLeaveBtn -->
+                            <!-- <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button> -->
+                            <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
+                        </div>
                     </div>
-                    <div class="modal-actions" style="margin-top:12px;">
-                        <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
-                        <!-- Удалено в 5.4: кнопка дублирует roomInfoLeaveBtn -->
-                        <!-- <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button> -->
-                        <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
-                    </div>
+                </div>           
+                
+                <!-- ===== USER MODAL (идентификация) - Удалено в 6.0 ===== -->
+                <!--
+                <div class="modal-overlay" id="userModal">
+                    ...
                 </div>
-            </div>           
-            
-            <!-- User Modal (профиль) -->
-            <!-- ===== USER MODAL (идентификация) ===== -->
-             <!-- 5.4
-            <div class="modal-overlay" id="userModal">
-                <div class="modal-content" style="max-width:450px;">
-                    <button class="modal-close" id="userModalClose">✕</button>
-                    <h2>👤 Ваш профиль</h2>
-                    
-                    <div class="user-preview" id="userPreview" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--text-accent);margin-bottom:16px;">
-                        <span id="userPreviewAvatar" style="font-size:48px;">👤</span>
-                        <div>
-                            <div id="userPreviewName" style="font-size:18px;font-weight:600;">Пользователь</div>
-                            <div style="font-size:12px;color:var(--text-secondary);">Ваш профиль</div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Имя пользователя</label>
-                        <input type="text" id="userNameInput" placeholder="Введите имя..." maxlength="20">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Аватар (эмодзи)</label>
-                        <div class="avatar-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😊</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😎</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🤖</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🦊</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐱</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐶</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐼</span>
-                            <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🦁</span>
-                        </div>
-                        <input type="text" id="userAvatarInput" placeholder="👤" maxlength="2" style="width:60px;">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Цвет</label>
-                        <div class="color-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                            <span class="color-preset-option selected" data-color="#7ec8e3" style="width:28px;height:28px;border-radius:50%;background:#7ec8e3;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#4caf50" style="width:28px;height:28px;border-radius:50%;background:#4caf50;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#9b4dca" style="width:28px;height:28px;border-radius:50%;background:#9b4dca;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#f0db4f" style="width:28px;height:28px;border-radius:50%;background:#f0db4f;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#dd0031" style="width:28px;height:28px;border-radius:50%;background:#dd0031;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#ff69b4" style="width:28px;height:28px;border-radius:50%;background:#ff69b4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#ff9800" style="width:28px;height:28px;border-radius:50%;background:#ff9800;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                            <span class="color-preset-option" data-color="#00bcd4" style="width:28px;height:28px;border-radius:50%;background:#00bcd4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        </div>
-                        <input type="color" id="userColorInput" value="#7ec8e3" style="width:60px;height:40px;border:none;border-radius:8px;cursor:pointer;">
-                    </div>
-                    
-                    <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
-                        <button class="btn-secondary" id="userCancelBtn">Отмена</button>
-                        <button class="btn-primary" id="userSaveBtn">💾 Сохранить</button>
+                -->
+
+                <!-- ===== PRIVATE CHAT MODAL ===== -->
+                <div class="modal-overlay" id="privateChatModal">
+                    <div class="modal-content" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
+                        <button class="modal-close" id="privateChatClose">✕</button>
+                        <h2 id="privateChatTitle">💬 Приватный чат</h2>
                         
-                        <button class="btn-secondary" id="userLogoutBtn" style="background:var(--error-color);color:#fff;">🚪 Выйти</button>
+                        <div class="private-messages" id="privateMessages" style="flex:1;overflow-y:auto;padding:12px 0;min-height:300px;max-height:400px;">
+                            <!-- Сообщения будут здесь -->
+                        </div>
+                        
+                        <div class="private-input-area" style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);">
+                            <textarea id="privateMessageInput" placeholder="Введите сообщение..." rows="2" style="flex:1;padding:8px 12px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);resize:none;font-family:inherit;"></textarea>
+                            <button id="privateSendBtn" style="padding:8px 20px;border:none;border-radius:12px;background:var(--send-btn-bg);color:#fff;cursor:pointer;font-weight:600;">Отправить</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            -->
 
-            <!-- ===== PRIVATE CHAT MODAL ===== -->
-            <div class="modal-overlay" id="privateChatModal">
-                <div class="modal-content" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
-                    <button class="modal-close" id="privateChatClose">✕</button>
-                    <h2 id="privateChatTitle">💬 Приватный чат</h2>
-                    
-                    <div class="private-messages" id="privateMessages" style="flex:1;overflow-y:auto;padding:12px 0;min-height:300px;max-height:400px;">
-                        <!-- Сообщения будут здесь -->
-                    </div>
-                    
-                    <div class="private-input-area" style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);">
-                        <textarea id="privateMessageInput" placeholder="Введите сообщение..." rows="2" style="flex:1;padding:8px 12px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);resize:none;font-family:inherit;"></textarea>
-                        <button id="privateSendBtn" style="padding:8px 20px;border:none;border-radius:12px;background:var(--send-btn-bg);color:#fff;cursor:pointer;font-weight:600;">Отправить</button>
+                <!-- ===== ADMIN MODAL - Удалено в 6.0 (перенесено в #app-admin) ===== -->
+                <!--            
+                <div class="modal-overlay" id="adminModal">
+                    ...
+                </div>
+                -->
+
+                <!-- Server Settings Modal -->
+                <div class="modal-overlay server-settings-modal" id="serverSettingsModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="serverSettingsClose">✕</button>
+                        <h2>⚙️ Настройки сервера</h2>
+                        <div class="form-group">
+                            <label for="serverIpInput">IP-адрес сервера </label><input type="text" id="serverIpInput" placeholder="localhost">
+                            <label for="serverIpLMInput">IP-адрес сервера с моделью</label><input type="text" id="serverIpLMInput" placeholder="222.1.1.31">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label for="serverPortInput">Порт</label><input type="number" id="serverPortInput" placeholder="8032" min="1" max="65535"></div>
+                            <div class="form-group"><label for="serverPortLMInput">Порт</label><input type="number" id="serverPortLMInput" placeholder="8034" min="1" max="65535"></div>
+                            <div class="form-group"><label for="serverTimeoutInput">Таймаут (сек)</label><input type="number" id="serverTimeoutInput" placeholder="60" min="5" max="300"></div>
+                            <div class="form-group"><label for="serverMaxTokensInput">Макс. токенов</label><input type="number" id="serverMaxTokensInput" placeholder="2048" min="256" max="8192"></div>
+                        </div>
+                        <div class="form-group"><label for="serverApiPathInput">Путь к API</label><input type="text" id="serverApiPathInput" placeholder="/v1/chat/completions"></div>
+                        <div class="test-result" id="serverTestResult"></div>
+                        <div class="modal-actions">
+                            <button class="btn-secondary" id="serverTestBtn">🔍 Проверить</button>
+                            <button class="btn-secondary" id="serverResetBtn">↺ Сбросить</button>
+                            <button class="btn-primary" id="serverSaveBtn">💾 Сохранить</button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ===== ADMIN MODAL ===== -->
-            <div class="modal-overlay" id="adminModal">
-                <div class="modal-content" style="max-width:600px;max-height:80vh;overflow-y:auto;">
-                    <button class="modal-close" id="adminModalClose">✕</button>
+                <!-- Share Modal -->
+                <div class="modal-overlay share-modal" id="shareModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="shareModalClose">✕</button>
+                        <h2>🔗 Поделиться чатом</h2>
+                        <div class="share-method">
+                            <h4>📋 Прямая ссылка</h4>
+                            <div class="share-url-box"><input type="text" id="shareUrl" readonly><button onclick="window.__APP?.copyShareUrl()">📋 Копировать</button></div>
+                        </div>
+                        <div class="share-method">
+                            <h4>📱 QR-код</h4>
+                            <div id="qrCodeContainer"></div>
+                        </div>
+                        <div class="share-method">
+                            <h4>👥 Активные пользователи</h4>
+                            <div id="activeUsers"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Modal -->
+                <div class="modal-overlay" id="promptModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="promptModalClose">✕</button>
+                        <h2>📋 Системный промт ассистента</h2>
+                        <div class="prompt-viewer" id="promptContent"></div>
+                        <div class="prompt-actions">
+                            <button class="btn-secondary" id="copyPromptBtn">📋 Копировать</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Assistant Modal -->
+                <div class="modal-overlay" id="customAssistantModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="customAssistantModalClose">✕</button>
+                        <h2>🔧 Создать кастомного ассистента</h2>
+                        <div class="form-group"><label>Название</label><input type="text" id="caName" placeholder="Мой ассистент"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Иконка (эмодзи)</label><input type="text" id="caIcon" placeholder="🤖" maxlength="2"></div>
+                            <div class="form-group"><label>Краткое описание</label><input type="text" id="caDesc" placeholder="Описание..."></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Цвет</label>
+                            <div class="color-picker-row" id="colorPicker">
+                                <span class="color-preset" style="background:#7ec8e3;" data-color="#7ec8e3"></span>
+                                <span class="color-preset" style="background:#4caf50;" data-color="#4caf50"></span>
+                                <span class="color-preset" style="background:#9b4dca;" data-color="#9b4dca"></span>
+                                <span class="color-preset" style="background:#f0db4f;" data-color="#f0db4f"></span>
+                                <span class="color-preset" style="background:#dd0031;" data-color="#dd0031"></span>
+                                <span class="color-preset" style="background:#3776ab;" data-color="#3776ab"></span>
+                                <span class="color-preset" style="background:#ff69b4;" data-color="#ff69b4"></span>
+                                <span class="color-preset" style="background:#ff9800;" data-color="#ff9800"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Системный промт</label>
+                            <textarea id="caPrompt" placeholder="Ты — полезный ассистент..."></textarea>
+                        </div>
+                        <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;">
+                            <button class="btn-secondary" id="caCancelBtn">Отмена</button>
+                            <button class="btn-primary" id="caSaveBtn">💾 Создать</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Modal -->
+                <div class="modal-overlay" id="exportModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="exportModalClose">✕</button>
+                        <h2>💾 Экспорт диалога</h2>
+                        <div class="export-options">
+                            <button data-format="txt">📄 TXT</button>
+                            <button data-format="json">📊 JSON</button>
+                            <button data-format="markdown">📝 Markdown</button>
+                            <button data-format="pdf">📕 PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Modal (Wiki, Suggestions, Achievements) -->
+                <div class="modal-overlay" id="infoModal">
+                    <div class="modal-content">
+                        <button class="modal-close" id="infoModalClose">✕</button>
+                        <div class="modal-tabs" id="infoModalTabs">
+                            <button class="active" data-tab="wiki" role="tab" aria-selected="true">📖 Вики</button>
+                            <button data-tab="suggestions" role="tab" aria-selected="false">💡 Предложения</button>
+                            <button data-tab="achievements" role="tab" aria-selected="false">🏆 Достижения</button>
+                        </div>
+                        <!-- Wiki Tab -->
+                        <div class="modal-tab-content active" id="tab-wiki" role="tabpanel">
+                            <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v6.0</span></h2> <!-- Изменено в 6.0 -->
+                            <p style="color:var(--text-secondary);margin-bottom:12px;">Последнее обновление: 2026</p>
+                            <p>Современный веб-чат с настраиваемым сервером, групповыми чатами, улучшенной обработкой ошибок и кастомными ассистентами.</p>
+                            <hr class="divider">
+                            <h3>🆕 Новое в v6.0</h3> <!-- Добавлено в 6.0 -->
+                            <ul>
+                                <li><strong>🏗️ SPA-роутинг</strong> — разделение на страницы: чат, админка, игры, профиль</li>
+                                <li><strong>⚡ Динамическая загрузка</strong> — модули подгружаются по требованию</li>
+                                <li><strong>📱 Улучшенная навигация</strong> — переходы между разделами без перезагрузки</li>
+                            </ul>
+                            <hr class="divider">
+                            <h3>🆕 Новое в v5.1</h3>
+                            <ul>
+                                <li><strong>💬 Ответы на сообщения</strong> — кликните по сообщению → кнопка "↩️ Ответить"</li>
+                                <li><strong>🏆 8 новых достижений</strong> — теперь их 20!</li>
+                                <li><strong>🔧 Исправлена ошибка</strong> с определением bash в подсветке синтаксиса</li>
+                                <li><strong>⚙️ Настройка сервера</strong> — IP, порт, таймаут, путь к API</li>
+                                <li><strong>👥 Групповые чаты</strong> — разные модели для разных диалогов</li>
+                                <li><strong>🛡️ Глобальная обработка ошибок</strong> — красивое отображение с деталями</li>
+                                <li><strong>🛡️ XSS-защита</strong> — санитизация пользовательского ввода</li>
+                                <li><strong>♿ Доступность</strong> — ARIA-атрибуты, навигация с клавиатуры</li>
+                            </ul>
+                            <hr class="divider">
+                            <h3>🔧 Функции</h3>
+                            <div class="feature-grid">
+                                <div class="feature-item"><span class="icon">📚</span> RAG — загрузка документов</div>
+                                <div class="feature-item"><span class="icon">✏️</span> Редактирование сообщений</div>
+                                <div class="feature-item"><span class="icon">↻</span> Перегенерация ответов</div>
+                                <div class="feature-item"><span class="icon">💬</span> Ответы на сообщения</div>
+                                <div class="feature-item"><span class="icon">🔍</span> Code Review</div>
+                                <div class="feature-item"><span class="icon">🧪</span> Генерация тестов</div>
+                                <div class="feature-item"><span class="icon">🎨</span> Три темы оформления</div>
+                                <div class="feature-item"><span class="icon">🏆</span> 20 достижений</div>
+                                <div class="feature-item"><span class="icon">💾</span> Экспорт диалогов</div>
+                                <div class="feature-item"><span class="icon">🔍</span> Подсветка синтаксиса</div>
+                            </div>
+                            <hr class="divider">
+                            <h3>⌨️ Горячие клавиши</h3>
+                            <ul>
+                                <li><kbd>Ctrl+Enter</kbd> — отправить сообщение</li>
+                                <li><kbd>Shift+Enter</kbd> — новая строка</li>
+                                <li><kbd>Escape</kbd> — закрыть модальное окно / отменить ответ</li>
+                                <li><kbd>/</kbd> — фокус на поле ввода</li>
+                                <li><kbd>Ctrl+W</kbd> — открыть/закрыть информацию</li>
+                                <li><kbd>Ctrl+E</kbd> — экспорт</li>
+                            </ul>
+                        </div>
+                        <!-- Suggestions Tab -->
+                        <div class="modal-tab-content" id="tab-suggestions" role="tabpanel">
+                            <h2>💡 Предложения по улучшению</h2>
+                            <h3>✅ Уже реализовано</h3>
+                            <ul>
+                                <li>✅ Редактирование сообщений</li>
+                                <li>✅ Повторная генерация</li>
+                                <li>✅ Подсветка синтаксиса (встроенная)</li>
+                                <li>✅ Геймификация / Достижения (20 шт)</li>
+                                <li>✅ Ответы на конкретные сообщения</li>
+                                <li>✅ RAG (только через Drag-n-Drop и кнопку)</li>
+                                <li>✅ Code Review и генерация тестов</li>
+                                <li>✅ Три темы оформления</li>
+                                <li>✅ Экспорт в TXT/JSON/Markdown</li>
+                            </ul>
+                            <h3>🔜 В плане</h3>
+                            <ul>
+                                <li><strong>Температура/параметры модели</strong> — ползунки для настройки</li>
+                                <li><strong>Поиск по сообщениям (Ctrl+F)</strong> — внутри диалога</li>
+                                <li><strong>Автосохранение черновика</strong> — в localStorage</li>
+                                <li><strong>Звуковые уведомления</strong> — при получении ответа</li>
+                                <li><strong>Пагинация диалогов</strong> — подгрузка по 20</li>
+                                <li><strong>Полноценный Markdown рендеринг</strong></li>
+                                <li><strong>Системные промпты</strong> — библиотека</li>
+                                <li><strong>WebSocket вместо HTTP</strong> — для скорости</li>
+                                <li><strong>Экспорт в PDF</strong></li>
+                                <li><strong>Голосовой ввод/вывод</strong></li>
+                            </ul>
+                        </div>
+                        <!-- Achievements Tab -->
+                        <div class="modal-tab-content" id="tab-achievements" role="tabpanel">
+                            <h2>🏆 Достижения <span class="badge gold" style="background:var(--gold-color);color:#1a1a2e;" id="achievementCounter">0/20</span></h2>
+                            <div id="achievementsList">
+                                <p style="color:var(--text-secondary);">Загружается...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== GAME MODAL - Удалено в 6.0 (перенесено в #app-games) ===== -->
+                <!--
+                <div class="modal-overlay" id="gameModal">
+                    ...
+                </div>
+                -->
+
+                <!-- ===== CHAT AREA ===== -->
+                <div class="error-boundary" id="errorBoundary"></div>
+                <div class="chat-messages" id="messages" role="log" aria-live="polite" aria-label="История сообщений"></div>
+
+                <div class="typing-indicator" id="typingIndicator">
+                    <span>Infocom LM Chat печатает</span>
+                    <span class="typing-dots"><span></span><span></span><span></span></span>
+                </div>
+                <div class="error-msg" id="errorMsg" role="alert">⚠️ Ошибка соединения</div>
+                <div class="input-limit-warning" id="inputLimitWarning" role="alert">⚠️ Превышен лимит символов</div>
+
+                <div class="chat-input-area">
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+
+                    <div class="input-row">
+                        <textarea id="userInput" placeholder="Введите вопрос или код... (Ctrl+Enter для отправки)" maxlength="10000"></textarea>
+                        <div class="char-counter" id="charCounter">0 / 10000</div>
+                        <div class="input-actions">
+                            <button class="action-btn" id="fileBtn" title="Прикрепить файл" aria-label="Прикрепить файл">📎<span class="tooltip">Файл</span></button>
+                            <button class="action-btn" id="ragBtn" title="Загрузить RAG" aria-label="Загрузить RAG документ">📚<span class="tooltip">RAG документ</span></button>
+                            <button class="action-btn" id="reviewBtn" title="Code Review" aria-label="Code Review">🔍<span class="tooltip">Code Review</span></button>
+                            <button class="action-btn" id="testBtn" title="Генерация тестов" aria-label="Генерация тестов">🧪<span class="tooltip">Тесты</span></button>
+                        </div>
+                        <button class="send-btn" id="sendBtn">Отправить</button>
+                    </div>
+
+                    <div class="history-hint">
+                        <span>⬆ <kbd>Ctrl+↑</kbd> История сообщений</span>
+                        <span>⬇ <kbd>Ctrl+↓</kbd> Вернуться к текущему</span>
+                    </div>
+
+                    <div class="file-info" id="fileInfo" style="display:none;">
+                        <span>📎 Прикреплённые:</span>
+                        <div id="fileList" class="rag-files-list"></div>
+                    </div>
+
+                    <div class="file-info" id="ragFilesInfo" style="display: none;">
+                        <span>📚 RAG документы:</span>
+                        <div id="ragFileList" class="rag-files-list"></div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="quick-btn" data-text="Напиши функцию на Python для сортировки списка">📝 Python</button>
+                        <button class="quick-btn" data-text="Объясни этот код: function fib(n) { return n <= 1 ? n : fib(n-1) + fib(n-2); }">🔍 Объяснить код</button>
+                        <button class="quick-btn" data-text="Напиши SQL запрос для выборки данных из таблицы users">🗄️ SQL</button>
+                        <button class="quick-btn" data-text="Создай React компонент для кнопки">⚛️ React</button>
+                    </div>
+                    <div class="supported-formats">💡 RAG + Code Review + Тесты + Поиск диалогов + Подсветка кода + Ответы</div>
+                </div>
+
+                <input type="file" id="fileInput" accept=".txt,.js,.py,.java,.cpp,.cs,.sql,.md,.json,.xml,.csv,.html,.css,.rb,.go,.rs,.php,.sh,.ps1,.docx,.pdf" multiple style="display:none;">
+                <input type="file" id="ragInput" accept=".txt,.md,.json,.xml,.csv,.html,.css,.js,.py,.java,.cpp,.cs,.sql,.rb,.go,.rs,.php,.docx,.pdf" multiple style="display:none;">
+            </div>
+        </div>
+        <!-- ===== КОНЕЦ КОНТЕЙНЕРА ЧАТА ===== -->
+
+        <!-- ===== КОНТЕЙНЕР ПРИВАТНЫХ ЧАТОВ ===== -->
+        <div id="app-private" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary);">
+            <!-- Сюда будет рендериться PrivateChatModule -->
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- ===== КОНТЕЙНЕР АДМИН-ПАНЕЛИ (полноэкранная страница) ===== -->
+        <!-- ============================================================ -->
+        <!-- Добавлено в 6.0 -->
+        <div id="app-admin" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+            <div style="max-width:1200px; margin:0 auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>🛡️ Панель модерации</h2>
-                    
-                    <div style="display:flex;gap:12px;margin-bottom:12px;">
+                    <button id="backToChatBtnAdmin" class="btn-secondary" data-link="/">← Назад в чат</button>
+                </div>
+                <!-- Содержимое админ-панели (копия из #adminModal .modal-content, без оверлея) -->
+                <div class="admin-panel-full">
+                    <!-- Вкладки и содержимое – те же, что были в модалке, с теми же ID -->
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
                         <button id="adminRefreshBtn" class="btn-secondary">🔄 Обновить</button>
                     </div>
                     
-                    <!-- Панель администрирования -->
                     <div class="admin-panel">
-                        <!-- Вкладки -->
                         <div class="admin-tabs">
                             <button class="admin-tab active" data-tab="users">👥 Пользователи</button>
                             <button class="admin-tab" data-tab="rooms">💬 Комнаты</button>
@@ -494,47 +705,35 @@
                             <button class="admin-tab" data-tab="stats">📊 Статистика</button>
                             <button class="admin-tab" data-tab="logs">📋 Логи</button>
                             <button class="admin-tab" data-tab="settings">⚙️ Настройки</button>
-                        </div>                         
+                        </div>
 
-                        <!-- Вкладка Пользователи -->
                         <div class="admin-tab-content" id="tab-users">
                             <div class="admin-search">
                                 <input type="text" id="adminUserSearch" placeholder="🔍 Поиск пользователей...">
                                 <button id="adminUserRefresh">🔄</button>
                             </div>
                             <div class="admin-user-list" id="adminUserList">
-                            <!-- Добавлено в 5.4: пагинация пользователей -->
-                            <div id="adminUserPagination" class="admin-user-pagination"></div>                                
-                                <!-- Карточки пользователей -->
+                                <!-- Добавлено в 5.4: пагинация пользователей -->
+                                <div id="adminUserPagination" class="admin-user-pagination"></div>
                             </div>
                         </div>
 
-                        <!-- Вкладка Комнаты -->
                         <div class="admin-tab-content" id="tab-rooms" style="display:none;">
-                            <div class="admin-room-list" id="adminRoomList">
-                                <!-- Список комнат -->
-                            </div>
+                            <div class="admin-room-list" id="adminRoomList"></div>
                         </div>
 
-                        <!-- Вкладка Сообщения -->
                         <div class="admin-tab-content" id="tab-messages" style="display:none;">
                             <div class="admin-search">
                                 <input type="text" id="adminMsgSearch" placeholder="🔍 Поиск сообщений...">
                                 <button id="adminMsgSearchBtn">🔍</button>
                             </div>
-                            <div class="admin-message-list" id="adminMessageList">
-                                <!-- Результаты поиска -->
-                            </div>
+                            <div class="admin-message-list" id="adminMessageList"></div>
                         </div>
 
-                        <!-- Вкладка Статистика в админ-панели -->
                         <div class="admin-tab-content" id="tab-stats" style="display:none;">
-                            <div id="adminStats" class="admin-stats-container">
-                                <!-- Статистика будет здесь -->
-                            </div>
+                            <div id="adminStats" class="admin-stats-container"></div>
                         </div>
 
-                        <!-- Вкладка Настройки -->
                         <div class="admin-tab-content" id="tab-settings" style="display:none;">
                             <div class="admin-settings-grid">
                                 <div class="setting-item">
@@ -553,287 +752,70 @@
                             </div>
                         </div>
 
-                        <!-- Вкладка Логи в админ-панели -->
                         <div class="admin-tab-content" id="tab-logs" style="display:none;">
-                            <div class="admin-log-list" id="adminLogList">
-                                <!-- Логи будут здесь -->
-                                <!-- Логи системы -->                                 
-                            </div>
+                            <div class="admin-log-list" id="adminLogList"></div>
                             <button id="adminLogClear" class="btn-secondary" style="margin-top:8px;">🗑️ Очистить логи</button>
-                        </div>                        
-                    </div>
-                </div>
-            </div>
-
-            <!-- Server Settings Modal -->
-            <div class="modal-overlay server-settings-modal" id="serverSettingsModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="serverSettingsClose">✕</button>
-                    <h2>⚙️ Настройки сервера</h2>
-                    <div class="form-group">
-                        <label for="serverIpInput">IP-адрес сервера </label><input type="text" id="serverIpInput" placeholder="localhost">
-                        <label for="serverIpLMInput">IP-адрес сервера с моделью</label><input type="text" id="serverIpLMInput" placeholder="222.1.1.31">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label for="serverPortInput">Порт</label><input type="number" id="serverPortInput" placeholder="8032" min="1" max="65535"></div>
-                        <div class="form-group"><label for="serverPortLMInput">Порт</label><input type="number" id="serverPortLMInput" placeholder="8034" min="1" max="65535"></div>
-                        <div class="form-group"><label for="serverTimeoutInput">Таймаут (сек)</label><input type="number" id="serverTimeoutInput" placeholder="60" min="5" max="300"></div>
-                        <div class="form-group"><label for="serverMaxTokensInput">Макс. токенов</label><input type="number" id="serverMaxTokensInput" placeholder="2048" min="256" max="8192"></div>
-                    </div>
-                    <div class="form-group"><label for="serverApiPathInput">Путь к API</label><input type="text" id="serverApiPathInput" placeholder="/v1/chat/completions"></div>
-                    <div class="test-result" id="serverTestResult"></div>
-                    <div class="modal-actions">
-                        <button class="btn-secondary" id="serverTestBtn">🔍 Проверить</button>
-                        <button class="btn-secondary" id="serverResetBtn">↺ Сбросить</button>
-                        <button class="btn-primary" id="serverSaveBtn">💾 Сохранить</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Share Modal -->
-            <div class="modal-overlay share-modal" id="shareModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="shareModalClose">✕</button>
-                    <h2>🔗 Поделиться чатом</h2>
-                    <div class="share-method">
-                        <h4>📋 Прямая ссылка</h4>
-                        <div class="share-url-box"><input type="text" id="shareUrl" readonly><button onclick="window.__APP?.copyShareUrl()">📋 Копировать</button></div>
-                    </div>
-                    <div class="share-method">
-                        <h4>📱 QR-код</h4>
-                        <div id="qrCodeContainer"></div>
-                    </div>
-                    <div class="share-method">
-                        <h4>👥 Активные пользователи</h4>
-                        <div id="activeUsers"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Prompt Modal -->
-            <div class="modal-overlay" id="promptModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="promptModalClose">✕</button>
-                    <h2>📋 Системный промт ассистента</h2>
-                    <div class="prompt-viewer" id="promptContent"></div>
-                    <div class="prompt-actions">
-                        <button class="btn-secondary" id="copyPromptBtn">📋 Копировать</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Custom Assistant Modal -->
-            <div class="modal-overlay" id="customAssistantModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="customAssistantModalClose">✕</button>
-                    <h2>🔧 Создать кастомного ассистента</h2>
-                    <div class="form-group"><label>Название</label><input type="text" id="caName" placeholder="Мой ассистент"></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Иконка (эмодзи)</label><input type="text" id="caIcon" placeholder="🤖" maxlength="2"></div>
-                        <div class="form-group"><label>Краткое описание</label><input type="text" id="caDesc" placeholder="Описание..."></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Цвет</label>
-                        <div class="color-picker-row" id="colorPicker">
-                            <span class="color-preset" style="background:#7ec8e3;" data-color="#7ec8e3"></span>
-                            <span class="color-preset" style="background:#4caf50;" data-color="#4caf50"></span>
-                            <span class="color-preset" style="background:#9b4dca;" data-color="#9b4dca"></span>
-                            <span class="color-preset" style="background:#f0db4f;" data-color="#f0db4f"></span>
-                            <span class="color-preset" style="background:#dd0031;" data-color="#dd0031"></span>
-                            <span class="color-preset" style="background:#3776ab;" data-color="#3776ab"></span>
-                            <span class="color-preset" style="background:#ff69b4;" data-color="#ff69b4"></span>
-                            <span class="color-preset" style="background:#ff9800;" data-color="#ff9800"></span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Системный промт</label>
-                        <textarea id="caPrompt" placeholder="Ты — полезный ассистент..."></textarea>
-                    </div>
-                    <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;">
-                        <button class="btn-secondary" id="caCancelBtn">Отмена</button>
-                        <button class="btn-primary" id="caSaveBtn">💾 Создать</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Export Modal -->
-            <div class="modal-overlay" id="exportModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="exportModalClose">✕</button>
-                    <h2>💾 Экспорт диалога</h2>
-                    <div class="export-options">
-                        <button data-format="txt">📄 TXT</button>
-                        <button data-format="json">📊 JSON</button>
-                        <button data-format="markdown">📝 Markdown</button>
-                        <button data-format="pdf">📕 PDF</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Info Modal (Wiki, Suggestions, Achievements) -->
-            <div class="modal-overlay" id="infoModal">
-                <div class="modal-content">
-                    <button class="modal-close" id="infoModalClose">✕</button>
-                    <div class="modal-tabs" id="infoModalTabs">
-                        <button class="active" data-tab="wiki" role="tab" aria-selected="true">📖 Вики</button>
-                        <button data-tab="suggestions" role="tab" aria-selected="false">💡 Предложения</button>
-                        <button data-tab="achievements" role="tab" aria-selected="false">🏆 Достижения</button>
-                    </div>
-                    <!-- Wiki Tab -->
-                    <div class="modal-tab-content active" id="tab-wiki" role="tabpanel">
-                        <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v5.1</span></h2>
-                        <p style="color:var(--text-secondary);margin-bottom:12px;">Последнее обновление: 2026</p>
-                        <p>Современный веб-чат с настраиваемым сервером, групповыми чатами, улучшенной обработкой ошибок и кастомными ассистентами.</p>
-                        <hr class="divider">
-                        <h3>🆕 Новое в v5.1</h3>
-                        <ul>
-                            <li><strong>💬 Ответы на сообщения</strong> — кликните по сообщению → кнопка "↩️ Ответить"</li>
-                            <li><strong>🏆 8 новых достижений</strong> — теперь их 20!</li>
-                            <li><strong>🔧 Исправлена ошибка</strong> с определением bash в подсветке синтаксиса</li>
-                            <li><strong>⚙️ Настройка сервера</strong> — IP, порт, таймаут, путь к API</li>
-                            <li><strong>👥 Групповые чаты</strong> — разные модели для разных диалогов</li>
-                            <li><strong>🛡️ Глобальная обработка ошибок</strong> — красивое отображение с деталями</li>
-                            <li><strong>🛡️ XSS-защита</strong> — санитизация пользовательского ввода</li>
-                            <li><strong>♿ Доступность</strong> — ARIA-атрибуты, навигация с клавиатуры</li>
-                        </ul>
-                        <hr class="divider">
-                        <h3>🔧 Функции</h3>
-                        <div class="feature-grid">
-                            <div class="feature-item"><span class="icon">📚</span> RAG — загрузка документов</div>
-                            <div class="feature-item"><span class="icon">✏️</span> Редактирование сообщений</div>
-                            <div class="feature-item"><span class="icon">↻</span> Перегенерация ответов</div>
-                            <div class="feature-item"><span class="icon">💬</span> Ответы на сообщения</div>
-                            <div class="feature-item"><span class="icon">🔍</span> Code Review</div>
-                            <div class="feature-item"><span class="icon">🧪</span> Генерация тестов</div>
-                            <div class="feature-item"><span class="icon">🎨</span> Три темы оформления</div>
-                            <div class="feature-item"><span class="icon">🏆</span> 20 достижений</div>
-                            <div class="feature-item"><span class="icon">💾</span> Экспорт диалогов</div>
-                            <div class="feature-item"><span class="icon">🔍</span> Подсветка синтаксиса</div>
-                        </div>
-                        <hr class="divider">
-                        <h3>⌨️ Горячие клавиши</h3>
-                        <ul>
-                            <li><kbd>Ctrl+Enter</kbd> — отправить сообщение</li>
-                            <li><kbd>Shift+Enter</kbd> — новая строка</li>
-                            <li><kbd>Escape</kbd> — закрыть модальное окно / отменить ответ</li>
-                            <li><kbd>/</kbd> — фокус на поле ввода</li>
-                            <li><kbd>Ctrl+W</kbd> — открыть/закрыть информацию</li>
-                            <li><kbd>Ctrl+E</kbd> — экспорт</li>
-                        </ul>
-                    </div>
-                    <!-- Suggestions Tab -->
-                    <div class="modal-tab-content" id="tab-suggestions" role="tabpanel">
-                        <h2>💡 Предложения по улучшению</h2>
-                        <h3>✅ Уже реализовано</h3>
-                        <ul>
-                            <li>✅ Редактирование сообщений</li>
-                            <li>✅ Повторная генерация</li>
-                            <li>✅ Подсветка синтаксиса (встроенная)</li>
-                            <li>✅ Геймификация / Достижения (20 шт)</li>
-                            <li>✅ Ответы на конкретные сообщения</li>
-                            <li>✅ RAG (только через Drag-n-Drop и кнопку)</li>
-                            <li>✅ Code Review и генерация тестов</li>
-                            <li>✅ Три темы оформления</li>
-                            <li>✅ Экспорт в TXT/JSON/Markdown</li>
-                        </ul>
-                        <h3>🔜 В плане</h3>
-                        <ul>
-                            <li><strong>Температура/параметры модели</strong> — ползунки для настройки</li>
-                            <li><strong>Поиск по сообщениям (Ctrl+F)</strong> — внутри диалога</li>
-                            <li><strong>Автосохранение черновика</strong> — в localStorage</li>
-                            <li><strong>Звуковые уведомления</strong> — при получении ответа</li>
-                            <li><strong>Пагинация диалогов</strong> — подгрузка по 20</li>
-                            <li><strong>Полноценный Markdown рендеринг</strong></li>
-                            <li><strong>Системные промпты</strong> — библиотека</li>
-                            <li><strong>WebSocket вместо HTTP</strong> — для скорости</li>
-                            <li><strong>Экспорт в PDF</strong></li>
-                            <li><strong>Голосовой ввод/вывод</strong></li>
-                        </ul>
-                    </div>
-                    <!-- Achievements Tab -->
-                    <div class="modal-tab-content" id="tab-achievements" role="tabpanel">
-                        <h2>🏆 Достижения <span class="badge gold" style="background:var(--gold-color);color:#1a1a2e;" id="achievementCounter">0/20</span></h2>
-                        <div id="achievementsList">
-                            <p style="color:var(--text-secondary);">Загружается...</p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Game Modal -->
-            <div class="modal-overlay" id="gameModal">
-                <div class="modal-content" style="max-width:400px;">
-                    <button class="modal-close" id="gameModalClose">✕</button>
-                    <h2>🎮 Игры</h2>
-                    <div class="game-selector" id="gameSelector">
-                        <div class="game-option active" data-game="2048">🔢 2048</div>
-                        <div class="game-option" data-game="snake">🐍 Змейка</div>
-                        <div class="game-option" data-game="tetris">🧱 Тетрис</div>
-                        <!-- Добавлено в 5.1: Block Blast -->
-                        <div class="game-option" data-game="blockblast">🧊 Block Blast</div>
-                    </div>
-                    <div id="gameContainer"></div>
-                </div>
-            </div>
-
-            <!-- ===== CHAT AREA ===== -->
-            <div class="error-boundary" id="errorBoundary"></div>
-            <div class="chat-messages" id="messages" role="log" aria-live="polite" aria-label="История сообщений"></div>
-
-            <div class="typing-indicator" id="typingIndicator">
-                <span>Infocom LM Chat печатает</span>
-                <span class="typing-dots"><span></span><span></span><span></span></span>
-            </div>
-            <div class="error-msg" id="errorMsg" role="alert">⚠️ Ошибка соединения</div>
-            <div class="input-limit-warning" id="inputLimitWarning" role="alert">⚠️ Превышен лимит символов</div>
-
-            <div class="chat-input-area">
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-
-                <div class="input-row">
-                    <textarea id="userInput" placeholder="Введите вопрос или код... (Ctrl+Enter для отправки)" maxlength="10000"></textarea>
-                    <div class="char-counter" id="charCounter">0 / 10000</div>
-                    <div class="input-actions">
-                        <button class="action-btn" id="fileBtn" title="Прикрепить файл" aria-label="Прикрепить файл">📎<span class="tooltip">Файл</span></button>
-                        <button class="action-btn" id="ragBtn" title="Загрузить RAG" aria-label="Загрузить RAG документ">📚<span class="tooltip">RAG документ</span></button>
-                        <button class="action-btn" id="reviewBtn" title="Code Review" aria-label="Code Review">🔍<span class="tooltip">Code Review</span></button>
-                        <button class="action-btn" id="testBtn" title="Генерация тестов" aria-label="Генерация тестов">🧪<span class="tooltip">Тесты</span></button>
-                    </div>
-                    <button class="send-btn" id="sendBtn">Отправить</button>
-                </div>
-
-                <div class="history-hint">
-                    <span>⬆ <kbd>Ctrl+↑</kbd> История сообщений</span>
-                    <span>⬇ <kbd>Ctrl+↓</kbd> Вернуться к текущему</span>
-                </div>
-
-                <div class="file-info" id="fileInfo" style="display:none;">
-                    <span>📎 Прикреплённые:</span>
-                    <div id="fileList" class="rag-files-list"></div>
-                </div>
-
-                <div class="file-info" id="ragFilesInfo" style="display: none;">
-                    <span>📚 RAG документы:</span>
-                    <div id="ragFileList" class="rag-files-list"></div>
-                </div>
-
-                <div class="quick-actions">
-                    <button class="quick-btn" data-text="Напиши функцию на Python для сортировки списка">📝 Python</button>
-                    <button class="quick-btn" data-text="Объясни этот код: function fib(n) { return n <= 1 ? n : fib(n-1) + fib(n-2); }">🔍 Объяснить код</button>
-                    <button class="quick-btn" data-text="Напиши SQL запрос для выборки данных из таблицы users">🗄️ SQL</button>
-                    <button class="quick-btn" data-text="Создай React компонент для кнопки">⚛️ React</button>
-                </div>
-                <div class="supported-formats">💡 RAG + Code Review + Тесты + Поиск диалогов + Подсветка кода + Ответы</div>
-            </div>
-
-            <input type="file" id="fileInput" accept=".txt,.js,.py,.java,.cpp,.cs,.sql,.md,.json,.xml,.csv,.html,.css,.rb,.go,.rs,.php,.sh,.ps1,.docx,.pdf" multiple style="display:none;">
-            <input type="file" id="ragInput" accept=".txt,.md,.json,.xml,.csv,.html,.css,.js,.py,.java,.cpp,.cs,.sql,.rb,.go,.rs,.php,.docx,.pdf" multiple style="display:none;">
         </div>
-    </div>
+
+        <!-- ============================================================ -->
+        <!-- ===== КОНТЕЙНЕР ИГР (полноэкранная страница) ===== -->
+        <!-- ============================================================ -->
+        <!-- Добавлено в 6.0 -->
+        <div id="app-games" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+            <div style="max-width:800px; margin:0 auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2>🎮 Игры</h2>
+                    <button id="backToChatBtnGames" class="btn-secondary" data-link="/">← Назад в чат</button>
+                </div>
+                <!-- Содержимое игр (копия из #gameModal) -->
+                <div class="game-selector" id="gameSelector">
+                    <div class="game-option active" data-game="2048">🔢 2048</div>
+                    <div class="game-option" data-game="snake">🐍 Змейка</div>
+                    <div class="game-option" data-game="tetris">🧱 Тетрис</div>
+                    <!-- Добавлено в 5.1: Block Blast -->
+                    <div class="game-option" data-game="blockblast">🧊 Block Blast</div>
+                </div>
+                <div id="gameContainer"></div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- ===== КОНТЕЙНЕР ПРОФИЛЯ (полноэкранная страница) ===== -->
+        <!-- ============================================================ -->
+        <!-- Добавлено в 6.0 (пока просто открываем ProfileModal как модалку, но можно вынести сюда) -->
+        <div id="app-profile" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+            <div style="max-width:600px; margin:0 auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2>👤 Профиль</h2>
+                    <button id="backToChatBtnProfile" class="btn-secondary" data-link="/">← Назад в чат</button>
+                </div>
+                <!-- Здесь можно разместить содержимое профиля, но пока используем ProfileModal -->
+                <p style="color:var(--text-secondary);">Профиль будет загружен в модальном окне.</p>
+                <!-- Для быстрого перехода открываем модалку -->
+                <button id="openProfileModalBtn" class="btn-primary">Открыть профиль</button>
+            </div>
+        </div>
+
+    </div> <!-- end #app -->
 
     <!-- ===== СКРИПТЫ ===== -->
     <script type="module" src="src/app.js"></script>
+    <script>
+        // Добавлено в 6.0: обработчик для кнопки открытия профиля на странице профиля
+        document.addEventListener('DOMContentLoaded', () => {
+            const openProfileBtn = document.getElementById('openProfileModalBtn');
+            if (openProfileBtn) {
+                openProfileBtn.addEventListener('click', () => {
+                    if (window.app) {
+                        window.app.profileModal.open();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

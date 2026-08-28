@@ -754,6 +754,34 @@ export class PrivateChatModule {
         }
     }
 
+    // ===== Упонимания =====
+    /**
+     * Извлечение упоминаний из текста
+     * Добавлено в 5.1.
+     */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+             
+    extractMentions(text) {
+        
+        const mentions = [];
+        
+        const regex = /@(\w+)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            const username = match[1];
+            // Ищем пользователя среди peers и localUser
+            const user = this.app.multiUserManager.peers.find(p => p.Name.toLowerCase() === username.toLowerCase());
+            if (user) {
+                mentions.push(user.Id);
+            } else if (this.app.multiUserManager.localUser.Name.toLowerCase() === username.toLowerCase()) {
+                mentions.push(this.app.multiUserManager.localUser.Id);
+            }
+        }
+            
+        return mentions;
+    }
+        
     // ===== ВСПОМОГАТЕЛЬНЫЕ =====
     scrollToBottom() {
         this.messagesEl.scrollTop = this.messagesEl.scrollHeight;

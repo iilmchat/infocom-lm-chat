@@ -79,8 +79,9 @@ export class ChatModule {
         });
 
         // При подключении к серверу загружаем сообщения
+        //Это нафига тут
         this.app.eventBus.on('server:connected', () => {
-            this.chatView.loadMessages();
+            //this.chatView.loadMessages();
         });
     }
 

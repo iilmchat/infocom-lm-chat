@@ -8,7 +8,7 @@ import { Modal } from '../components/modal.js';
 export class UserModal {
     constructor(app) {
         this.app = app;
-        this.modal = new Modal(document.getElementById('userModal'));
+        this.modal = new Modal(document.getElementById('app-profile'));
         this.setupEventListeners();
     }
 
@@ -152,8 +152,8 @@ export class UserModal {
         });
         
         // Закрытие по клику на overlay
-        document.getElementById('userModal')?.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('userModal')) {
+        document.getElementById('app-profile')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('app-profile')) {
                 this.close();
             }
         });   
