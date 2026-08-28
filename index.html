@@ -389,7 +389,8 @@
                     </div>
                     <div class="modal-actions" style="margin-top:12px;">
                         <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
-                        <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button>                        
+                        <!-- Удалено в 5.4: кнопка дублирует roomInfoLeaveBtn -->
+                        <!-- <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button> -->
                         <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
                     </div>
                 </div>
@@ -397,6 +398,7 @@
             
             <!-- User Modal (профиль) -->
             <!-- ===== USER MODAL (идентификация) ===== -->
+             <!-- 5.4
             <div class="modal-overlay" id="userModal">
                 <div class="modal-content" style="max-width:450px;">
                     <button class="modal-close" id="userModalClose">✕</button>
@@ -448,11 +450,12 @@
                     <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
                         <button class="btn-secondary" id="userCancelBtn">Отмена</button>
                         <button class="btn-primary" id="userSaveBtn">💾 Сохранить</button>
-                        <!-- Добавлено в 5.1: Кнопка выхода -->
+                        
                         <button class="btn-secondary" id="userLogoutBtn" style="background:var(--error-color);color:#fff;">🚪 Выйти</button>
                     </div>
                 </div>
             </div>
+            -->
 
             <!-- ===== PRIVATE CHAT MODAL ===== -->
             <div class="modal-overlay" id="privateChatModal">
@@ -500,6 +503,8 @@
                                 <button id="adminUserRefresh">🔄</button>
                             </div>
                             <div class="admin-user-list" id="adminUserList">
+                            <!-- Добавлено в 5.4: пагинация пользователей -->
+                            <div id="adminUserPagination" class="admin-user-pagination"></div>                                
                                 <!-- Карточки пользователей -->
                             </div>
                         </div>

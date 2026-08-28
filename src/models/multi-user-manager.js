@@ -381,7 +381,7 @@ export class MultiUserManager {
         return colors[Math.floor(Math.random() * colors.length)];
     }
 
-
+    /* Удалено 5.4
     simulateUsers() {
         if (!CONFIG.MULTI_USER.SIMULATED_USERS) return;
 
@@ -411,6 +411,7 @@ export class MultiUserManager {
         }
         this.renderUsers();
     }
+    */
 
     generateUserId() {
         return 'user_' + Math.random().toString(36).slice(2, 10);
@@ -1499,6 +1500,7 @@ export class MultiUserManager {
         });        
     }
 
+    /* Удалено 5.4
     startSimulation() {
         setInterval(() => {
             const peers = Array.from(this.peers.values()).filter(p => p.Online);
@@ -1508,6 +1510,8 @@ export class MultiUserManager {
             }
         }, 5000);
     }
+    */
+
     /**
      * Обработка нового сообщения
      * {Object} message - Новое сообщение

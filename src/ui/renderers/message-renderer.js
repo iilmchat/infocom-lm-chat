@@ -1,13 +1,15 @@
 // src/ui/renderers/message-renderer.js
 import { sanitizeHTML } from '../../services/sanitizer.js';
-//Возможно надо удалить с 5.2
-import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
+// Удалено в 5.4: импорт syntaxHighlighter (больше не используется)
+// import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
 import { copyToClipboard, addCopyButtonsToCodeBlocks } from '../../utils/dom-helpers.js';
 
 /**
  * Рендеринг сообщений чата
  * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
  * Изменено в 5.2: используется markdownService для рендеринга Markdown и подсветки кода
+ * Изменено в 5.4: удалены все методы ручной подсветки (syntaxHighlighter),
+ * оставлен только рендеринг через markdownService.
  */
 export class MessageRenderer {
     constructor() {
@@ -65,7 +67,7 @@ export class MessageRenderer {
             actions.appendChild(editBtn);
         }
 
-        // Кнопка ответа (для всех сообщений)
+        // Кнопка ответа (для всех)
         const replyBtn = document.createElement('button');
         replyBtn.textContent = '↩️';
         replyBtn.title = 'Ответить на это сообщение';
@@ -81,8 +83,8 @@ export class MessageRenderer {
         };
         actions.appendChild(replyBtn);
 
-        // Кнопка перегенерации (только для бота)
-        if ((role === 'bot' || role === 'assistant')) {
+        // Кнопка перегенерации (только для бота/ассистента)
+        if (role === 'bot' || role === 'assistant') {
             const regenBtn = document.createElement('button');
             regenBtn.textContent = '↻';
             regenBtn.title = 'Перегенерировать';
@@ -499,6 +501,7 @@ export class MessageRenderer {
     /**
      * Форматирование сообщения с разбивкой на текст и код
      * Используется в chat-view для стриминга
+     * (оставлен как вспомогательный, без подсветки)
      */    
     formatMessage(content) {
         const parts = [];

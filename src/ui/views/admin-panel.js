@@ -404,6 +404,7 @@ export class AdminPanel {
      * Загрузка всех данных для пользователей только
      */
     // === 5.3 Обновлённый метод загрузки пользователей ===      
+    // Добавлено в 5.4: вызов renderUserPagination после загрузки
     async loadUserData() {                 /* Изменено в 5.3 */
         // Показываем индикатор загрузки
         this.showLoading();        
@@ -425,7 +426,7 @@ export class AdminPanel {
                 this.users = result.data || [];
                 this.userTotal = result.pagination?.total || 0;
                 this.renderUsers();
-                this.renderUserPagination();
+                this.renderUserPagination(); // Добавлено 5.4
             }                   
             // Рендерим текущую вкладку
             //this.renderCurrentTab(); //Удалено 5.3
@@ -730,9 +731,10 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         }
     }
 
+    //Изменео в 5.4 
     async loadRoomUsers(roomId) {
-        // Используем админский эндпоинт        
-        const result = await this.app.apiService.getAdminRoomInfo(roomId);
+        // Исправлено в 5.4: замена getAdminRoomInfo на getAdminRoom
+        const result = await this.app.apiService.getAdminRoom(roomId);
         if (result.success && result.room) {
             return result.room.users || [];
         }
@@ -1200,6 +1202,7 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
     /**
      * Рендеринг вкладки настроек с управлением ролями
      */
+    // Фрагмент метода renderSettings (вставка в существующий метод)
     renderSettings() {
         const container = document.querySelector('.admin-settings-grid');
         if (!container) return;
@@ -1257,25 +1260,48 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         `;
 
         // Обработчики
-        document.getElementById('settingSaveBtn')?.addEventListener('click', () => {
-            this.saveSettings({
-                maxLength: parseInt(document.getElementById('settingMaxLength').value) || 10000,
-                maxUsers: parseInt(document.getElementById('settingMaxUsers').value) || 50,
-                inactiveTimeout: parseInt(document.getElementById('settingInactiveTimeout').value) || 5,
-                maxHistory: parseInt(document.getElementById('settingMaxHistory').value) || 1000,
-                autoClearRag: document.getElementById('settingAutoClearRag').value === 'true',
-                defaultRole: document.getElementById('defaultRoleSelect')?.value || 'User'                
+        // Исправлено в 5.4: повторная привязка обработчиков с проверкой существования элементов
+        const saveBtn = document.getElementById('settingSaveBtn');
+        if (saveBtn) {
+            // Удаляем старые обработчики (если есть) и добавляем новые
+            saveBtn.replaceWith(saveBtn.cloneNode(true));
+            document.getElementById('settingSaveBtn').addEventListener('click', () => {
+                this.saveSettings({
+                    maxLength: parseInt(document.getElementById('settingMaxLength').value) || 10000,
+                    maxUsers: parseInt(document.getElementById('settingMaxUsers').value) || 50,
+                    inactiveTimeout: parseInt(document.getElementById('settingInactiveTimeout').value) || 5,
+                    maxHistory: parseInt(document.getElementById('settingMaxHistory').value) || 1000,
+                    autoClearRag: document.getElementById('settingAutoClearRag').value === 'true',
+                    defaultRole: document.getElementById('defaultRoleSelect')?.value || 'User'
+                });
+                this.app.toast.success('✅ Настройки сохранены');
             });
-            this.app.toast.success('✅ Настройки сохранены');
-        });
+        }
 
-        document.getElementById('settingResetBtn')?.addEventListener('click', () => {
-            if (confirm('Сбросить настройки к значениям по умолчанию?')) {
-                this.resetSettings();
-                this.renderSettings();
-                this.app.toast.info('Настройки сброшены');
-            }
-        });
+        const resetBtn = document.getElementById('settingResetBtn');
+        if (resetBtn) {
+            resetBtn.replaceWith(resetBtn.cloneNode(true));
+            document.getElementById('settingResetBtn').addEventListener('click', () => {
+                if (confirm('Сбросить настройки к значениям по умолчанию?')) {
+                    this.resetSettings();
+                    this.renderSettings();
+                    this.app.toast.info('Настройки сброшены');
+                }
+            });
+        }
+
+        // Обработчики для управления ролями
+        const defaultRoleSaveBtn = document.getElementById('defaultRoleSaveBtn');
+        if (defaultRoleSaveBtn) {
+            defaultRoleSaveBtn.replaceWith(defaultRoleSaveBtn.cloneNode(true));
+            document.getElementById('defaultRoleSaveBtn').addEventListener('click', () => this.saveDefaultRole());
+        }
+
+        const roleStatsBtn = document.getElementById('roleStatsBtn');
+        if (roleStatsBtn) {
+            roleStatsBtn.replaceWith(roleStatsBtn.cloneNode(true));
+            document.getElementById('roleStatsBtn').addEventListener('click', () => this.loadRoleStats());
+        }        
     }
 
     /**

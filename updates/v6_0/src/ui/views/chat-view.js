@@ -1,13 +1,19 @@
 // src/ui/views/chat-view.js
+// Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+// Эти функции перенесены в PrivateChatModule.
 import { CONFIG } from '../../config.js';
 import { sanitizeHTML, validateInput, validateLength } from '../../services/sanitizer.js';
 // Удалено в 5.2: import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
 import { markdownService } from '../../services/markdown-service.js';
 import { MessageRenderer } from '../renderers/message-renderer.js';
 import { copyToClipboard } from '../../utils/dom-helpers.js';
-import { FileManager } from '../../models/file-manager.js';
-import { ReactionManager } from '../../models/reaction-manager.js';
+// Удаляем импорт ReactionManager, FileManager (если они не используются)
+// import { FileManager } from '../../models/file-manager.js';
+// import { ReactionManager } from '../../models/reaction-manager.js';
 import { addCopyButtonsToCodeBlocks } from '../../utils/dom-helpers.js';
+
+
+
 /* Добавлено в 5.3 — внедрён виртуальный скроллинг */
 //import { VirtualScroll } from '../components/virtual-scroll.js';
 
@@ -297,6 +303,9 @@ export class ChatView {
         el.dataset.messageId = msg.id;
         el.dataset.userId = msg.userId;
 
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.
+        /*        
         // Добавляем блок реакций
         const reactionsBlock = this.createReactionsBlock(msg.id);
         el.appendChild(reactionsBlock);
@@ -304,6 +313,7 @@ export class ChatView {
         // Добавляем меню действий (закрепить, пожаловаться)
         const actionsMenu = this.createActionsMenu(msg.id, msg.userId);
         el.querySelector('.message-actions')?.appendChild(actionsMenu);
+        */
 
         if (addToEnd) {
             this.messagesEl.appendChild(el);
@@ -311,8 +321,12 @@ export class ChatView {
             this.messagesEl.prepend(el);
         }
 
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.
+        /*               
         // Загружаем реакции для сообщения
         this.reactionManager.loadReactions(msg.id);
+        */        
         return el;
     }
       
@@ -320,6 +334,9 @@ export class ChatView {
      * Создание блока реакций
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.
+    /*
     createReactionsBlock(messageId) {
         const container = document.createElement('div');
         container.className = 'reactions-container';
@@ -366,11 +383,15 @@ export class ChatView {
 
         return container;
     }
+    */
 
     /**
      * Обновление UI реакций
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.
+    /*
     updateReactionsUI(messageId, reactions) {
         const list = document.getElementById(`reactions-${messageId}`);
         if (!list) return;
@@ -389,11 +410,15 @@ export class ChatView {
             });
         });
     }
+    */
 
     /**
      * Переключение реакции
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.
+    /*    
     async toggleReaction(messageId, emoji) {
         const current = this.reactionManager.getReactions(messageId);
         if (current.userReaction === emoji) {
@@ -402,11 +427,15 @@ export class ChatView {
             await this.reactionManager.addReaction(messageId, emoji);
         }
     }
+    */
 
     /**
      * Выбор эмодзи из полного списка
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.
+    /*    
     showEmojiPicker(messageId) {
         const picker = document.createElement('div');
         picker.className = 'emoji-picker-popup';
@@ -444,11 +473,15 @@ export class ChatView {
         };
         setTimeout(() => document.addEventListener('click', closePicker), 10);
     }
+    */
 
     /**
      * Меню действий (закрепить, пожаловаться)
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.
+    //(оставляем только edit, reply, regenerate)    
     createActionsMenu(messageId, userId) {
         const wrapper = document.createElement('span');
         wrapper.className = 'message-actions-extra';
@@ -456,6 +489,9 @@ export class ChatView {
         const isOwn = userId === this.app.multiUserManager.localUser.Id;
         const isModerator = this.app.multiUserManager.isModeratorUser();
 
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.
+        /*
         // Закрепить (только для модераторов или владельца комнаты)
         if (isModerator || isOwn) {
             const pinBtn = document.createElement('button');
@@ -468,7 +504,11 @@ export class ChatView {
             });
             wrapper.appendChild(pinBtn);
         }
+        */
 
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.
+        /*
         // Пожаловаться (для всех)
         const reportBtn = document.createElement('button');
         reportBtn.textContent = '🚨';
@@ -479,6 +519,7 @@ export class ChatView {
             this.reportMessage(messageId);
         });
         wrapper.appendChild(reportBtn);
+        */
 
         return wrapper;
     }
@@ -487,6 +528,9 @@ export class ChatView {
      * Закрепление сообщения
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*
     async pinMessage(messageId) {
         try {
             const roomId = this.app.multiUserManager.roomId;
@@ -503,11 +547,15 @@ export class ChatView {
             this.app.toast.error('Не удалось закрепить');
         }
     }
+    */
 
     /**
      * Жалоба на сообщение
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*    
     async reportMessage(messageId) {
         const reason = prompt('Причина жалобы:');
         if (!reason) return;
@@ -525,11 +573,15 @@ export class ChatView {
             this.app.toast.error('Не удалось отправить жалобу');
         }
     }
+    */
 
     /**
      * Скачивание вложения
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*        
     async downloadAttachment(attachmentId, fileName) {
         try {
             const response = await this.app.apiService.getAttachment(attachmentId);
@@ -550,11 +602,15 @@ export class ChatView {
             this.app.toast.error('Не удалось скачать файл');
         }
     }
+    */
 
     /**
      * Удаление вложения
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*        
     async deleteAttachment(attachmentId, messageId) {
         if (!confirm('Удалить это вложение?')) return;
         try {
@@ -577,15 +633,19 @@ export class ChatView {
             this.app.toast.error('Не удалось удалить вложение');
         }
     }    
+    */
 
     /**
      * Извлечение упоминаний из текста
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*         
     extractMentions(text) {
         
         const mentions = [];
-        /*
+        
         const regex = /@(\w+)/g;
         let match;
         while ((match = regex.exec(text)) !== null) {
@@ -598,14 +658,18 @@ export class ChatView {
                 mentions.push(this.app.multiUserManager.localUser.Id);
             }
         }
-            */
+            
         return mentions;
     }
+    */
 
     /**
      * Загрузка файлов на сервер
      * Добавлено в 5.1.
      */
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*          
     async uploadAttachments(files) {
         const uploaded = [];
         for (const file of files) {
@@ -631,6 +695,7 @@ export class ChatView {
         }
         return uploaded;
     }   
+    */
 
     // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
     loadMessages() {
@@ -818,9 +883,13 @@ export class ChatView {
         this.inputLimitWarning.classList.remove('active');
         this.app.inputHistory.reset();        
 
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.        
+        /*
         // Извлечение упоминаний
         const mentions = this.extractMentions(text);     
-             
+        */    
+
         // Подготовка данных для отправки
         const messageData = {
             roomId: this.app.multiUserManager.roomId,
@@ -831,10 +900,12 @@ export class ChatView {
             role: 'user',
             replyToId: this.app.replyTarget ? this.app.replyTarget.messageId : null,
             attachments: [],
-            mentions: mentions
+            mentions: []//mentions
         };
 
         // Загрузка файлов НА Сервер, если есть (ТУТ НЕ НАДО)
+        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+        // Эти функции перенесены в PrivateChatModule.          
         /* ОТКЛЮЧИМ ОТПРАВКУ НА СЕРВЕР
         if (currentFiles.length) {
             const uploaded = await this.uploadAttachments(currentFiles);
@@ -1265,7 +1336,7 @@ export class ChatView {
         // Можно оставить пустым или удалить        
     }
     */
-
+   
     showWelcome() {
         const welcome = this.messageRenderer.renderWelcome();
         this.messagesEl.appendChild(welcome);
@@ -1891,6 +1962,9 @@ export class ChatView {
     }    
    
     // Добавлено в 5.1: загрузка файлов через FileManager с прогрессом
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*
     async uploadAttachments_fileManager(files) {
         const uploaded = [];
         const total = files.length;
@@ -1935,13 +2009,21 @@ export class ChatView {
 
         return uploaded;
     }
+    */
 
     // Добавлено в 5.1: скачивание файла через FileManager
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*    
     async downloadAttachment_fileManager(attachmentId, fileName) {
         await this.fileManager.downloadFile(attachmentId, fileName);
     }
+    */
 
     // Добавлено в 5.1: открыть загрузчик файлов
+    // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
+    // Эти функции перенесены в PrivateChatModule.    
+    /*        
     openFileUploader() {
         // Если уже есть загрузчик, показываем его
         if (!this.fileUploader) {
@@ -1988,4 +2070,5 @@ export class ChatView {
             this.app.toast.info('Загрузчик уже открыт');
         }
     }
+    */
 }

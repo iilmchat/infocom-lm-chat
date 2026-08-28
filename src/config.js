@@ -69,7 +69,7 @@ export const CONFIG = {
             '.json', '.xml', '.csv', '.html', '.css', '.rb', '.go', '.rs',
             '.php', '.sh', '.ps1'
             ,'.docx' /* Добавлено в 5.2 */
-            ,'.pdf'   /* Добавлено в 5.3 */
+            ,'.pdf'   /* Добавлено в 5.4 */
         ],
         FORBIDDEN_PATTERNS: [
             /<script[\s\S]*?>[\s\S]*?<\/script>/gi,

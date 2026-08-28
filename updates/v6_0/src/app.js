@@ -22,7 +22,16 @@
  * - Отображение пользователей в комнате (админка) 
  */
 /* Изменено в 5.3 — замена модальных окон на ProfileModal */
-
+/**
+ * Главный файл приложения Infocom LM Chat Pro v6.0
+ * Изменено в 6.0:
+ * - Добавлен SPA-роутер (Router)
+ * - Разделение на модули (чат, админка, игры, профиль)
+ * - Динамическая загрузка модулей через import()
+ * - Контейнеры для каждого раздела
+ * - Переходы через роутер вместо модальных окон
+ * - Добавлен ChatModule для управления основным чатом
+ */
 import { CONFIG, SERVER_CONFIG, loadServerConfig, saveServerConfig } from './config.js';
 import { EventBus } from './core/event-bus.js';
 import { ErrorBoundary } from './core/error-boundary.js';
@@ -37,20 +46,26 @@ import { RateLimiter } from './models/rate-limiter.js';
 import { InputHistory } from './models/input-history.js';
 import { ApiService } from './services/api-service.js';
 import { ChatApiClient } from './services/http-client.js';
-import { AuthService } from './services/auth-service.js'; // Добавлено в 5.1.
-import { NotificationManager } from './models/notification-manager.js'; // Добавлено в 5.1.
+ // Добавлено в 5.1.
+import { AuthService } from './services/auth-service.js';
+ // Добавлено в 5.1.
+import { NotificationManager } from './models/notification-manager.js';
 // Добавлено в 5.2: сервис Markdown
 import { markdownService } from './services/markdown-service.js';
 
 import { applyTheme, cycleTheme } from './ui/theme.js';
-import { ChatView } from './ui/views/chat-view.js';
-import { Sidebar } from './ui/views/sidebar.js';
+//import { ChatView } from './ui/views/chat-view.js';
+//import { Sidebar } from './ui/views/sidebar.js';
+// Изменено в 6.0: импорт ChatModule вместо прямых ChatView и Sidebar
+import { ChatModule } from './modules/chat/ChatModule.js';
 import { SettingsView } from './ui/views/settings-view.js';
 import { InfoView } from './ui/views/info-view.js';
 import { ShareView } from './ui/views/share-view.js';
-import { GameView } from './ui/views/game-view.js';
+// Удалено в 6.0: импорт GameView (теперь динамический)
+//import { GameView } from './ui/views/game-view.js';
 import { ExportView } from './ui/views/export-view.js';
-import { AnalyticsView } from './ui/views/analytics-view.js'; // Добавлено в 5.1.
+ // Добавлено в 5.1.
+import { AnalyticsView } from './ui/views/analytics-view.js';
 import { renderAssistantBar, updateActiveIndicator, viewPrompt, deleteAssistant, openCustomAssistantModal } from './ui/views/assistant-bar.js';
 import { runAllTests } from './utils/test-runner.js';
 import { DropZone } from './ui/components/drop-zone.js';
@@ -58,16 +73,28 @@ import sectionToggle from './ui/components/section-toggle.js';
 import { SectionHelpers } from './utils/section-helpers.js';
 // 5.3 Удалены импорты AuthModal и UserModal
 //import { UserModal } from './ui/views/user-modal.js';
-import { AdminPanel } from './ui/views/admin-panel.js';
+// Удалено в 6.0: импорт AdminPanel и GameView (теперь динамические)
+//import { AdminPanel } from './ui/views/admin-panel.js';
 import { PrivateChat } from './ui/views/private-chat.js';
 // 5.3 Удалены импорты AuthModal и UserModal
 //import { AuthModal } from './ui/views/auth-modal.js'; // Добавлено в 5.1.
 import { ProfileModal } from './ui/views/profile-modal.js';   /* Добавлено в 5.3 */
+import { Router } from './core/router.js'; /* Добавлено в 6.0 */
+
+// Добавлено в 6.0: импорт модулей
+// Добавлено в 6.0: для динамической загрузки AdminModule, GamesModule, ProfileModule
+// они будут импортироваться через import() в методах showAdmin, showGames, showProfile
+import { PrivateChatModule } from './modules/private/PrivateChatModule.js';
+
 // 5.3 Удалены импорты AuthModal и UserModal
 
 // Удалено в 5.2: импорт syntaxHighlighter и связанных модулей
 // import { syntaxHighlighter } from './services/syntax-highlighter.js';
 // import './services/syntax-highlighter-optimizations.js';
+
+// Удалено в 6.0: импорт AdminPanel и GameView (теперь динамические)
+// import { AdminPanel } from './ui/views/admin-panel.js';
+// import { GameView } from './ui/views/game-view.js';
 
 /**
  * Главный класс приложения
@@ -160,12 +187,22 @@ class App {
         // Режим Drag-and-Drop (attachment или rag)
         this.currentDragMode = 'rag';
 
-        // ===== Инициализация UI =====
-        // Основное представление чата
-        this.chatView = new ChatView(this);
-        
-        // Боковая панель
-        this.sidebar = new Sidebar(this);
+        // ===== Модули (загружаются динамически) =====
+        this.adminLoaded = false;
+        this.gamesLoaded = false;
+        this.profileLoaded = false;
+        this.adminModule = null;      // Изменено в 6.0
+        this.gamesModule = null;      // Изменено в 6.0
+        this.profileModule = null;    // Изменено в 6.0
+        // Добавлено в 6.0: импорт модулей privateChatModule        
+        this.privateChatModule = null;
+
+        // ===== Инициализация UI (постоянные модули) =====
+        // Изменено в 6.0: создание ChatModule вместо прямых ChatView и Sidebar
+        this.chatModule = new ChatModule(this);
+        // Получаем ссылки для обратной совместимости (чтобы не ломать старый код)
+        this.chatView = this.chatModule.chatView;
+        this.sidebar = this.chatModule.sidebar;
         
         // Настройки сервера
         this.settingsView = new SettingsView(this);
@@ -177,7 +214,7 @@ class App {
         this.shareView = new ShareView(this);
         
         // Игры
-        this.gameView = new GameView(this);
+        //this.gameView = new GameView(this);
         
         // Экспорт диалогов
         this.exportView = new ExportView(this);
@@ -188,8 +225,8 @@ class App {
         // Модальное окно профиля пользователя // Удалено 5.3
         // this.userModal = new UserModal(this);  // Удалено 5.3
         
-        // Панель администратора
-        this.adminPanel = new AdminPanel(this);
+        // Удалено в 6.0: панель администратора создаётся динамически в AdminModule
+        // this.adminPanel = new AdminPanel(this);
         
         // Приватные чаты
         this.privateChat = new PrivateChat(this);
@@ -198,7 +235,9 @@ class App {
         // this.authModal = new AuthModal(this);  // Удалено 5.3
 
         // Модальное (общее) окно профиля пользователя
-        this.profileModal = new ProfileModal(this);   /* Добавлено в 5.3 */
+        /* Добавлено в 5.3 */
+        this.profileModal = new ProfileModal(this);   
+   
 
         // Добавлено в 5.1: Инициализация сервиса аутентификации и модального окна
         // Обработчик входа   
@@ -225,19 +264,166 @@ class App {
         // Инициализация секций (сворачиваемые панели)
         this.initSections();
 
+        // ===== Роутер (добавлен в 6.0) =====
+        this.router = new Router();
+        this.setupRoutes();
+        this.router.navigate(window.location.pathname || '/', { replace: true });
+
         // ===== Загрузка и инициализация =====
         this.init();
 
         // ===== Настройка UI для многопользовательского режима =====
         this.setupMultiUserUI();
         this.updateUserCount();    
-        this.setupNotificationUI(); // Добавлено в 5.1.
+        // Добавлено в 5.1.
+        this.setupNotificationUI(); 
 
         // ===== Подписка на события приватных чатов =====
         this.setupPrivateChatEvents();    
 
         // Добавлено в 5.2: убедимся, что highlight.js применён к уже существующим блокам кода
-        // (это будет сделано в ChatView после загрузки сообщений)            
+        // (это будет сделано в ChatView после загрузки сообщений)   
+
+        // Удалено в 6.0: вызовы this.gameView = new GameView(this) и this.adminPanel = new AdminPanel(this)
+        // теперь загружаются по требованию                 
+    }
+
+    // Добавлено в 6.0: определение маршрутов
+    setupRoutes() {
+        this.router.addRoute('/', () => this.showChat());
+        this.router.addRoute('/private', () => this.showPrivateChats());
+        this.router.addRoute('/admin', () => this.showAdmin());
+        this.router.addRoute('/games', () => this.showGames());
+        this.router.addRoute('/profile', () => this.showProfile());        
+        //Надо ли
+        this.router.setNotFound(() => this.showChat());
+    }
+
+    // ===== Методы переключения представлений =====
+
+    // Добавлено в 6.0: импорт модулей       
+    showChat() {
+        // Показываем чат, скрываем остальные
+        this.chatModule.show();
+        document.getElementById('app-private').style.display = 'none';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'flex';
+        this.updateActiveNav('chat');
+    }
+
+    // Добавлено в 6.0: импорт модулей       
+    // Метод showPrivateChats:
+    async showPrivateChats() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'block';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'none';
+        this.updateActiveNav('private');
+
+        if (!this.privateChatModule) {
+            const container = document.getElementById('app-private');
+            this.privateChatModule = new PrivateChatModule(this, container);
+        }
+    }
+
+
+
+    // Добавлено в 6.0: импорт модулей       
+    async showAdmin() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'none';        
+        document.getElementById('app-admin').style.display = 'block';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'none';
+        this.updateActiveNav('admin');
+
+        if (!this.adminModule) {
+            try {
+                const module = await import('./modules/admin/AdminModule.js');
+                this.adminModule = new module.AdminModule(this);
+                this.adminModule.enter();
+            } catch (error) {
+                console.error('Ошибка загрузки админ-модуля:', error);
+                this.toast.error('Не удалось загрузить админ-панель');
+            }
+        } else {
+            this.adminModule.enter();
+        }
+    }
+
+    // Добавлено в 6.0: импорт модулей       
+    async showGames() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'none';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'block';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'none';
+        this.updateActiveNav('games');
+
+        if (!this.gamesModule) {
+            try {
+                const module = await import('./modules/games/GamesModule.js');
+                this.gamesModule = new module.GamesModule(this);
+                this.gamesModule.enter();
+            } catch (error) {
+                console.error('Ошибка загрузки игрового модуля:', error);
+                this.toast.error('Не удалось загрузить игры');
+            }
+        } else {
+            this.gamesModule.enter();
+        }
+    }
+
+    // Добавлено в 6.0: импорт модулей       
+    async showProfile() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'none';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'block';
+        document.getElementById('sidebar').style.display = 'none';
+        this.updateActiveNav('profile');
+
+        if (!this.profileModule) {
+            try {
+                const module = await import('./modules/profile/ProfileModule.js');
+                this.profileModule = new module.ProfileModule(this);
+                this.profileModule.enter();
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+                this.toast.error('Не удалось загрузить профиль');
+                // Fallback: открываем ProfileModal
+                this.profileModal.open();
+            }
+        } else {
+            this.profileModule.enter();
+        }
+    }
+
+    // Добавлено в 6.0: импорт модулей           
+    updateActiveNav(section) {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.section === section);
+        });
+    }
+
+    // ===== Переопределённые методы для навигации =====
+    openAdmin() {
+        this.router.navigate('/admin');
+    }
+     
+    openProfileInfo() {
+        this.router.navigate('/profile');
+    }
+
+    openGames() {
+        this.router.navigate('/games');
     }
 
     // ... остальные методы (init, openPrivateChat, stopGeneration, setupEventListeners, etc.) ...
@@ -653,6 +839,11 @@ class App {
 
         document.getElementById('newPrivateChatBtn')?.addEventListener('click', () => {
             this.privateChat.showUserSelector();
+        });        
+
+        // Кнопка для перехода в приватные чаты (в шапке):
+        document.getElementById('privateChatBtn')?.addEventListener('click', () => {
+            this.router.navigate('/private');
         });        
 
         // ===== CLEAR RAG =====
@@ -1240,7 +1431,7 @@ class App {
         });
     }
     */
-    
+
     // ===== Многопользовательский режим =====
 
     /**
@@ -1279,7 +1470,8 @@ class App {
  
         // Кнопка открытия Администрирования
         document.getElementById('adminBtn')?.addEventListener('click', () => {
-            this.openAdmin();
+            //this.openAdmin();
+            this.router.navigate('/admin');
         });
         
         // Кнопка открытия приватного чата
@@ -1290,7 +1482,13 @@ class App {
 
         // Кнопка информации о пользователе
         document.getElementById('userProfileBtn')?.addEventListener('click', () => {
-            this.openProfileInfo();
+            //this.openProfileInfo();
+            this.router.navigate('/profile');
+        });
+
+        // Кнопка игр
+        document.getElementById('gameBtn')?.addEventListener('click', () => {
+            this.router.navigate('/games');
         });
 
         // Кнопка информации о комнате
@@ -1362,10 +1560,13 @@ class App {
     /**
      * Открытие панели администратора
      */
+    // Удалено в 6.0: теперь используется роутер
+    /*
     openAdmin() {
         this.adminPanel.open();
         //document.getElementById('roomInfoModal').classList.add('active');
-    } 
+    }
+    */         
 
     /**
      * Открытие информации о комнате
@@ -1373,7 +1574,8 @@ class App {
     openRoomInfo() {
         this.updateRoomInfoUI();
         document.getElementById('roomInfoModal').classList.add('active');
-    }    
+    }
+
     // Подписка на события MultiUserManager
     setupMultiUserEvents() {
         this.eventBus.on('room:joined', (data) => {
@@ -1499,6 +1701,7 @@ class App {
 
 // Запуск приложения
 const app = new App();
-window.app = app; // Для доступа из консоли (отладка)
+// Для доступа из консоли (отладка)
+window.app = app;
 
 export default app;

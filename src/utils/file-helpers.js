@@ -11,8 +11,32 @@ import { CONFIG } from '../config.js';
 const mammoth = window.mammoth;
 
 /* Добавлено в 5.3 */
+/*
 export async function readPDFAsText(file) {
     try {
+        const pdfjsLib = await import('/src/components/pdf.min.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/src/components/pdf.worker.min.mjs';
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
+        }
+        return fullText;
+    } catch (error) {
+        console.error('Ошибка чтения PDF:', error);
+        throw new Error(`Не удалось прочитать PDF: ${error.message}`);
+    }
+}
+*/
+
+/* Добавлено в 5.4: поддержка PDF */
+export async function readPDFAsText(file) {
+    try {
+        // Динамический импорт pdf.js
         const pdfjsLib = await import('/src/components/pdf.min.mjs');
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/src/components/pdf.worker.min.mjs';
         const arrayBuffer = await file.arrayBuffer();
