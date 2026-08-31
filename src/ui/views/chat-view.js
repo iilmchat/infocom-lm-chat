@@ -1385,9 +1385,43 @@ export class ChatView {
     */
 
     showWelcome() {
+        const welcome = document.createElement('div');
+        welcome.className = 'welcome-screen';
+        welcome.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; max-width:500px; margin:0 auto;">
+                <div style="font-size:64px; margin-bottom:16px;">🚀</div>
+                <h2 style="color:var(--text-accent); margin-bottom:8px;">Добро пожаловать в Infocom LM Chat Pro</h2>
+                <p style="color:var(--text-secondary); margin-bottom:16px;">
+                    Начните новый диалог с искусственным интеллектом. Задавайте вопросы, просите помочь с кодом, 
+                    или просто общайтесь.
+                </p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                    <button class="btn btn-primary quick-start" data-prompt="Напиши функцию на Python для сортировки списка">📝 Пример: Python</button>
+                    <button class="btn btn-secondary quick-start" data-prompt="Объясни, как работает React Hooks">⚛️ React Hooks</button>
+                    <button class="btn btn-secondary quick-start" data-prompt="Создай SQL запрос для выборки данных">🗄️ SQL</button>
+                </div>
+                <div style="margin-top:20px; font-size:12px; color:var(--text-secondary);">
+                    💡 Используйте <kbd>Ctrl+Enter</kbd> для отправки, <kbd>Ctrl+↑/↓</kbd> для истории
+                </div>
+            </div>
+        `;
+        // Обработчики для быстрых кнопок
+        welcome.querySelectorAll('.quick-start').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prompt = btn.dataset.prompt;
+                this.userInput.value = prompt;
+                this.updateCharCounter();
+                this.sendMessage();
+            });
+        });
+        this.messagesEl.appendChild(welcome);
+    }
+    /* Удалено в 6.1
+    showWelcome() {
         const welcome = this.messageRenderer.renderWelcome();
         this.messagesEl.appendChild(welcome);
     }
+    */
 
     startEditing(div, content) {
         if (this.editingMessageId) {

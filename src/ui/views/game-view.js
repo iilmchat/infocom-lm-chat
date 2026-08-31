@@ -4,6 +4,8 @@ import { Game2048 } from '../../games/game-2048.js';
 import { SnakeGame } from '../../games/snake-game.js';
 import { TetrisGame } from '../../games/tetris-game.js';
 import { BlockBlastGame } from '../../games/block-blast.js';
+/* Добавлено в 6.1 */
+import { MiniMetroGame } from '../../games/mini-metro.js'; 
 
 /**
  * Модальное окно с играми
@@ -22,7 +24,8 @@ export class GameView {
             '2048': '🔢 2048',
             'snake': '🐍 Змейка',
             'tetris': '🧱 Тетрис',
-            'blockblast': '🧩 Block Blast' // Добавлено в 5.1
+            'blockblast': '🧩 Block Blast', // Добавлено в 5.1
+            'minimetro': '🚇 Mini Metro' // Добавлено в 6.1            
         };
 
         this.setupEventListeners();
@@ -70,6 +73,8 @@ export class GameView {
     */
     switchGame(type) {
         this.currentGameType = type;
+        // ... обновление активной опции ...
+        // ... остановка текущей игры ...
         
         // Обновляем активную опцию
         document.querySelectorAll('.game-option').forEach(o => {
@@ -85,8 +90,24 @@ export class GameView {
             this.currentGame.loop = null;
         }
 
+        // Добавлено в 6.1: блок для Mini Metro
+        if (type === 'minimetro') {
+            // Создаём контейнер для игры
+            const gameContainer = document.createElement('div');
+            gameContainer.id = 'miniMetroContainer';
+            // Очищаем контейнер
+            this.container.innerHTML = '';
+            this.container.appendChild(gameContainer);
+            // Добавляем пояснение
+            const hint = document.createElement('div');
+            hint.style.cssText = 'margin-top:8px;font-size:13px;color:var(--text-secondary);text-align:center;';
+            hint.textContent = '🚇 Создайте линии метро, соединяя станции. Перевозите пассажиров, не допускайте переполнения!';
+            this.container.appendChild(hint);
+            this.currentGame = new MiniMetroGame(gameContainer);
+            // Автоматический старт не делаем, пусть пользователь нажмёт кнопку
+            // this.currentGame.start();
         // Добавлено в 5.1: блок для Block Blast
-        if (type === 'blockblast') {
+        } else if (type === 'blockblast') {
             // Создаём контейнер для игры
             const gameContainer = document.createElement('div');
             gameContainer.id = 'blockBlastContainer';

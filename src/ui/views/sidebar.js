@@ -228,7 +228,7 @@ export class Sidebar {
         if (!container) return;
 
         const chats = await this.app.multiUserManager.loadPrivateChats();
-        
+  
         if (!chats || chats.length === 0) {
             container.innerHTML = `
                 <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
@@ -238,34 +238,59 @@ export class Sidebar {
             return;
         }
 
-        container.innerHTML = chats.map(chat => {
-            const otherUser = chat.user1Id === this.app.multiUserManager.localUser.Id 
-                ? chat.user2Id 
-                : chat.user1Id;
+        // Создаем массив для хранения результатов
+        const enrichedChats = [];
+
+        // Используем обычный цикл for...of, в котором await работает напрямую
+        for (const chat of chats) {
+            const otherUser = chat.User1Id === this.app.multiUserManager.localUser.Id 
+                ? chat.User2Id 
+                : chat.User1Id;
+
+            // Ждем выполнения запроса на каждой итерации
+            const userDetails = await this.app.multiUserManager.api.getUser(otherUser);
             
+            enrichedChats.push({ chat, userDetails });
+        }
+
+        container.innerHTML = enrichedChats.map(({ chat, userDetails }) => {
+            //const otherUser = chat.User1Id === this.app.multiUserManager.localUser.Id 
+            //    ? chat.User2Id 
+            //    : chat.User1Id;
+ 
+
             // Получаем имя пользователя из кэша
-            const peer = this.app.multiUserManager.peers.get(otherUser);
-            const name = peer?.Name || otherUser;
+            let peer = userDetails.user;//this.app.multiUserManager.peers.get(otherUser);
+            /*
+            if(!peer || peer === 'undefined')
+            {
+
+                if (result1.success) {
+                    peer = result1.user;
+                }
+            }
+                */
+            const name = peer?.Name|| peer.Id;
             const avatar = peer?.Avatar || '👤';
             const peerAvatar = this.app.avatarService.getAvatarHTML({ 
                 name: name, 
-                avatarType: peer?.avatarType, 
-                avatarData: peer?.avatarData,
+                avatarType: peer?.AvatarType, 
+                avatarData: peer?.AvatarData,
                 color: peer?.Color || '#888'
             });            
             const color = peer?.Color || '#888';
-            const lastMsg = chat.lastMessage || 'Нет сообщений';
-            const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
+            const lastMsg = chat.LastMessage || 'Нет сообщений';
+            const lastMsgAt = chat.LastMessageAt ? new Date(chat.LastMessageAt).toLocaleTimeString() : '';
 
             return `
-                <div class="private-chat-item" data-user-id="${otherUser}" data-chat-id="${chat.id}">
+                <div class="private-chat-item" data-user-id="${peer.Id}" data-chat-id="${chat.ChatId}">
                     <div class="private-chat-avatar">${peerAvatar}</div>
                     <div class="private-chat-info">
                         <div class="private-chat-name">${sanitizeHTML(name)}</div>
                         <div class="private-chat-last">${sanitizeHTML(lastMsg.substring(0, 50))}</div>
                     </div>
                     <div class="private-chat-time">${lastMsgAt}</div>
-                    ${chat.unreadCount > 0 ? `<span class="unread-badge">${chat.unreadCount}</span>` : ''}
+                    ${peer.UnreadCount > 0 ? `<span class="unread-badge">${peer.UnreadCount}</span>` : ''}
                 </div>
             `;
         }).join('');

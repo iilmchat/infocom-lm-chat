@@ -2,7 +2,15 @@
 /**
  * Модуль приватных чатов
  * Добавлено в 6.0
+ * 
+ * Изменено в 6.1:
+ * - Добавлены упоминания (@) с выпадающим списком пользователей
+ * - Интеграция с уведомлениями при получении новых сообщений
+ * - Поиск по сообщениям в текущем чате
+ * - Бесконечная пагинация (подгрузка при скролле вверх)
+ * - Доработаны стили и улучшен UX
  */
+
 import { CONFIG } from '../../config.js';
 import { sanitizeHTML, validateInput, validateLength } from '../../services/sanitizer.js';
 import { MessageRenderer } from '../../ui/renderers/message-renderer.js';
@@ -28,6 +36,7 @@ export class PrivateChatModule {
         this.hasMore = true;
         this.offset = 0;
         this.pageSize = 50;
+        this.searchQuery = '';
 
         // DOM элементы (создаются в render)
         this.messagesEl = null;
@@ -35,6 +44,7 @@ export class PrivateChatModule {
         this.sendBtn = null;
         this.chatListEl = null;
         this.titleEl = null;
+        this.searchInput = null;
 
         // Таймер опроса
         this.pollInterval = null;
@@ -44,46 +54,65 @@ export class PrivateChatModule {
         this.loadChats();
     }
 
+    /* ===================== РЕНДЕРИНГ ===================== */
+
     render() {
         this.container.innerHTML = `
-            <div class="private-chat-layout">
-                <div class="private-chat-sidebar">
-                    <div class="private-chat-header">
+            <div class="private-chat-layout" style="display:flex; height:100%;">
+                <!-- Сайдбар со списком чатов -->
+                <div class="private-chat-sidebar" style="width:280px; border-right:1px solid var(--border-color); display:flex; flex-direction:column; background:var(--bg-secondary);">
+                    <div class="private-chat-header" style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
                         <h3>💬 Приватные чаты</h3>
-                        <button id="newPrivateChatBtn" class="btn-primary">+ Новый</button>
+                        <button id="newPrivateChatBtnMain" class="btn btn-primary btn-sm">+ Новый</button>
                     </div>
-                    <div id="privateChatList" class="private-chat-list"></div>
+                    <div id="privateChatList" class="private-chat-list" style="flex:1; overflow-y:auto; padding:8px;"></div>
                 </div>
-                <div class="private-chat-main">
-                    <div class="private-chat-messages-header">
-                        <span id="privateChatTitle">Выберите чат</span>
-                        <div class="private-chat-actions">
-                            <button id="privateBackBtn" class="btn-secondary" data-link="/">← Назад</button>
+
+                <!-- Основная область чата -->
+                <div class="private-chat-main" style="flex:1; display:flex; flex-direction:column; background:var(--bg-primary);">
+                    <div class="private-chat-messages-header" style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span id="privateChatTitleMain" style="font-weight:600; font-size:16px;">Выберите чат</span>
+                        <div class="private-chat-actions" style="display:flex; gap:8px; align-items:center;">
+                            <!-- Добавлено в 6.1: поле поиска -->
+                            <input type="text" id="privateSearchInput" placeholder="🔍 Поиск по сообщениям..." style="padding:4px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); width:200px;">
+                            <button id="privateBackBtn" class="btn btn-secondary btn-sm" data-link="/">← Назад</button>
                         </div>
                     </div>
-                    <div id="privateMessages" class="private-messages-container"></div>
-                    <div class="private-chat-input-area">
-                        <textarea id="privateInput" placeholder="Введите сообщение..." rows="2"></textarea>
-                        <div class="private-input-actions">
-                            <button id="privateFileBtn" class="action-btn" title="Прикрепить файл">📎</button>
-                            <button id="privateSendBtn" class="send-btn">Отправить</button>
+
+                    <!-- Контейнер сообщений -->
+                    <div id="privateMessagesMain" class="private-messages-container" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+
+                    <!-- Область ввода -->
+                    <div class="private-chat-input-area" style="padding:12px 16px; border-top:1px solid var(--border-color); background:var(--bg-secondary);">
+                        <div style="display:flex; gap:10px; align-items:flex-end;">
+                            <textarea id="privateInput" placeholder="Введите сообщение... (Ctrl+Enter для отправки)" rows="2" style="flex:1; padding:8px 12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); resize:none; font-family:inherit;"></textarea>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <button id="privateFileBtn" class="btn btn-secondary btn-sm" title="Прикрепить файл">📎</button>
+                                <button id="privateSendBtnMain" class="btn btn-primary">Отправить</button>
                         </div>
                     </div>
-                    <div id="privateFileInfo" class="file-info" style="display:none;">
+                        <div id="privateFileInfo" class="file-info" style="display:none; margin-top:4px;">
                         <span>📎 Прикреплённые:</span>
                         <div id="privateFileList" class="rag-files-list"></div>
+                    </div>
+                        <!-- Контейнер для подсказок упоминаний (добавлен в 6.1) -->
+                        <div id="mentionSuggestions" class="mention-suggestions" style="display:none;"></div>
                     </div>
                 </div>
             </div>
         `;
 
         // Ссылки на элементы
-        this.messagesEl = document.getElementById('privateMessages');
+        this.messagesEl = document.getElementById('privateMessagesMain');
         this.inputEl = document.getElementById('privateInput');
-        this.sendBtn = document.getElementById('privateSendBtn');
+        this.sendBtn = document.getElementById('privateSendBtnMain');
         this.chatListEl = document.getElementById('privateChatList');
-        this.titleEl = document.getElementById('privateChatTitle');
+        this.titleEl = document.getElementById('privateChatTitleMain');
+        this.searchInput = document.getElementById('privateSearchInput');
+        this.mentionContainer = document.getElementById('mentionSuggestions');
     }
+
+    /* ===================== НАСТРОЙКА ОБРАБОТЧИКОВ ===================== */
 
     setupEventListeners() {
         // Отправка по Ctrl+Enter
@@ -94,6 +123,7 @@ export class PrivateChatModule {
             }
         });
 
+        // Отправка по кнопке
         this.sendBtn.addEventListener('click', () => this.sendMessage());
 
         // Кнопка "Назад" (роутер)
@@ -102,7 +132,7 @@ export class PrivateChatModule {
         });
 
         // Кнопка нового чата
-        document.getElementById('newPrivateChatBtn')?.addEventListener('click', () => {
+        document.getElementById('newPrivateChatBtnMain')?.addEventListener('click', () => {
             this.showUserSelector();
         });
 
@@ -114,6 +144,17 @@ export class PrivateChatModule {
             input.accept = CONFIG.SECURITY.ALLOWED_EXTENSIONS.join(',');
             input.onchange = (e) => this.handleFileUpload(e.target.files);
             input.click();
+        });
+
+        /* Добавлено в 6.1: поиск по сообщениям */
+        this.searchInput?.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value.trim().toLowerCase();
+            this.filterMessages(this.searchQuery);
+        });
+
+        /* Добавлено в 6.1: обработка упоминаний */
+        this.inputEl.addEventListener('input', (e) => {
+            this.handleMentionInput(e);
         });
 
         // Делегирование для списка чатов
@@ -135,7 +176,7 @@ export class PrivateChatModule {
             if (!messageEl) return;
             const messageId = messageEl.dataset.messageId;
 
-            // Реакции
+            // Реакции (если реализованы)
             if (target.classList.contains('reaction-btn')) {
                 const emoji = target.dataset.emoji;
                 this.toggleReaction(messageId, emoji);
@@ -168,9 +209,89 @@ export class PrivateChatModule {
                 return;
             }
         });
+
+        /* Добавлено в 6.1: бесконечная пагинация (скролл вверх) */
+        this.messagesEl.addEventListener('scroll', () => {
+            if (this.messagesEl.scrollTop === 0 && !this.isLoading && this.hasMore) {
+                this.loadHistory(true);
+            }
+        });
+
+        // Закрытие подсказок упоминаний при клике вне
+        document.addEventListener('click', (e) => {
+            if (!this.inputEl.contains(e.target) && !this.mentionContainer.contains(e.target)) {
+                this.hideMentionSuggestions();
+            }
+        });        
     }
 
-    // ===== ЗАГРУЗКА СПИСКА ЧАТОВ =====
+    /* ===================== УПОМИНАНИЯ (добавлено в 6.1) ===================== */
+
+    handleMentionInput(e) {
+        const text = this.inputEl.value;
+        const cursorPos = this.inputEl.selectionStart;
+        const before = text.substring(0, cursorPos);
+        const match = before.match(/@(\w*)$/);
+        if (match) {
+            const query = match[1];
+            this.showMentionSuggestions(query);
+        } else {
+            this.hideMentionSuggestions();
+        }
+    }
+
+    showMentionSuggestions(query) {
+        const users = this.app.multiUserManager.getAvailableUsers();
+        const filtered = users.filter(u =>
+            u.Name.toLowerCase().includes(query.toLowerCase()) &&
+            u.Id !== this.app.multiUserManager.localUser.Id
+        );
+        if (filtered.length === 0) {
+            this.mentionContainer.style.display = 'none';
+            return;
+        }
+        this.mentionContainer.innerHTML = filtered.map(u => `
+            <div class="mention-item" data-user-id="${u.Id}" style="padding:6px 12px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border-color);">
+                <span>${u.Avatar}</span>
+                <span>${sanitizeHTML(u.Name)}</span>
+            </div>
+        `).join('');
+        this.mentionContainer.style.display = 'block';
+        // Обработчики для выбора пользователя
+        this.mentionContainer.querySelectorAll('.mention-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const userId = item.dataset.userId;
+                const user = this.app.multiUserManager.peers.get(userId);
+                if (user) {
+                    const text = this.inputEl.value;
+                    const cursorPos = this.inputEl.selectionStart;
+                    const before = text.substring(0, cursorPos);
+                    const after = text.substring(cursorPos);
+                    const beforeMatch = before.match(/@\w*$/);
+                    if (beforeMatch) {
+                        const newText = text.substring(0, cursorPos - beforeMatch[0].length) + `@${user.Name} ` + after;
+                        this.inputEl.value = newText;
+                        this.inputEl.focus();
+                        const newPos = cursorPos - beforeMatch[0].length + user.Name.length + 2;
+                        this.inputEl.selectionStart = this.inputEl.selectionEnd = newPos;
+                    }
+                    this.hideMentionSuggestions();
+                }
+            });
+        });
+        // Позиционирование
+        const rect = this.inputEl.getBoundingClientRect();
+        this.mentionContainer.style.bottom = (rect.height + 4) + 'px';
+        this.mentionContainer.style.left = '0';
+        this.mentionContainer.style.width = '100%';
+    }
+
+    hideMentionSuggestions() {
+        this.mentionContainer.style.display = 'none';
+    }
+
+    /* ===================== ЗАГРУЗКА СПИСКА ЧАТОВ ===================== */
+    
     async loadChats() {
         try {
             const chats = await this.app.multiUserManager.loadPrivateChats();
@@ -193,30 +314,31 @@ export class PrivateChatModule {
         }
 
         this.chatListEl.innerHTML = chats.map(chat => {
-            const otherUserId = chat.user1Id === this.app.multiUserManager.localUser.Id
-                ? chat.user2Id
-                : chat.user1Id;
+            const otherUserId = chat.User1Id === this.app.multiUserManager.localUser.Id
+                ? chat.User2Id
+                : chat.User1Id;
             const peer = this.app.multiUserManager.peers.get(otherUserId);
             const name = peer?.Name || otherUserId;
             const avatar = peer?.Avatar || '👤';
             const color = peer?.Color || '#888';
-            const lastMsg = chat.lastMessage || 'Нет сообщений';
+            const lastMsg = chat.LastMessage || 'Нет сообщений';
             const unread = chat.unreadCount || 0;
 
             return `
-                <div class="private-chat-item" data-chat-id="${chat.id}" data-user-id="${otherUserId}">
-                    <div class="private-chat-avatar" style="color:${color};">${avatar}</div>
-                    <div class="private-chat-info">
-                        <div class="private-chat-name">${sanitizeHTML(name)}</div>
-                        <div class="private-chat-last">${sanitizeHTML(lastMsg.substring(0, 50))}</div>
+                <div class="private-chat-item" data-chat-id="${chat.ChatId}" data-user-id="${otherUserId}" style="display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; cursor:pointer; transition:background 0.2s; border-bottom:1px solid var(--border-color);">
+                    <div class="private-chat-avatar" style="font-size:28px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${avatar}</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:13px;">${sanitizeHTML(name)}</div>
+                        <div style="font-size:11px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sanitizeHTML(lastMsg.substring(0, 50))}</div>
                     </div>
-                    ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}
+                    ${unread > 0 ? `<span class="unread-badge" style="background:var(--error-color); color:#fff; border-radius:50%; padding:1px 6px; font-size:10px; font-weight:600; min-width:18px; text-align:center;">${unread}</span>` : ''}
                 </div>
             `;
         }).join('');
     }
 
-    // ===== ОТКРЫТИЕ ЧАТА =====
+    /* ===================== ОТКРЫТИЕ ЧАТА ===================== */
+
     async openChat(chatId, userId) {
         if (this.currentChatId === chatId) return;
 
@@ -230,12 +352,15 @@ export class PrivateChatModule {
         this.messages = [];
         this.offset = 0;
         this.hasMore = true;
+        this.searchQuery = '';
+        if (this.searchInput) this.searchInput.value = '';
 
         await this.loadHistory();
         this.startPolling();
     }
 
-    // ===== ЗАГРУЗКА ИСТОРИИ =====
+    /* ===================== ЗАГРУЗКА ИСТОРИИ ===================== */
+
     async loadHistory(append = false) {
         if (this.isLoading) return;
         this.isLoading = true;
@@ -256,6 +381,7 @@ export class PrivateChatModule {
                     this.offset = messages.length;
                     this.renderMessages();
                 } else {
+                    // Добавляем старые сообщения в начало
                     this.messages = [...messages, ...this.messages];
                     this.offset += messages.length;
                     this.renderMessages(true);
@@ -267,6 +393,20 @@ export class PrivateChatModule {
                     userId: this.app.multiUserManager.localUser.Id
                 });
                 this.app.multiUserManager.getUnreadCount();
+
+                /* Добавлено в 6.1: отправка уведомлений о новых сообщениях */
+                if (!append) {
+                    // Проверяем последние сообщения от других пользователей
+                    const newMessages = messages.filter(m => m.SenderId !== this.app.multiUserManager.localUser.Id);
+                    for (const msg of newMessages) {
+                        this.app.notificationManager.addNotification?.({
+                            type: 'private_message',
+                            title: `💬 Приватное сообщение от ${msg.SenderName}`,
+                            body: msg.content,
+                            data: { chatId: this.currentChatId, userId: msg.SenderId }
+                        });
+                    }
+                }
             }
         } catch (error) {
             console.error('Ошибка загрузки истории:', error);
@@ -276,12 +416,18 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== ОТОБРАЖЕНИЕ СООБЩЕНИЙ =====
+    /* ===================== ОТОБРАЖЕНИЕ СООБЩЕНИЙ ===================== */
+
     renderMessages(append = false) {
-        if (!this.messages.length) {
+        // Применяем поисковый фильтр (если есть)
+        const filtered = this.searchQuery
+            ? this.messages.filter(msg => msg.content.toLowerCase().includes(this.searchQuery))
+            : this.messages;
+
+        if (!filtered.length) {
             this.messagesEl.innerHTML = `
                 <div style="padding:20px;text-align:center;color:var(--text-secondary);">
-                    💬 Нет сообщений. Начните диалог!
+                    ${this.searchQuery ? '🔍 Сообщения не найдены' : '💬 Нет сообщений. Начните диалог!'}
                 </div>
             `;
             return;
@@ -289,32 +435,42 @@ export class PrivateChatModule {
 
         const fragment = document.createDocumentFragment();
 
-        this.messages.forEach(msg => {
+        filtered.forEach(msg => {
             const el = this.messageRenderer.render({
-                role: msg.senderId === this.app.multiUserManager.localUser.Id ? 'user' : 'bot',
-                content: msg.content,
-                messageId: msg.messageId || msg.id,
-                files: msg.attachments,
-                isEdit: msg.isEdited,
-                replyTo: msg.replyTo ? { content: msg.replyTo.content, role: msg.replyTo.role } : null
+                role: msg.SenderId === this.app.multiUserManager.localUser.Id ? 'user' : 'bot',
+                content: msg.Content,
+                messageId: msg.MessageId || msg.Id || msg.id,
+                files: msg.Attachments,
+                isEdit: msg.IsEdited,
+                replyTo: msg.ReplyToId ? { content: msg.ReplyToId.Content, role: msg.ReplyToId.Role } : null
             }, markdownService);
 
-            // Добавляем кнопки реакций (уже есть в messageRenderer, но мы добавим свои)
-            this.addReactionButtons(el, msg.messageId || msg.id);
-            this.addActionButtons(el, msg.messageId || msg.id, msg.senderId);
+            // Добавляем кнопки реакций и действий
+            this.addReactionButtons(el,  msg.MessageId || msg.Id || msg.id);
+            this.addActionButtons(el,  msg.MessageId || msg.Id || msg.id, msg.SenderId);
 
             fragment.appendChild(el);
         });
 
         if (append) {
-            // Добавляем в начало
+            // Добавляем в начало (сохраняем позицию скролла)
+            const scrollHeight = this.messagesEl.scrollHeight;
             this.messagesEl.prepend(fragment);
+            this.messagesEl.scrollTop = this.messagesEl.scrollHeight - scrollHeight;
         } else {
             this.messagesEl.innerHTML = '';
             this.messagesEl.appendChild(fragment);
             this.scrollToBottom();
         }
     }
+
+    /* Добавлено в 6.1: фильтрация сообщений при поиске */
+    filterMessages(query) {
+        this.searchQuery = query;
+        this.renderMessages(false);
+    }
+
+    /* ===================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===================== */
 
     addReactionButtons(el, messageId) {
         const container = el.querySelector('.reactions-container') || document.createElement('div');
@@ -327,7 +483,7 @@ export class PrivateChatModule {
         emojis.forEach(emoji => {
             const btn = document.createElement('button');
             btn.textContent = emoji;
-            btn.className = 'reaction-btn';
+            btn.className = 'reaction-btn btn btn-secondary btn-sm';
             btn.dataset.emoji = emoji;
             btn.title = `Реакция ${emoji}`;
             emojiBar.appendChild(btn);
@@ -346,6 +502,7 @@ export class PrivateChatModule {
     addActionButtons(el, messageId, senderId) {
         const actions = document.createElement('div');
         actions.className = 'private-message-actions';
+        actions.style.cssText = 'display:flex; gap:4px; margin-top:4px;';
 
         const isOwn = senderId === this.app.multiUserManager.localUser.Id;
         const isModerator = this.app.multiUserManager.isModeratorUser();
@@ -354,7 +511,7 @@ export class PrivateChatModule {
         if (isModerator || isOwn) {
             const pinBtn = document.createElement('button');
             pinBtn.textContent = '📌';
-            pinBtn.className = 'pin-btn';
+            pinBtn.className = 'pin-btn btn btn-secondary btn-sm';
             pinBtn.title = 'Закрепить';
             actions.appendChild(pinBtn);
         }
@@ -362,14 +519,14 @@ export class PrivateChatModule {
         // Пожаловаться (для всех)
         const reportBtn = document.createElement('button');
         reportBtn.textContent = '🚨';
-        reportBtn.className = 'report-btn';
+        reportBtn.className = 'report-btn btn btn-secondary btn-sm';
         reportBtn.title = 'Пожаловаться';
         actions.appendChild(reportBtn);
 
         // Ответить (для всех)
         const replyBtn = document.createElement('button');
         replyBtn.textContent = '↩️';
-        replyBtn.className = 'reply-btn';
+        replyBtn.className = 'reply-btn btn btn-secondary btn-sm';
         replyBtn.title = 'Ответить';
         actions.appendChild(replyBtn);
 
@@ -377,8 +534,7 @@ export class PrivateChatModule {
         if (isOwn) {
             const editBtn = document.createElement('button');
             editBtn.textContent = '✏️';
-            editBtn.className = 'edit-btn';
-            editBtn.className = 'btn btn-secondary btn-sm'; // добавляем классы            
+            editBtn.className = 'edit-btn btn btn-secondary btn-sm';
             editBtn.title = 'Редактировать';
             actions.appendChild(editBtn);
         }
@@ -392,9 +548,10 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== ОТПРАВКА СООБЩЕНИЯ =====
+    /* ===================== ОТПРАВКА СООБЩЕНИЯ ===================== */
+
     async sendMessage() {
-        const content = this.inputEl.value.trim();
+        let content = this.inputEl.value.trim();
         if (!content || !this.currentChatId) return;
 
         // Валидация
@@ -404,13 +561,17 @@ export class PrivateChatModule {
             return;
         }
 
+        // Извлечение упоминаний (добавлено в 6.1)
+        const mentionedUsers = this.extractMentions(content);
+
         try {
             const result = await this.app.multiUserManager.api.sendPrivateMessage({
                 chatId: this.currentChatId,
                 senderId: this.app.multiUserManager.localUser.Id,
                 receiverId: this.currentUser.Id,
                 content: content,
-                replyToId: this.replyTarget?.messageId || null
+                replyToId: this.replyTarget?.messageId || null,
+                mentions: mentionedUsers // добавляем упоминания в запрос
             });
 
             if (result.success) {
@@ -420,7 +581,10 @@ export class PrivateChatModule {
                 this.inputEl.value = '';
                 this.clearReplyTarget();
                 this.app.toast.success('💬 Сообщение отправлено');
-                // Обновляем список чатов (последнее сообщение)
+                // Если есть упоминания – отправляем уведомления
+                if (mentionedUsers.length > 0) {
+                    this.sendMentionNotifications(mentionedUsers, content);
+                }
                 this.loadChats();
             }
         } catch (error) {
@@ -429,7 +593,40 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== РЕАКЦИИ =====
+    /* Добавлено в 6.1: извлечение упоминаний из текста */
+    extractMentions(text) {
+        const mentions = [];
+        const regex = /@(\w+)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            const username = match[1];
+            const user = this.app.multiUserManager.peers.find(p => p.Name.toLowerCase() === username.toLowerCase());
+            if (user) {
+                mentions.push(user.Id);
+            } else if (this.app.multiUserManager.localUser.Name.toLowerCase() === username.toLowerCase()) {
+                mentions.push(this.app.multiUserManager.localUser.Id);
+            }
+        }
+        return mentions;
+    }
+
+    /* Добавлено в 6.1: отправка уведомлений упомянутым пользователям */
+    sendMentionNotifications(userIds, content) {
+        for (const userId of userIds) {
+            const user = this.app.multiUserManager.peers.get(userId);
+            if (user && userId !== this.app.multiUserManager.localUser.Id) {
+                this.app.notificationManager.addNotification?.({
+                    type: 'mention',
+                    title: `@${user.Name} упомянул вас в приватном чате`,
+                    body: content.substring(0, 100),
+                    data: { chatId: this.currentChatId, userId: userId }
+                });
+            }
+        }
+    }
+
+    /* ===================== РЕАКЦИИ, ЗАКРЕПЛЕНИЕ, ЖАЛОБЫ ===================== */
+
     async toggleReaction(messageId, emoji) {
         const current = this.reactionManager.getReactions(messageId);
         if (current.userReaction === emoji) {
@@ -495,11 +692,11 @@ export class PrivateChatModule {
         }
         container.style.display = 'block';
         container.innerHTML = `
-            <div class="pinned-header">📌 Закреплённые</div>
+            <div class="pinned-header" style="font-weight:600; color:var(--gold-color); margin-bottom:4px;">📌 Закреплённые</div>
             ${this.pinnedMessages.map(msg => `
-                <div class="pinned-item">
-                    <span>${sanitizeHTML(msg.content.substring(0, 100))}</span>
-                    <button class="unpin-btn" data-message-id="${msg.id}">✕</button>
+                <div class="pinned-item" style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:4px 0; border-bottom:1px solid var(--border-color);">
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sanitizeHTML(msg.content.substring(0, 100))}</span>
+                    <button class="unpin-btn btn btn-danger btn-sm" data-message-id="${msg.id}">✕</button>
                 </div>
             `).join('')}
         `;
@@ -541,7 +738,8 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== РЕДАКТИРОВАНИЕ =====
+    /* ===================== РЕДАКТИРОВАНИЕ ===================== */
+
     startEditing(messageId, content) {
         // Простая реализация: заменяем текст в баббле на input
         const el = this.messagesEl.querySelector(`[data-message-id="${messageId}"]`);
@@ -552,21 +750,16 @@ export class PrivateChatModule {
         const textarea = document.createElement('textarea');
         textarea.value = content;
         textarea.rows = 3;
-        textarea.style.width = '100%';
-        textarea.style.padding = '8px';
-        textarea.style.borderRadius = '8px';
-        textarea.style.border = '1px solid var(--border-color)';
-        textarea.style.background = 'var(--bg-input)';
-        textarea.style.color = 'var(--text-primary)';
+        textarea.style.cssText = 'width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary);';
 
         const saveBtn = document.createElement('button');
         saveBtn.textContent = '💾 Сохранить';
-        saveBtn.className = 'btn-primary';
+        saveBtn.className = 'btn btn-primary';
         saveBtn.style.marginTop = '8px';
 
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = '✕ Отмена';
-        cancelBtn.className = 'btn-secondary';
+        cancelBtn.className = 'btn btn-secondary';
         cancelBtn.style.marginLeft = '8px';
 
         const controls = document.createElement('div');
@@ -613,7 +806,8 @@ export class PrivateChatModule {
         textarea.focus();
     }
 
-    // ===== ОТВЕТ НА СООБЩЕНИЕ =====
+    /* ===================== ОТВЕТ НА СООБЩЕНИЕ ===================== */
+
     setReplyTarget(messageId, content) {
         this.replyTarget = { messageId, content };
         this.inputEl.placeholder = `↩️ Ответ: ${content.substring(0, 60)}...`;
@@ -622,10 +816,11 @@ export class PrivateChatModule {
 
     clearReplyTarget() {
         this.replyTarget = null;
-        this.inputEl.placeholder = 'Введите сообщение...';
+        this.inputEl.placeholder = 'Введите сообщение... (Ctrl+Enter для отправки)';
     }
 
-    // ===== ФАЙЛЫ =====
+    /* ===================== ФАЙЛЫ ===================== */
+
     async handleFileUpload(files) {
         const validFiles = [];
         for (const file of files) {
@@ -678,7 +873,10 @@ export class PrivateChatModule {
             if (fileInfo && fileList) {
                 fileInfo.style.display = 'flex';
                 fileList.innerHTML = uploaded.map(f =>
-                    `<span class="file-tag">📎 ${f.name} <button class="remove-file" data-id="${f.attachmentId}">✕</button></span>`
+                    `<span class="file-tag" style="display:flex; align-items:center; gap:4px; padding:4px 10px; background:var(--bg-input); border-radius:12px; border:1px solid var(--border-color);">
+                        📎 ${f.name}
+                        <button class="remove-file btn btn-danger btn-sm" data-id="${f.attachmentId}">✕</button>
+                    </span>`
                 ).join('');
                 fileList.querySelectorAll('.remove-file').forEach(btn => {
                     btn.onclick = () => {
@@ -692,7 +890,8 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== ПОЛЬЗОВАТЕЛЬСКИЙ ВЫБОР =====
+    /* ===================== ПОЛЬЗОВАТЕЛЬСКИЙ ВЫБОР ===================== */
+
     showUserSelector() {
         const users = this.app.multiUserManager.getAvailableUsers();
         if (!users.length) {
@@ -738,7 +937,8 @@ export class PrivateChatModule {
         });
     }
 
-    // ===== ПОЛЛИНГ =====
+    /* ===================== ПОЛЛИНГ ===================== */
+
     startPolling() {
         if (this.pollInterval) clearInterval(this.pollInterval);
         this.pollInterval = setInterval(() => {
@@ -755,14 +955,16 @@ export class PrivateChatModule {
         }
     }
 
-    // ===== Упонимания =====
+
     /**
      * Извлечение упоминаний из текста
      * Добавлено в 5.1.
      */
     // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
     // Эти функции перенесены в PrivateChatModule.    
-             
+
+    //Опять удалим 6.1
+    /*         
     extractMentions(text) {
         
         const mentions = [];
@@ -783,7 +985,9 @@ export class PrivateChatModule {
         return mentions;
     }
         
-    // ===== ВСПОМОГАТЕЛЬНЫЕ =====
+    */
+    /* ===================== ВСПОМОГАТЕЛЬНЫЕ ===================== */
+
     scrollToBottom() {
         this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
     }

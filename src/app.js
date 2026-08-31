@@ -90,7 +90,11 @@ import { Router } from './core/router.js'; /* Добавлено в 6.0 */
 // они будут импортироваться через import() в методах showAdmin, showGames, showProfile
 import { PrivateChatModule } from './modules/private/PrivateChatModule.js';
 
+/* Добавлено в 6.1: импорт новых модулей */
+import { SettingsModule } from './modules/settings/SettingsModule.js';
+import { StatsModule } from './modules/stats/StatsModule.js';
 
+import { i18n } from './services/i18n.js';
 
 // 5.3 Удалены импорты AuthModal и UserModal
 
@@ -123,6 +127,8 @@ class App {
         
         // История ввода сообщений (Ctrl+↑/↓)
         this.inputHistory = new InputHistory();
+        // История ввода сообщений (Ctrl+↑/↓)
+        this.i18n = i18n;
 
         // ===== Инициализация сервисов =====
         /* Добавлено в 6.1: создание AvatarService */
@@ -208,7 +214,9 @@ class App {
         this.profileModule = null;    // Изменено в 6.0
         // Добавлено в 6.0: импорт модулей privateChatModule              
         this.privateChatModule = null;                
-
+        /* Добавлено в 6.1: создание модулей настроек и статистики (ленивая загрузка) */
+        this.settingsModule = null;
+        this.statsModule = null;
 
         // ===== Инициализация UI (постоянные модули) =====
         // Изменено в 6.0: создание ChatModule вместо прямых ChatView и Sidebar
@@ -313,12 +321,50 @@ class App {
         this.router.addRoute('/admin', () => this.showAdmin());
         this.router.addRoute('/games', () => this.showGames());
         this.router.addRoute('/profile', () => this.showProfile());        
-        //Надо ли
+        /* Добавлено в 6.1: маршруты для настроек и статистики */
+        this.router.addRoute('/settings', () => this.showSettings());
+        this.router.addRoute('/stats', () => this.showStats());
+        //Если не указано
         this.router.setNotFound(() => this.showChat());
     }
 
     // ===== Методы отображения модулей =====
     // ===== Методы переключения представлений =====
+
+    async showSettings() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'none';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('app-settings').style.display = 'block';
+        document.getElementById('app-stats').style.display = 'none';
+        document.getElementById('sidebar').style.display = 'flex';
+        this.updateActiveNav('settings');
+
+        if (!this.settingsModule) {
+            const container = document.getElementById('app-settings');
+            this.settingsModule = new SettingsModule(this, container);
+        }
+    }
+
+    async showStats() {
+        document.getElementById('app-chat').style.display = 'none';
+        document.getElementById('app-private').style.display = 'none';
+        document.getElementById('app-admin').style.display = 'none';
+        document.getElementById('app-games').style.display = 'none';
+        document.getElementById('app-profile').style.display = 'none';
+        document.getElementById('app-settings').style.display = 'none';
+        document.getElementById('app-stats').style.display = 'block';
+        document.getElementById('sidebar').style.display = 'flex';
+        this.updateActiveNav('stats');
+
+        if (!this.statsModule) {
+            const container = document.getElementById('app-stats');
+            this.statsModule = new StatsModule(this, container);
+        }
+    }
+
 
     // Добавлено в 6.0: импорт модулей       
     showChat() {
@@ -479,9 +525,16 @@ class App {
 
     // Добавлено в 6.0: импорт модулей           
     updateActiveNav(section) {
+        /*
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.section === section);
         });
+        */
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            const link = btn.dataset.link || '';
+            const isActive = link === '/' ? section === 'chat' : link === `/${section}`;
+            btn.classList.toggle('active', isActive);
+        });       
     }
 
     // ===== Переопределённые методы для навигации (обёртки) =====
@@ -1244,7 +1297,8 @@ class App {
         this.replyTarget = null;
         const userInput = document.getElementById('userInput');
         if (userInput) {
-            userInput.placeholder = 'Введите вопрос или код... (Ctrl+Enter для отправки)';
+            //userInput.placeholder = 'Введите вопрос или код... (Ctrl+Enter для отправки)';
+            userInput.placeholder = this.app.i18n.t('chat.input_placeholder');
         }
         document.querySelectorAll('.message.reply-target').forEach(el => {
             el.classList.remove('reply-target');

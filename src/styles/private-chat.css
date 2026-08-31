@@ -172,3 +172,28 @@
     border-color: var(--text-primary);
     box-shadow: 0 0 12px currentColor;
 }
+
+/* Добавлено в 6.1: стили для упоминаний, поиска */
+.mention-suggestions {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+.mention-item:hover {
+    background: var(--bg-accent);
+}
+.private-chat-search input {
+    transition: border-color 0.2s;
+}
+.private-chat-search input:focus {
+    border-color: var(--text-accent);
+    outline: none;
+}

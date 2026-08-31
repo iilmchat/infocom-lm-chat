@@ -1,0 +1,34 @@
+{
+  "app": {
+    "title": "Infocom LM Chat Pro",
+    "version": "v6.1"
+  },
+  "chat": {
+    "welcome": "Добро пожаловать в Infocom LM Chat Pro",
+    "input_placeholder": "Введите вопрос или код... (Ctrl+Enter для отправки)",
+    "send": "Отправить",
+    "stop": "Стоп",
+    "new_chat": "+ Новый",
+    "search": "🔍 Поиск диалогов..."
+  },
+  "profile": {
+    "title": "👤 Профиль",
+    "name": "Имя пользователя",
+    "avatar": "Аватар",
+    "save": "💾 Сохранить",
+    "logout": "🚪 Выйти"
+  },
+  "settings": {
+    "title": "⚙️ Настройки сервера",
+    "ip": "IP-адрес сервера (API)",
+    "port": "Порт (API)",
+    "save": "💾 Сохранить",
+    "test": "🔍 Проверить соединение"
+  },
+  "common": {
+    "back": "← Назад",
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "loading": "Загрузка..."
+  }
+}

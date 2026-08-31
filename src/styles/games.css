@@ -255,3 +255,22 @@
         height: 16px;
     }
 }
+
+/* Добавлено в 6.1: стили для Mini Metro */
+.metro-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 4px 8px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+#miniMetroContainer canvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px;
+    background: #1a1a2e;
+}

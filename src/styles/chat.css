@@ -1406,3 +1406,24 @@ pre.hljs-pre .copy-btn:active {
         font-size: 10px;
     }
 }
+
+/* Изменено в 6.1: улучшенные стили сообщений */
+.message .bubble {
+    border-radius: 18px;
+    padding: 12px 18px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+.message.user .bubble {
+    border-bottom-right-radius: 6px;
+}
+.message.bot .bubble {
+    border-bottom-left-radius: 6px;
+}
+
+.typing-indicator {
+    animation: typingPulse 1.5s infinite;
+}
+@keyframes typingPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}

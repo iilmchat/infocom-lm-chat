@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infocom LM Chat Pro · v6.0</title> <!-- Изменено в 6.0 -->
+    <!-- Изменено в 6.1 -->
+    <title>Infocom LM Chat Pro · v6.1</title> 
 
     <!-- ===== СТИЛИ ===== -->
     <link rel="stylesheet" href="src/styles/main.css">
@@ -32,8 +33,8 @@
     <!-- Основной контейнер приложения -->
     <div id="app">
         <!-- Копирайт -->
-        <!-- Изменено в 6.0 -->         
-        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.0</div> 
+        <!-- Изменено в 6.1 -->         
+        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.1</div> 
 
         <!-- ============================================================ -->
         <!-- ===== КОНТЕЙНЕР ОСНОВНОГО ЧАТА ===== -->
@@ -50,6 +51,31 @@
                     <button class="btn btn-primary btn-sm" id="newChatBtn">+ Новый</button>
                 </div>
 
+                <!-- ===== НАВИГАЦИЯ (добавлено в 6.1) ===== -->
+                <div class="sidebar-nav" style="border-bottom:1px solid var(--border-color); padding:8px 12px;">
+                    <button class="nav-btn active" data-link="/" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        💬 Чат с ИИ
+                    </button>
+                    <button class="nav-btn" data-link="/private" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        👥 Приватные
+                    </button>
+                    <button class="nav-btn" data-link="/admin" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        🛡️ Админ
+                    </button>
+                    <button class="nav-btn" data-link="/games" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        🎮 Игры
+                    </button>
+                    <button class="nav-btn" data-link="/profile" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        👤 Профиль
+                    </button>
+                    <button class="nav-btn" data-link="/settings" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        ⚙️ Настройки
+                    </button>
+                    <button class="nav-btn" data-link="/stats" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                        📊 Статистика
+                    </button>
+                </div>
+                
                 <!-- Статистика -->
                 <div class="sidebar-section collapsed">
                     <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
@@ -195,7 +221,7 @@
                 <div class="chat-header">
                     <div class="header-left">
                         <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
-                        <span>💻 Infocom LM Chat Pro v6.0</span>
+                        <span>💻 Infocom LM Chat Pro v6.1</span>
                         <span class="active-assistant-indicator" id="activeAssistantIndicator">
                             <span id="activeAssistantIcon"></span>
                             <span id="activeAssistantName"></span>
@@ -401,10 +427,14 @@
                         </div>
                         <!-- Wiki Tab -->
                         <div class="modal-tab-content active" id="tab-wiki" role="tabpanel">
-                            <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v6.0</span></h2>
+                            <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v6.1</span></h2>
                             <p style="color:var(--text-secondary);margin-bottom:12px;">Последнее обновление: 2026</p>
                             <p>Современный веб-чат с настраиваемым сервером, групповыми чатами, улучшенной обработкой ошибок и кастомными ассистентами.</p>
                             <hr class="divider">
+                            <h3>🆕 Новое в v6.1</h3>
+                            <ul>
+                                <li><strong>Новая Игра</strong> — MiniMetro</li>
+                            </ul>                            
                             <h3>🆕 Новое в v6.0</h3>
                             <ul>
                                 <li><strong>🏗️ SPA-роутинг</strong> — разделение на страницы: чат, админка, игры, профиль</li>
@@ -640,6 +670,8 @@
                     <div class="game-option" data-game="tetris">🧱 Тетрис</div>
                     <!-- Добавлено в 5.1: Block Blast -->
                     <div class="game-option" data-game="blockblast">🧊 Block Blast</div>
+                    <!-- Добавлено в 6.1 -->
+                    <div class="game-option" data-game="minimetro">🚇 Mini Metro</div>
                 </div>
                 <div id="gameContainer"></div>
             </div>
@@ -659,6 +691,15 @@
             </div>
         </div>
 
+        <!-- ===== КОНТЕЙНЕР НАСТРОЕК ===== -->
+        <div id="app-settings" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+            <!-- Содержимое будет рендериться SettingsModule -->
+        </div>
+        
+        <!-- ===== КОНТЕЙНЕР СТАТИСТИКИ ===== -->
+        <div id="app-stats" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+            <!-- Содержимое будет рендериться StatsModule -->
+        </div>        
     </div> <!-- end #app -->
 
     <!-- ===== СКРИПТЫ ===== -->

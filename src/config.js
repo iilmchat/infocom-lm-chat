@@ -2,11 +2,14 @@
 /**
  * Глобальная конфигурация приложения
  * Изменено в 5.2: добавлены MARKDOWN, расширения для DOCX
+ * Изменено в 5.3 — добавлен .pdf в разрешённые расширения
+ * Изменено в 6.1: обновлена версия до 6.1, добавлены настройки для новых модулей
  */
 /* Изменено в 5.3 — добавлен .pdf в разрешённые расширения */
 
 export const CONFIG = {
-    VERSION: '5.3',
+    /* Изменено в 6.1: версия обновлена до 6.1 */
+    VERSION: '6.1',
     SERVER: {
         /*
         DEFAULT_IP: '222.1.1.31',
@@ -14,9 +17,12 @@ export const CONFIG = {
         */
         DEFAULT_IP: '222.1.1.99',
         DEFAULT_LM_IP: '222.1.1.31',
-        DEFAULT_PORT: 8032,           // API сервер
-        CLIENT_PORT: 8033,            // index.html
-        LM_PORT: 8034,                // LM Studio       
+        // API сервер
+        DEFAULT_PORT: 8032,  
+        // index.html            
+        CLIENT_PORT: 8033,   
+        // LM Studio
+        LM_PORT: 8034,                     
         DEFAULT_TIMEOUT: 60,
         DEFAULT_MAX_TOKENS: 2048,
         DEFAULT_API_PATH: '/v1/chat/completions',
@@ -26,8 +32,10 @@ export const CONFIG = {
         CHECK_INTERVAL: 30000,
         TEMPERATURE: 0.6,
         REVIEW_TEMPERATURE: 0.3,
-        POLLING_INTERVAL: 3000,       // Интервал между опросами
-        POLLING_TIMEOUT: 30           // Таймаут Long Polling
+        // Интервал между опросами
+        POLLING_INTERVAL: 3000,
+        // Таймаут Long Polling       
+        POLLING_TIMEOUT: 30           
     },
     RAG: {
         ENABLED: true,
@@ -53,7 +61,8 @@ export const CONFIG = {
     },
     SYSTEM_PROMPT: `Ты — мощная модель для программирования. Отвечай на русском, если вопрос на русском. Пиши код с комментариями.`,
     LIMITS: {
-        MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+        // 10MB
+        MAX_FILE_SIZE: 10 * 1024 * 1024, 
         MAX_INPUT_LENGTH: 10000,
         MAX_MESSAGES_KEEP: 60,
         MAX_ATTACHMENTS: 20,
@@ -118,6 +127,12 @@ export const CONFIG = {
     MARKDOWN: {
         ENABLED: true,
         SANITIZE_HTML: true
+    },
+    /* Добавлено в 6.1: настройки для статистики и аналитики */
+    ANALYTICS: {
+        DEFAULT_PERIOD: 'week', // 'day' | 'week' | 'month'
+        REFRESH_INTERVAL: 60000, // 1 минута
+        MAX_HISTORY_POINTS: 30
     }
 };
 
