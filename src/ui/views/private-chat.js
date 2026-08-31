@@ -198,18 +198,18 @@ export class PrivateChat {
         }
 
         container.innerHTML = this.messages.map(msg => {
-            const isOwn = msg.senderId === currentUserId;
+            const isOwn = msg.SenderId === currentUserId;
             return `
                 <div class="private-message ${isOwn ? 'own' : 'other'}">
-                    <div class="private-message-avatar">${isOwn ? '👤' : (msg.senderAvatar || '👤')}</div>
+                    <div class="private-message-avatar">${isOwn ? '👤' : (msg.SenderAvatar || '👤')}</div>
                     <div class="private-message-content">
                         <div class="private-message-header">
-                            <span class="private-message-name">${isOwn ? 'Вы' : sanitizeHTML(msg.senderName)}</span>
-                            <span class="private-message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            <span class="private-message-name">${isOwn ? 'Вы' : sanitizeHTML(msg.SenderName)}</span>
+                            <span class="private-message-time">${new Date(msg.Timestamp).toLocaleTimeString()}</span>
                         </div>
-                        <div class="private-message-text">${sanitizeHTML(msg.content)}</div>
-                        ${msg.isRead ? '<span class="private-message-read">✅ Прочитано</span>' : ''}
-                        ${msg.isEdited ? '<span class="private-message-edited">✏️</span>' : ''}
+                        <div class="private-message-text">${sanitizeHTML(msg.Content)}</div>
+                        ${msg.IsRead ? '<span class="private-message-read">✅ Прочитано</span>' : ''}
+                        ${msg.IsEdited ? '<span class="private-message-edited">✏️</span>' : ''}
                     </div>
                 </div>
             `;

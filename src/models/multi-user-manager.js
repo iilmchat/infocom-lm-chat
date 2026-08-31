@@ -872,7 +872,7 @@ export class MultiUserManager {
      */
     updateUsers(users) {
         if (!users) return;
-        let userList = Array.isArray(users) ? users : Object.values(users);
+        let userList = Array.isArray(users) ? users : Array.from(users.values());//Object.values(users);
         // Проверяем, изменился ли список
         const newUserIds = new Set(userList.map(u => u.Id));
         const currentUserIds = new Set(this.peers.keys());
@@ -938,7 +938,7 @@ export class MultiUserManager {
     getAvailableUsers() {
         // Все пользователи, кроме себя
         return Array.from(this.peers.values())
-            .filter(p => p.online !== false);
+            .filter(p => p.Online !== false);
     }   
 
     // ===== ПРИВАТНЫЕ ЧАТЫ =====
