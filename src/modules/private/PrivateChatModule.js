@@ -378,6 +378,7 @@ export class PrivateChatModule {
             const editBtn = document.createElement('button');
             editBtn.textContent = '✏️';
             editBtn.className = 'edit-btn';
+            editBtn.className = 'btn btn-secondary btn-sm'; // добавляем классы            
             editBtn.title = 'Редактировать';
             actions.appendChild(editBtn);
         }

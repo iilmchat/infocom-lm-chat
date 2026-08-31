@@ -4,6 +4,8 @@
  * Добавлено в 6.0
  * Отображает данные пользователя и позволяет редактировать профиль.
  */
+/* Изменено в 6.1: добавлена поддержка AvatarService и выбор типа аватара */
+
 import { sanitizeHTML } from '../../services/sanitizer.js';
 
 export class ProfileModule {
@@ -12,6 +14,7 @@ export class ProfileModule {
         this.container = container;
         this.user = this.app.multiUserManager.localUser;
         this.isAuth = this.app.authService.isAuthenticated;
+        this.avatarFileData = null;
         this.render();
         this.setupEventListeners();
     }
@@ -22,11 +25,11 @@ export class ProfileModule {
             <div style="max-width:600px; margin:0 auto; padding:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>👤 Ваш профиль</h2>
-                    <button id="profileBackBtn" class="btn-secondary" data-link="/">← Назад в чат</button>
+                    <button id="profileBackBtn" class="btn btn-secondary" data-link="/">← Назад в чат</button>
                 </div>
 
                 <div class="user-preview" id="profilePreview" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--text-accent);margin-bottom:20px;">
-                    <span id="profilePreviewAvatar" style="font-size:48px;">${this.user.Avatar || '👤'}</span>
+                    <div id="profilePreviewAvatar" style="font-size:48px;">${this.user.Avatar || '👤'}</div>
                     <div>
                         <div id="profilePreviewName" style="font-size:18px;font-weight:600;">${sanitizeHTML(this.user.Name || 'Пользователь')}</div>
                         <div id="profilePreviewStatus" style="font-size:12px;color:var(--text-secondary);">${this.isAuth ? '🟢 Онлайн' : '⚪ Офлайн'}</div>
@@ -38,8 +41,17 @@ export class ProfileModule {
                     <input type="text" id="profileNameInput" placeholder="Введите имя..." maxlength="20" value="${sanitizeHTML(this.user.Name || '')}">
                 </div>
 
+                <!-- Добавлено в 6.1: выбор типа аватара -->
                 <div class="form-group">
-                    <label>Аватар (эмодзи)</label>
+                    <label>Тип аватара</label>
+                    <select id="profileAvatarTypeSelect" class="form-control">
+                        <option value="emoji" ${this.user.avatarType === 'emoji' ? 'selected' : ''}>Эмодзи</option>
+                        <option value="initials" ${this.user.avatarType === 'initials' ? 'selected' : ''}>Инициалы</option>
+                        <option value="image" ${this.user.avatarType === 'image' ? 'selected' : ''}>Изображение</option>
+                    </select>
+                </div>
+
+                <div id="profileEmojiContainer" class="avatar-option">
                     <div class="avatar-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                         <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😊</span>
                         <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">😎</span>
@@ -50,29 +62,25 @@ export class ProfileModule {
                         <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🐼</span>
                         <span class="avatar-preset" style="font-size:28px;cursor:pointer;padding:4px 8px;border-radius:8px;border:2px solid transparent;transition:all 0.2s;">🦁</span>
                     </div>
-                    <input type="text" id="profileAvatarInput" placeholder="👤" maxlength="2" style="width:60px;" value="${this.user.Avatar || '👤'}">
+                    <input type="text" id="profileAvatarInput" placeholder="👤" maxlength="2" style="width:60px;" value="${this.user.avatarType === 'emoji' ? (this.user.avatarData || '👤') : ''}">
                 </div>
 
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <div class="color-presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                        <span class="color-preset-option selected" data-color="#7ec8e3" style="width:28px;height:28px;border-radius:50%;background:#7ec8e3;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#4caf50" style="width:28px;height:28px;border-radius:50%;background:#4caf50;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#9b4dca" style="width:28px;height:28px;border-radius:50%;background:#9b4dca;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#f0db4f" style="width:28px;height:28px;border-radius:50%;background:#f0db4f;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#dd0031" style="width:28px;height:28px;border-radius:50%;background:#dd0031;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#ff69b4" style="width:28px;height:28px;border-radius:50%;background:#ff69b4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#ff9800" style="width:28px;height:28px;border-radius:50%;background:#ff9800;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                        <span class="color-preset-option" data-color="#00bcd4" style="width:28px;height:28px;border-radius:50%;background:#00bcd4;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"></span>
-                    </div>
-                    <input type="color" id="profileColorInput" value="${this.user.Color || '#7ec8e3'}" style="width:60px;height:40px;border:none;border-radius:8px;cursor:pointer;">
+                <div id="profileInitialsContainer" class="avatar-option" style="display:${this.user.avatarType === 'initials' ? 'block' : 'none'};">
+                    <label>Цвет фона</label>
+                    <input type="color" id="profileInitialsColor" value="${this.user.color || '#7ec8e3'}" style="width:60px;height:40px;border:none;border-radius:8px;cursor:pointer;">
+                </div>
+
+                <div id="profileImageContainer" class="avatar-option" style="display:${this.user.avatarType === 'image' ? 'block' : 'none'};">
+                    <label>Загрузить изображение</label>
+                    <input type="file" id="profileAvatarFile" accept="image/*">
+                    <div id="profileAvatarPreview" style="margin-top:8px;">${this.user.avatarType === 'image' && this.user.avatarData ? `<img src="${this.user.avatarData}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">` : ''}</div>
                 </div>
 
                 <div id="profileError" style="color:var(--error-color);font-size:12px;margin-top:8px;display:none;"></div>
 
                 <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;">
-                    <button class="btn-primary" id="profileSaveBtn">💾 Сохранить</button>
-                    <button class="btn-danger" id="profileLogoutBtn" style="${!this.isAuth ? 'display:none;' : ''}">🚪 Выйти</button>
+                    <button class="btn btn-primary" id="profileSaveBtn">💾 Сохранить</button>
+                    <button class="btn btn-danger" id="profileLogoutBtn" style="${!this.isAuth ? 'display:none;' : ''}">🚪 Выйти</button>
                 </div>
             </div>
         `;

@@ -597,3 +597,95 @@ pre.hljs-pre .copy-btn:active {
 .message .bubble .markdown-content {
     /* уже определено в markdown.css */
 }
+
+/* ===== Добавлено в 6.1: универсальные классы кнопок ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--btn-border-radius, 8px);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+}
+.btn-primary:focus-visible {
+  outline: 2px solid var(--btn-primary-bg);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--border-color);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--btn-secondary-hover);
+}
+
+.btn-danger {
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--btn-danger-hover);
+}
+
+.btn-success {
+  background: var(--btn-success-bg);
+  color: var(--btn-success-text);
+}
+.btn-success:hover:not(:disabled) {
+  background: var(--btn-success-hover);
+}
+
+.btn-warning {
+  background: var(--btn-warning-bg);
+  color: var(--btn-warning-text);
+}
+.btn-warning:hover:not(:disabled) {
+  background: var(--btn-warning-hover);
+}
+
+/* Маленькие кнопки (для компактных мест) */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: calc(var(--btn-border-radius, 8px) - 2px);
+}
+
+/* Большие кнопки */
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: calc(var(--btn-border-radius, 8px) + 2px);
+}
+
+/* Кнопка с иконкой (убираем отступы) */
+.btn-icon {
+  padding: 6px 8px;
+  min-width: 32px;
+}

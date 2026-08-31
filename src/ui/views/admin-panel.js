@@ -283,12 +283,14 @@ export class AdminPanel {
      */
     // ===== ВКЛАДКА: ПОЛЬЗОВАТЕЛИ (без изменений) =====    
     renderUsers() {
+
         const container = document.getElementById('adminUserList');
         if (!container) return;
         // ... рендеринг списка, используя this.users
         // добавляем кнопки пагинации
         const currentUser = this.app.multiUserManager.localUser;
         const isAdmin = this.app.multiUserManager.isAdminUser();
+
 
         if (!this.users || this.users.length === 0) {
             container.innerHTML = `
@@ -318,10 +320,12 @@ export class AdminPanel {
             const isCurrentUser = user.UserId === currentUser.Id;
             const canManage = isAdmin && !isCurrentUser;
             const userName = user.Name && user.Name.trim() ? user.Name : 'Unknown';
+            const userAvatar = this.app.avatarService.getAvatarHTML(user);
             return `
             <div class="admin-user-item">
                 <div class="admin-user-info">
-                    <span class="admin-user-avatar">${user.Avatar || '👤'}</span>
+                    <span class="admin-user-avatar">${userAvatar}</span>
+                    
                     <span class="admin-user-name">${sanitizeHTML(userName)}</span>
                     <span class="admin-user-role ${user.Role?.toLowerCase()}">
                         ${this.getRoleIcon(user.Role)} ${user.Role || 'Admin'}
@@ -340,14 +344,14 @@ export class AdminPanel {
                             <option value="User" ${user.Role === 'User' ? 'selected' : ''}>👤 Пользователь</option>
                             <option value="Guest" ${user.Role === 'Guest' ? 'selected' : ''}>👋 Гость</option>
                         </select>
-                        <button class="btn-role-save" data-user-id="${user.UserId}" title="Сохранить роль">💾</button>
+                        <button class="btn btn-secondary btn-sm btn-role-save" data-user-id="${user.UserId}" title="Сохранить роль">💾</button>
                     ` : ''}
                     ${!isCurrentUser ? `
-                        <button onclick="window.adminPanel.muteUser('${user.UserId}', 5)" title="Заглушить">🔇</button>
-                        <button onclick="window.adminPanel.kickUser('${user.UserId}')" title="Выгнать">🚪</button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.muteUser('${user.UserId}', 5)" title="Заглушить">🔇</button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.kickUser('${user.UserId}')" title="Выгнать">🚪</button>
                         ${user.Status === 'banned' 
-                            ? `<button onclick="window.adminPanel.unbanUser('${user.UserId}')" title="Разбанить">✅</button>`
-                            : `<button onclick="window.adminPanel.banUser('${user.UserId}')" title="Забанить">⛔</button>`
+                            ? `<button class="btn btn-secondary btn-sm" onclick="window.adminPanel.unbanUser('${user.UserId}')" title="Разбанить">✅</button>`
+                            : `<button class="btn btn-secondary btn-sm" onclick="window.adminPanel.banUser('${user.UserId}')" title="Забанить">⛔</button>`
                         }
                     ` : ''}
                 </div>
@@ -446,11 +450,11 @@ export class AdminPanel {
         if (!container) return;
         const totalPages = Math.ceil(this.userTotal / this.userPageSize);
         container.innerHTML = `
-            <button ${this.userPage <= 1 ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage - 1})">◀</button>
+            <button class="btn btn-secondary btn-sm" ${this.userPage <= 1 ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage - 1})">◀</button>
             <span>Стр. ${this.userPage} из ${totalPages || 1}</span>
-            <button ${this.userPage >= totalPages ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage + 1})">▶</button>
+            <button class="btn btn-secondary btn-sm" ${this.userPage >= totalPages ? 'disabled' : ''} onclick="window.adminPanel.goToUserPage(${this.userPage + 1})">▶</button>
             <input type="text" id="adminUserSearchPage" placeholder="Поиск..." value="${this.userSearch}">
-            <button onclick="window.adminPanel.searchUsers()">🔍</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.searchUsers()">🔍</button>
         `;
     }
 
@@ -615,10 +619,10 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                         </span>
                     </div>
                     <div class="admin-room-actions">
-                        <button class="admin-room-clear" data-room-id="${roomId}" title="Очистить историю">🗑️</button>
-                        <button class="admin-room-delete" data-room-id="${roomId}" title="Удалить комнату">❌</button>
-                        <button class="admin-room-close" data-room-id="${roomId}" title="Закрыть комнату">🔒</button>
-                        <button class="admin-room-export" data-room-id="${roomId}" title="Экспортировать">💾</button>
+                        <button class="btn btn-secondary btn-sm admin-room-clear" data-room-id="${roomId}" title="Очистить историю">🗑️</button>
+                        <button class="btn btn-secondary btn-sm admin-room-delete" data-room-id="${roomId}" title="Удалить комнату">❌</button>
+                        <button class="btn btn-secondary btn-sm admin-room-close" data-room-id="${roomId}" title="Закрыть комнату">🔒</button>
+                        <button class="btn btn-secondary btn-sm admin-room-export" data-room-id="${roomId}" title="Экспортировать">💾</button>
                     </div>
                     <div id="room-users-${roomId}" class="room-users-list" style="${isExpanded ? 'display:block;' : 'display:none;'}">
                         ${isExpanded ? usersHtml : ''}
@@ -796,8 +800,8 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                 <div class="filter-row">
                     <label>С: <input type="date" id="adminMsgDateFrom" class="filter-date"></label>
                     <label>По: <input type="date" id="adminMsgDateTo" class="filter-date"></label>
-                    <button id="adminMsgSearchBtn" class="btn-primary">🔍 Искать</button>
-                    <button id="adminMsgResetBtn" class="btn-secondary">↺ Сбросить</button>
+                    <button id="adminMsgSearchBtn" class="btn btn-primary btn-sm">🔍 Искать</button>
+                    <button id="adminMsgResetBtn" class="btn btn-secondary btn-sm">↺ Сбросить</button>
                 </div>
             `;
             // Вставляем перед списком сообщений
@@ -839,9 +843,9 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         const exportDiv = document.createElement('div');
         exportDiv.className = 'export-buttons';
         exportDiv.innerHTML = `
-            <button onclick="window.adminPanel.exportSearchResults('json')">📥 JSON</button>
-            <button onclick="window.adminPanel.exportSearchResults('csv')">📥 CSV</button>
-            <button onclick="window.adminPanel.exportSearchResults('txt')">📥 TXT</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.exportSearchResults('json')">📥 JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.exportSearchResults('csv')">📥 CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.adminPanel.exportSearchResults('txt')">📥 TXT</button>
         `;
         const list = container.querySelector('.admin-message-list');
         container.insertBefore(exportDiv, list);
@@ -1031,7 +1035,7 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                     <span class="admin-message-user">${sanitizeHTML(msg.userName || 'Unknown')}</span>
                     <span class="admin-message-room">${sanitizeHTML(msg.roomName || msg.roomId || '')}</span>
                     <span class="admin-message-time">${new Date(msg.timestamp).toLocaleString()}</span>
-                    <button class="admin-message-delete" data-message-id="${msg.id}" title="Удалить">🗑️</button>
+                    <button class="btn btn-secondary btn-sm admin-message-delete" data-message-id="${msg.id}" title="Удалить">🗑️</button>
                 </div>
                 <div class="admin-message-content">${sanitizeHTML(msg.content)}</div>
             </div>
@@ -1067,9 +1071,9 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         const currentPage = Math.floor(this.searchOffset / this.searchLimit) + 1;
 
         container.innerHTML = `
-            <button id="adminMsgPrev" ${this.searchOffset <= 0 ? 'disabled' : ''}>◀ Назад</button>
+            <button class="btn btn-secondary btn-sm" id="adminMsgPrev" ${this.searchOffset <= 0 ? 'disabled' : ''}>◀ Назад</button>
             <span>Страница ${currentPage} из ${totalPages || 1}</span>
-            <button id="adminMsgNext" ${(this.searchOffset + this.searchLimit) >= this.searchTotal ? 'disabled' : ''}>Вперёд ▶</button>
+            <button class="btn btn-secondary btn-sm" id="adminMsgNext" ${(this.searchOffset + this.searchLimit) >= this.searchTotal ? 'disabled' : ''}>Вперёд ▶</button>
         `;
 
         document.getElementById('adminMsgPrev')?.addEventListener('click', () => {
@@ -1133,8 +1137,8 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                 </div>
             </div>
             <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
-                <button class="admin-stats-load" class="btn-secondary">🔄 Обновить</button>
-                <button class="admin-stats-clear" class="btn-secondary" style="color:var(--error-color);">🗑️ Очистить всё</button>
+                <button class="btn btn-secondary btn-sm admin-stats-load" class="btn-secondary">🔄 Обновить</button>
+                <button class="btn btn-secondary btn-sm" class="admin-stats-clear" class="btn-secondary" style="color:var(--error-color);">🗑️ Очистить всё</button>
             </div>
         `;
 
@@ -1221,13 +1225,13 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                     <option value="User" ${defaultRole === 'User' ? 'selected' : ''}>👤 Пользователь</option>
                     <option value="Guest" ${defaultRole === 'Guest' ? 'selected' : ''}>👋 Гость</option>
                 </select>
-                <button id="defaultRoleSaveBtn" class="btn-primary" style="margin-top:8px;">💾 Сохранить роль по умолчанию</button>
+                <button class="btn btn-sm" id="defaultRoleSaveBtn" class="btn-primary" style="margin-top:8px;">💾 Сохранить роль по умолчанию</button>
             </div>
 
             <div class="setting-item" style="grid-column: 1 / -1;">
                 <label>📊 Статистика ролей</label>
                 <div id="roleStatsContainer" class="role-stats-container">
-                    <button id="roleStatsBtn" class="btn-secondary">🔄 Загрузить статистику</button>
+                    <button class="btn btn-secondary btn-sm" id="roleStatsBtn" class="btn-secondary">🔄 Загрузить статистику</button>
                 </div>
             </div>
 
@@ -1255,8 +1259,8 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
                 </select>
             </div>
             <div class="setting-item" style="grid-column: 1 / -1;">
-                <button id="settingSaveBtn" class="btn-primary">💾 Сохранить настройки</button>
-                <button id="settingResetBtn" class="btn-secondary" style="margin-left:8px;">↺ Сбросить</button>
+                <button class="btn btn-sm" id="settingSaveBtn" class="btn-primary">💾 Сохранить настройки</button>
+                <button class="btn btn-secondary btn-sm" id="settingResetBtn" class="btn-secondary" style="margin-left:8px;">↺ Сбросить</button>
             </div>
         `;
 

@@ -1,88 +1,114 @@
 // src/ui/views/assistant-bar.js
+/**
+ * Панель ассистентов в шапке чата
+ * Изменено в 6.1: кнопки теперь используют классы btn
+ */
 import { sanitizeHTML } from '../../services/sanitizer.js';
 
 /**
  * Рендеринг панели ассистентов
  */
 export function renderAssistantBar(app) {
-    const bar = document.getElementById('assistantBar');
-    if (!bar) return;
+    const container = document.getElementById('assistantBar');
+    if (!container) return;
 
-    const all = app.assistantManager.getAll();
+    const assistants = app.assistantManager.getAll();
     const activeId = app.assistantManager.activeAssistant?.id;
+    const active = app.assistantManager.activeAssistant;    
 
-    bar.innerHTML = all.map(a => `
-        <div class="assistant-card ${a.id === activeId ? 'active' : ''} ${a.custom ? 'custom' : ''}"
-             data-assistant-id="${a.id}" style="${a.id === activeId ? 'border-color:' + a.color + ';' : ''}">
-            <span class="assistant-icon">${a.icon}</span>
-            <div class="assistant-info">
-                <div class="assistant-name">${sanitizeHTML(a.name)}</div>
-                <div class="assistant-desc">${sanitizeHTML(a.description)}</div>
+    let html = '';
+    assistants.forEach(a => {
+        const isActive = active && active.id === a.id;
+        html += `
+            <div class="assistant-card ${isActive ? 'active' : ''} ${a.custom ? 'custom' : ''}" data-id="${a.id}">
+                <span class="assistant-icon">${a.icon || '🤖'}</span>
+                <div class="assistant-info">
+                    <span class="assistant-name">${sanitizeHTML(a.name)}</span>
+                    <span class="assistant-desc">${sanitizeHTML(a.description || '')}</span>
+                </div>
+                <button class="prompt-view-btn btn btn-secondary btn-sm" data-id="${a.id}" title="Посмотреть промт">📋</button>
+                ${a.custom ? `<button class="delete-assistant-btn btn btn-danger btn-sm" data-id="${a.id}" title="Удалить">✕</button>` : ''}
             </div>
-            <button class="prompt-view-btn" onclick="event.stopPropagation();window.viewPrompt('${a.id}')" title="Просмотр">📋</button>
-            ${a.custom ? `<button class="delete-assistant-btn" onclick="event.stopPropagation();window.deleteAssistant('${a.id}')" title="Удалить">✕</button>` : ''}
-        </div>
-    `).join('') + `
-        <div class="add-assistant-btn" onclick="window.openCustomAssistantModal()">
-            <span>➕</span> Создать
-        </div>
+        `;
+    });
+
+    html += `
+        <button class="add-assistant-btn btn btn-secondary btn-sm" id="addAssistantBtn">➕ Добавить</button>
     `;
 
-    bar.querySelectorAll('.assistant-card').forEach(card => {
-        card.onclick = () => {
-            const id = card.dataset.assistantId;
-            if (app.assistantManager.activeAssistant?.id === id) {
-                app.assistantManager.deactivate();
-            } else {
-                app.assistantManager.activate(id);
-            }
+    container.innerHTML = html;
+
+    // Обработчики
+    container.querySelectorAll('.assistant-card').forEach(card => {
+        const id = card.dataset.id;
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.prompt-view-btn') || e.target.closest('.delete-assistant-btn')) return;
+            app.assistantManager.activate(id);
             renderAssistantBar(app);
-            updateActiveIndicator(app);
-        };
+            app.updateActiveIndicator();
+            app.toast.success(`Ассистент: ${app.assistantManager.activeAssistant.name}`);
+        });
+    });
+
+    container.querySelectorAll('.prompt-view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            viewPrompt(app, id);
+        });
+    });
+
+    container.querySelectorAll('.delete-assistant-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('Удалить этого ассистента?')) {
+                deleteAssistant(app, id);
+                renderAssistantBar(app);
+            }
+        });
+    });
+
+    document.getElementById('addAssistantBtn').addEventListener('click', () => {
+        openCustomAssistantModal(app);
     });
 }
 
 export function updateActiveIndicator(app) {
-    const ind = document.getElementById('activeAssistantIndicator');
-    const a = app.assistantManager.activeAssistant;
+    const container = document.getElementById('activeAssistantIndicator');
+    if (!container) return;
+    const active = app.assistantManager.activeAssistant;
     
-    if (a) {
-        ind.classList.add('visible');
-        document.getElementById('activeAssistantIcon').textContent = a.icon;
-        document.getElementById('activeAssistantName').textContent = a.name;
+    if (active) {
+        container.classList.add('visible');
+        document.getElementById('activeAssistantIcon').textContent = active.icon || '🤖';
+        document.getElementById('activeAssistantName').textContent = active.name;
     } else {
-        ind.classList.remove('visible');
+        container.classList.remove('visible');
     }
 }
 
-export function viewPrompt(id) {
-    const app = window.app;
-    if (!app) return;
-    const a = app.assistantManager.get(id);
-    if (!a) return;
-    
-    document.getElementById('promptContent').textContent = a.systemPrompt;
-    document.getElementById('promptModal').classList.add('active');
-    document.getElementById('copyPromptBtn').onclick = () => {
-        navigator.clipboard.writeText(a.systemPrompt).then(() => {
-            app.toast.success('Промт скопирован!');
-        });
-    };
+export function viewPrompt(app, id) {
+    const assistant = app.assistantManager.get(id);
+    if (!assistant) return;
+    const modal = document.getElementById('promptModal');
+    document.getElementById('promptContent').textContent = assistant.systemPrompt || 'Промт не задан';
+    modal.classList.add('active');
 }
 
-export function deleteAssistant(id) {
-    const app = window.app;
+export function deleteAssistant(app, id) {
+    //const app = window.app;
     if (!app) return;
     
     if (confirm('Удалить этого ассистента?')) {
         app.assistantManager.removeCustom(id);
         renderAssistantBar(app);
         updateActiveIndicator(app);
-        app.toast.info('Ассистент удален');
+        app.toast.info('Ассистент удалён');
     }
 }
 
-export function openCustomAssistantModal() {
+export function openCustomAssistantModal(app) {
     document.getElementById('customAssistantModal').classList.add('active');
     document.getElementById('caName').value = '';
     document.getElementById('caIcon').value = '🤖';

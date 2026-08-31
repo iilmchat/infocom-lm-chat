@@ -1,6 +1,8 @@
 // src/ui/views/chat-view.js
 // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
 // Эти функции перенесены в PrivateChatModule.
+/* Изменено в 6.1: заменены динамические кнопки на классы btn, добавлен AvatarService для аватаров в сообщениях */
+
 import { CONFIG } from '../../config.js';
 import { sanitizeHTML, validateInput, validateLength } from '../../services/sanitizer.js';
 // Удалено в 5.2: import { syntaxHighlighter } from '../../services/syntax-highlighter.js';
@@ -47,12 +49,18 @@ export class ChatView {
         // Добавлено в 5.1: загруженные вложения
         this.uploadedAttachments = [];
 
-        this.virtualScroll = null;              /* Добавлено в 5.3 */
-        this.itemHeight = 80;                   /* Добавлено в 5.3 */
-        this.isLoadingHistory = false;          /* Добавлено в 5.3 */
-        this.hasMore = true;                    /* Добавлено в 5.3 */
-        this.currentOffset = 0;                 /* Добавлено в 5.3 */
-        this.pageSize = 50;                     /* Добавлено в 5.3 */       
+        /* Добавлено в 5.3 */
+        this.virtualScroll = null;
+        /* Добавлено в 5.3 */              
+        this.itemHeight = 80;
+        /* Добавлено в 5.3 */                   
+        this.isLoadingHistory = false;
+        /* Добавлено в 5.3 */          
+        this.hasMore = true;
+        /* Добавлено в 5.3 */                    
+        this.currentOffset = 0;
+        /* Добавлено в 5.3 */                  
+        this.pageSize = 50;                           
         
 
 
@@ -72,7 +80,7 @@ export class ChatView {
         this.setupEventListeners();
 
         // Добавлено в 5.2: hljs из глобального объекта
-        this.hljs = window.hljs;        
+        this.hljs = window.hljs;
     }
 
     render() {
@@ -84,8 +92,9 @@ export class ChatView {
     /**
      * Загрузка сообщений с пагинацией
      * Изменено в 5.1: добавлена пагинация
+     *  Изменено в 5.3 
      */
-    async loadMessages(append = false) {        /* Изменено в 5.3 */
+    async loadMessages(append = false) {        
         if (this.isLoadingHistory) return;
         this.isLoadingHistory = true;
         try {
@@ -114,10 +123,12 @@ export class ChatView {
                     isEdited: msg.isEdited,
                     replyTo: msg.replyTo
                 }));
+
                 // Добавлено в 5.3 (окончание)
                 if (!append) {
                     // Заменяем всю историю
-                    this.messagesEl.innerHTML = ''; // /* Удалено в 5.3 ОСТАВИМ*/
+                    // /* Удалено в 5.3 ОСТАВИМ*/
+                    this.messagesEl.innerHTML = ''; 
                     /* Добавлено в 5.3 (начало) ОСТАВИМ**/
                     /*
                     // Инициализация виртуального скролла
@@ -182,7 +193,7 @@ export class ChatView {
         } finally {
             this.isLoadingHistory = false;
         }
-    }    
+    }
 
     /* Добавлено в 5.3 */
     handleScroll() {
@@ -233,7 +244,7 @@ export class ChatView {
             ${this.pinnedMessages.map(msg => `
                 <div class="pinned-item" data-message-id="${msg.id}">
                     <span class="pinned-content">${sanitizeHTML(msg.content.substring(0, 100))}</span>
-                    <button class="unpin-btn" data-message-id="${msg.id}">✕</button>
+                    <button class="unpin-btn btn btn-secondary btn-sm" data-message-id="${msg.id}">✕</button>
                 </div>
             `).join('')}
         `;
@@ -276,7 +287,8 @@ export class ChatView {
             if (!btn) {
                 btn = document.createElement('button');
                 btn.id = 'loadMoreBtn';
-                btn.className = 'load-more-btn';
+                /* Изменено в 6.1: добавлен класс btn btn-secondary */
+                btn.className = 'btn btn-secondary load-more-btn';
                 btn.textContent = '⬆ Загрузить ещё';
                 btn.addEventListener('click', () => this.loadMessages(true));
                 this.messagesEl.prepend(btn);
@@ -291,14 +303,23 @@ export class ChatView {
      * Рендеринг отдельного сообщения с реакциями
      * Добавлено в 5.1.
      */
+    /**
+     * Рендеринг отдельного сообщения с использованием AvatarService для отображения аватара
+     * Изменено в 6.1: добавлен аватар пользователя в label с помощью avatarService
+     */
     renderMessage(msg, addToEnd = true) {
+        // Используем AvatarService для получения HTML аватара
+        const user = this.app.multiUserManager.peers.get(msg.userId) || this.app.multiUserManager.localUser;
+        const avatarHTML = this.app.avatarService ? this.app.avatarService.getAvatarHTML(user) : '👤';
+
         const el = this.messageRenderer.render({
             role: msg.role,
             content: msg.content,
             messageId: msg.id,
             files: msg.attachments,
             isEdit: msg.isEdited,
-            replyTo: msg.replyTo ? { content: msg.replyTo.content, role: msg.replyTo.role } : null
+            replyTo: msg.replyTo ? { content: msg.replyTo.content, role: msg.replyTo.role } : null,
+            avatarHTML: avatarHTML // передаём аватар в рендерер
         });
         el.dataset.messageId = msg.id;
         el.dataset.userId = msg.userId;
@@ -481,7 +502,11 @@ export class ChatView {
      */
     // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
     // Эти функции перенесены в PrivateChatModule.
-    //(оставляем только edit, reply, regenerate)    
+    //(оставляем только edit, reply, regenerate)
+    /**
+     * Создание меню действий (редактировать, ответить, перегенерировать)
+     * Изменено в 6.1: кнопки получили классы btn btn-secondary btn-sm
+     */
     createActionsMenu(messageId, userId) {
         const wrapper = document.createElement('span');
         wrapper.className = 'message-actions-extra';
@@ -489,39 +514,61 @@ export class ChatView {
         const isOwn = userId === this.app.multiUserManager.localUser.Id;
         const isModerator = this.app.multiUserManager.isModeratorUser();
 
-        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
-        // Эти функции перенесены в PrivateChatModule.
-        /*
-        // Закрепить (только для модераторов или владельца комнаты)
-        if (isModerator || isOwn) {
-            const pinBtn = document.createElement('button');
-            pinBtn.textContent = '📌';
-            pinBtn.title = 'Закрепить сообщение';
-            pinBtn.className = 'action-btn';
-            pinBtn.addEventListener('click', (e) => {
+        // Кнопка редактирования (только для пользователя)
+        if (isOwn) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-secondary btn-sm';
+            editBtn.textContent = '✏️';
+            editBtn.title = 'Редактировать';
+            editBtn.setAttribute('aria-label', 'Редактировать сообщение');
+            editBtn.onclick = (e) => {
                 e.stopPropagation();
-                this.pinMessage(messageId);
-            });
-            wrapper.appendChild(pinBtn);
+                const messageDiv = e.target.closest('.message');
+                if (messageDiv && this.app?.chatView) {
+                    const content = messageDiv.querySelector('.bubble')?.textContent || '';
+                    this.app.chatView.startEditing(messageDiv, content);
+                }
+            };
+            wrapper.appendChild(editBtn);
         }
-        */
 
-        // Изменено в 6.0: удалены реакции, закрепления, жалобы, упоминания, загрузка файлов на сервер.
-        // Эти функции перенесены в PrivateChatModule.
-        /*
-        // Пожаловаться (для всех)
-        const reportBtn = document.createElement('button');
-        reportBtn.textContent = '🚨';
-        reportBtn.title = 'Пожаловаться';
-        reportBtn.className = 'action-btn';
-        reportBtn.addEventListener('click', (e) => {
+        // Кнопка ответа (для всех)
+        const replyBtn = document.createElement('button');
+        replyBtn.className = 'btn btn-secondary btn-sm';
+        replyBtn.textContent = '↩️';
+        replyBtn.title = 'Ответить на это сообщение';
+        replyBtn.setAttribute('aria-label', 'Ответить на это сообщение');
+        replyBtn.onclick = (e) => {
             e.stopPropagation();
-            this.reportMessage(messageId);
-        });
-        wrapper.appendChild(reportBtn);
-        */
+            const messageDiv = e.target.closest('.message');
+            if (messageDiv && window.app) {
+                const content = messageDiv.querySelector('.bubble')?.textContent || '';
+                const role = messageDiv.classList.contains('user') ? 'user' : 'bot';
+                window.app.setReplyTarget(messageDiv, content, role);
+            }
+        };
+        wrapper.appendChild(replyBtn);
 
-        return wrapper;
+        // Кнопка перегенерации (только для бота/ассистента)
+        const role = this.messagesEl.querySelector(`[data-message-id="${messageId}"]`)?.classList.contains('bot') ? 'bot' : 'assistant';
+        if (role === 'bot' || role === 'assistant') {
+            const regenBtn = document.createElement('button');
+            regenBtn.className = 'btn btn-secondary btn-sm';
+            regenBtn.textContent = '↻';
+            regenBtn.title = 'Перегенерировать';
+            regenBtn.setAttribute('aria-label', 'Перегенерировать ответ');
+            regenBtn.onclick = (e) => {
+                e.stopPropagation();
+                const messageDiv = e.target.closest('.message');
+                if (messageDiv && this.app?.chatView) {
+                    const content = messageDiv.querySelector('.bubble')?.textContent || '';
+                    this.app.chatView.regenerateMessage(messageDiv, content);
+                }
+            };
+            wrapper.appendChild(regenBtn);
+        }
+
+        return wrapper;    
     }
 
     /**
@@ -1572,6 +1619,10 @@ export class ChatView {
             }
         });
 
+        // Кнопка отправки – оставляем существующие классы, но добавляем btn для общих свойств
+        // sendBtn уже имеет класс send-btn, добавим btn для единообразия
+        this.sendBtn.classList.add('btn', 'btn-primary');
+
         // Кнопка отправки
         this.sendBtn.addEventListener('click', () => {
             if (this.sendBtn.classList.contains('stop-btn') && this.app.streamAbortController) {
@@ -1582,28 +1633,32 @@ export class ChatView {
         });
 
         // Кнопка Code Review
-        document.getElementById('reviewBtn')?.addEventListener('click', () => {
-            const text = this.userInput.value.trim();
-            if (!text && !this.app.attachedFiles.length) {
-                this.app.toast.warning('Введите код для анализа или прикрепите файл');
-                return;
-            }
-            this.sendMessage('review');
-        });
+        const reviewBtn = document.getElementById('reviewBtn');
+        if (reviewBtn) {
+            reviewBtn.classList.add('btn', 'btn-secondary', 'btn-sm');
+            reviewBtn.addEventListener('click', () => {
+                const text = this.userInput.value.trim();
+                if (!text && !this.app.attachedFiles.length) {
+                    this.app.toast.warning('Введите код для анализа или прикрепите файл');
+                    return;
+                }
+                this.sendMessage('review');
+            });
+        }
 
         // Кнопка генерации тестов
-        document.getElementById('testBtn')?.addEventListener('click', () => {
-            const text = this.userInput.value.trim();
-            if (!text && !this.app.attachedFiles.length) {
-                this.app.toast.warning('Введите код для генерации тестов или прикрепите файл');
-                return;
-            }
-            this.sendMessage('test');
-        });
-
-        this.setupFileHandlers();
-        this.setupDragAndDrop();
-
+        const testBtn = document.getElementById('testBtn');
+        if (testBtn) {
+            testBtn.classList.add('btn', 'btn-secondary', 'btn-sm');
+            testBtn.addEventListener('click', () => {
+                const text = this.userInput.value.trim();
+                if (!text && !this.app.attachedFiles.length) {
+                    this.app.toast.warning('Введите код для генерации тестов или прикрепите файл');
+                    return;
+                }
+                this.sendMessage('test');
+            });
+        }
 
 /*
         // Файловый ввод
@@ -1705,6 +1760,7 @@ export class ChatView {
 
         // Быстрые кнопки
         document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.classList.add('btn', 'btn-secondary', 'btn-sm');
             btn.addEventListener('click', () => {
                 this.userInput.value = btn.dataset.text;
                 this.userInput.focus();
@@ -1713,7 +1769,7 @@ export class ChatView {
             });
         });
 
-        // Делегирование событий для сообщений
+        // Делегирование событий для сообщений (копирование, редактирование, ответ, перегенерация)
         this.messagesEl.addEventListener('click', (e) => {
             const target = e.target.closest('button');
             if (!target) return;
@@ -1762,6 +1818,10 @@ export class ChatView {
                 return;
             }
         });
+
+        // Настройка файловых обработчиков (кнопки уже имеют классы, добавим btn)        
+        this.setupFileHandlers();
+        this.setupDragAndDrop();        
     }
 
     setupFileHandlers() {

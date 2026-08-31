@@ -10,6 +10,7 @@ import { copyToClipboard, addCopyButtonsToCodeBlocks } from '../../utils/dom-hel
  * Изменено в 5.2: используется markdownService для рендеринга Markdown и подсветки кода
  * Изменено в 5.4: удалены все методы ручной подсветки (syntaxHighlighter),
  * оставлен только рендеринг через markdownService.
+ * Изменено в 6.1: добавлена поддержка аватара через avatarHTML, кнопки теперь используют классы btn
  */
 export class MessageRenderer {
     constructor() {
@@ -17,15 +18,15 @@ export class MessageRenderer {
     }    
     
     render(msgData, markdownService) {
-        const { role, content, messageId, files, ragSources, isEdit, replyTo } = msgData;
+        const { role, content, messageId, files, ragSources, isEdit, replyTo, avatarHTML } = msgData;
         const div = document.createElement('div');
         div.className = `message ${role}`;
         if (messageId) div.dataset.messageId = messageId;
         div.setAttribute('role', 'article');
         div.setAttribute('aria-label', `${role === 'user' ? 'Ваше сообщение' : 'Ответ ассистента'}`);
 
-        // Метка
-        const label = this.renderLabel(role);
+        // Метка с аватаром
+        const label = this.renderLabel(role, avatarHTML);
         div.appendChild(label);
 
         // Баббл
@@ -36,9 +37,21 @@ export class MessageRenderer {
         return div;
     }
 
-    renderLabel(role) {
+    /**
+     * Рендеринг метки с аватаром и именем
+     * Изменено в 6.1: добавлен аватар, если передан avatarHTML
+     */
+    renderLabel(role, avatarHTML) {
         const label = document.createElement('div');
         label.className = 'label';
+
+        // Аватар (если передан)
+        if (avatarHTML) {
+            const avatarSpan = document.createElement('span');
+            avatarSpan.className = 'message-avatar';
+            avatarSpan.innerHTML = avatarHTML;
+            label.appendChild(avatarSpan);
+        }
 
         const nameSpan = document.createElement('span');
         nameSpan.textContent = role === 'user' ? '👤 Вы' : '💻 Infocom_LM_Chat';
@@ -52,7 +65,8 @@ export class MessageRenderer {
         // Кнопка редактирования (только для пользователя)
         if (role === 'user') {
             const editBtn = document.createElement('button');
-            editBtn.textContent = '✏️';
+            editBtn.className = 'btn btn-secondary btn-sm';
+            editBtn.textContent = '✏️';        
             editBtn.title = 'Редактировать';
             editBtn.setAttribute('aria-label', 'Редактировать сообщение');
             editBtn.onclick = (e) => {
@@ -69,6 +83,7 @@ export class MessageRenderer {
 
         // Кнопка ответа (для всех)
         const replyBtn = document.createElement('button');
+        replyBtn.className = 'btn btn-secondary btn-sm';
         replyBtn.textContent = '↩️';
         replyBtn.title = 'Ответить на это сообщение';
         replyBtn.setAttribute('aria-label', 'Ответить на это сообщение');
@@ -86,6 +101,7 @@ export class MessageRenderer {
         // Кнопка перегенерации (только для бота/ассистента)
         if (role === 'bot' || role === 'assistant') {
             const regenBtn = document.createElement('button');
+            regenBtn.className = 'btn btn-secondary btn-sm';
             regenBtn.textContent = '↻';
             regenBtn.title = 'Перегенерировать';
             regenBtn.setAttribute('aria-label', 'Перегенерировать ответ');
@@ -107,6 +123,7 @@ export class MessageRenderer {
     /**
      * Рендеринг баббла с вложениями
      * Изменено в 5.1: добавлены вложения с кнопками скачивания и удаления
+     * Изменено в 6.1: кнопки вложений используют классы btn* 
      */
     renderBubble(role, content, files, ragSources, isEdit, replyTo, markdownService) {
         const bubble = document.createElement('div');
@@ -296,6 +313,7 @@ export class MessageRenderer {
                 const canDelete = (window.app?.chatView?.editingMessageId === messageId && currentUserId) || isModerator;
                 if (canDelete && attachmentId) {
                     const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-danger btn-sm';
                     delBtn.textContent = '✕';
                     delBtn.className = 'file-delete-btn';
                     delBtn.title = 'Удалить вложение';

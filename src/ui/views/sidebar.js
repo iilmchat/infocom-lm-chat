@@ -247,13 +247,19 @@ export class Sidebar {
             const peer = this.app.multiUserManager.peers.get(otherUser);
             const name = peer?.Name || otherUser;
             const avatar = peer?.Avatar || '👤';
+            const peerAvatar = this.app.avatarService.getAvatarHTML({ 
+                name: name, 
+                avatarType: peer?.avatarType, 
+                avatarData: peer?.avatarData,
+                color: peer?.Color || '#888'
+            });            
             const color = peer?.Color || '#888';
             const lastMsg = chat.lastMessage || 'Нет сообщений';
             const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
 
             return `
                 <div class="private-chat-item" data-user-id="${otherUser}" data-chat-id="${chat.id}">
-                    <div class="private-chat-avatar" style="color:${color};">${avatar}</div>
+                    <div class="private-chat-avatar">${peerAvatar}</div>
                     <div class="private-chat-info">
                         <div class="private-chat-name">${sanitizeHTML(name)}</div>
                         <div class="private-chat-last">${sanitizeHTML(lastMsg.substring(0, 50))}</div>

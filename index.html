@@ -18,27 +18,25 @@
     <link rel="stylesheet" href="src/styles/markdown.css">
     <!-- Стиль подсветки highlight.js (локальный) -->
     <link rel="stylesheet" href="src/styles/atom-one-dark.min.css">
-    <link rel="stylesheet" href="src/styles/responsive.css">   <!-- Добавлено в 5.3 -->    
+    <!-- Добавлено в 5.3 -->        
+    <link rel="stylesheet" href="src/styles/responsive.css">
 
     <!-- ===== ВНЕШНИЕ БИБЛИОТЕКИ (локальные, подключаются как обычные скрипты) ===== -->
     <script src="src/components/highlight.min.js"></script>
     <script src="src/components/marked.min.js"></script>
     <script src="src/components/purify.min.js"></script>
     <script src="src/components/mammoth.browser.min.js"></script>
-    <!-- html2pdf.bundle.min.js оставляем как есть -->
-    <script src="/src/components/html2pdf.bundle.min.js" 
-            crossorigin="anonymous" 
-            referrerpolicy="no-referrer">
-    </script>
+    <script src="/src/components/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
     <!-- Основной контейнер приложения -->
     <div id="app">
         <!-- Копирайт -->
-        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.0</div> <!-- Изменено в 6.0 -->
+        <!-- Изменено в 6.0 -->         
+        <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.0</div> 
 
         <!-- ============================================================ -->
-        <!-- ===== КОНТЕЙНЕР ОСНОВНОГО ЧАТА (по умолчанию виден) ===== -->
+        <!-- ===== КОНТЕЙНЕР ОСНОВНОГО ЧАТА ===== -->
         <!-- ============================================================ -->
         <div id="app-chat" class="app-view active" style="display:flex; width:100%; height:100%;">
             
@@ -48,44 +46,11 @@
                 <!-- Заголовок боковой панели -->
                 <div class="sidebar-header">
                     <h3>💬 Диалоги</h3>
-                    <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
-                </div>
-                <!--
-                <div class="sidebar-section">
-                    <div class="section-header collapsed" onclick="toggleSection('statsPanel')"><span>📊 Статистика</span><span>▼</span></div>
-                    <div class="section-content stats-panel collapsed" id="statsPanel">
-                        <div style="padding:8px 16px;font-size:11px;">
-                            <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
-                            <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
-                            <div class="rag-progress" id="ragProgress">
-                                <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Изменено в 6.1: кнопка с классом btn btn-primary btn-sm -->
+                    <button class="btn btn-primary btn-sm" id="newChatBtn">+ Новый</button>
                 </div>
 
-                <div class="sidebar-section">
-                    <div class="section-header collapsed" onclick="toggleSection('usersOnlinePanel')"><span>👥 Пользователи</span><span>▼</span></div>
-                    <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
-                        <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                            <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <div class="section-header collapsed" onclick="toggleSection('roadmapPanel')"><span>📊 Прогресс развития</span><span>▼</span></div>
-                    <div class="section-content roadmap-panel collapsed" id="roadmapPanel">
-                        <div id="milestoneList"></div>
-                    </div>
-                </div>
-                -->
-                <!-- В sidebar -->
-
-                <!-- ===== СТАТИСТИКА ===== -->
+                <!-- Статистика -->
                 <div class="sidebar-section collapsed">
                     <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
                         <span class="section-icon">📊</span>
@@ -94,29 +59,12 @@
                     </div>
                     <div class="section-content collapsed" id="statsPanel">
                         <div style="padding:8px 16px;font-size:11px;">
-                            <div class="stat-row">
-                                <span class="stat-label">💬 Сообщения</span>
-                                <span class="stat-value" id="statMessages">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">📎 Файлы</span>
-                                <span class="stat-value" id="statFiles">0</span>
-                            </div>   
-                            <div class="stat-row">
-                                <span class="stat-label">📚 RAG чанки</span>
-                                <span class="stat-value" id="statRagChunks">0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">📊 RAG статус</span>
-                                <span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">🏆 Достижения</span>
-                                <span class="stat-value" id="statAchievements">0</span>
-                            </div>
-                            <div class="rag-progress" id="ragProgress">
-                                <div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div>
-                            </div>
+                            <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
+                            <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
+                            <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
+                            <div class="rag-progress" id="ragProgress"><div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div></div>
                         </div>
                     </div>
                 </div>
@@ -128,7 +76,8 @@
                         <span class="section-icon">💬</span>
                         <span class="section-title">Общие комнаты</span>
                         <span class="section-arrow">▶</span>
-                        <button id="createRoomBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+ Создать</button>
+                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                        <button id="createRoomBtn" class="btn btn-secondary btn-sm">+ Создать</button>
                     </div>
                     <div class="section-content rooms-panel collapsed" id="roomsPanel">
                         <div style="padding:4px 8px;">
@@ -138,25 +87,22 @@
                     </div>
                 </div>
 
-                <!-- ===== ПРИВАТНЫЕ ЧАТЫ ===== -->
+                <!-- Приватные чаты -->
                 <div class="sidebar-section">
                     <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
                         <span class="section-icon">💬</span>
                         <span class="section-title">Приватные чаты</span>
                         <span class="section-arrow">▶</span>
-                        <button id="newPrivateChatBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
+                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                        <button id="newPrivateChatBtn" class="btn btn-secondary btn-sm">+</button>
                         <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
                     </div>
                     <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
-                        <div id="privateChatsList" style="padding:4px 8px;">
-                            <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
-                                Загрузка...
-                            </div>
-                        </div>
+                        <div id="privateChatsList" style="padding:4px 8px;"><div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">Загрузка...</div></div>
                     </div>
                 </div>
 
-                <!-- ===== ПОЛЬЗОВАТЕЛИ ОНЛАЙН ===== -->
+                <!-- Пользователи онлайн -->
                 <div class="sidebar-section">
                     <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
                         <span class="section-icon">👥</span>
@@ -165,9 +111,7 @@
                     </div>
                     <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
                         <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                            <span class="user-badge self">
-                                <span class="user-avatar">👤</span> Вы
-                            </span>
+                            <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
                         </div>
                         <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
                             <span id="userCountDisplay">👥 1 онлайн</span>
@@ -175,20 +119,21 @@
                     </div>
                 </div>
 
-                <!-- 5.3 Внутри sidebar добавляем секцию Workspaces (перед общими комнатами) -->
+                <!-- Рабочие пространства -->
                 <div class="sidebar-section">
                     <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
                         <span class="section-icon">📁</span>
                         <span class="section-title">Рабочие пространства</span>
                         <span class="section-arrow">▶</span>
-                        <button id="createWorkspaceBtn" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;">+</button>
+                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                        <button id="createWorkspaceBtn" class="btn btn-secondary btn-sm">+</button>
                     </div>
                     <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
                         <div id="workspaceList" style="padding:4px 8px;"></div>
                     </div>
                 </div>
 
-                <!-- ===== ПРОГРЕСС РАЗВИТИЯ ===== -->
+                <!-- Прогресс развития -->
                 <div class="sidebar-section collapsed">
                     <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
                         <span class="section-icon">📊</span>
@@ -200,9 +145,9 @@
                     </div>
                 </div>
 
-                <!-- ===== ТЕСТЫ ===== -->
+                <!-- Тесты -->
                 <div class="test-panel" id="testPanel">
-                    <h4>🧪 Тесты <button onclick="window.runAllTests()" style="background:var(--bg-accent);border:none;color:var(--text-accent);cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;">▶ Запустить</button></h4>
+                    <h4>🧪 Тесты <button onclick="window.runAllTests()" class="btn btn-secondary btn-sm">▶ Запустить</button></h4>
                     <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
                 </div>
 
@@ -213,48 +158,13 @@
 
             <!-- ===== MAIN CONTAINER ===== -->
             <div class="main-container" id="mainContainer">
-                <!-- Drag-and-Drop Overlay -->
+                <!-- Drag-and-Drop Overlay (без изменений) -->
                 <div class="drag-overlay" id="dragOverlay">
                     <div class="drag-icon" id="dragIcon">📚</div>
                     <div class="drag-text">Отпустите файлы для загрузки</div>
-                    <div class="drag-subtext">
-                        Выберите режим клавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc 
-                    </div>
-
+                    <div class="drag-subtext">Выберите режим клавишами <kbd>1</kbd> <kbd>2</kbd> или отмените перетаскивание Esc</div>
                     <div class="drag-mode-selector" id="dragModeSelector">
                         <label class="selected" id="dragModeAttachment" data-mode="attachment">
-                            <span class="mode-icon">📎</span>
-                            <div>
-                                <div class="mode-label">Вложение</div>
-                                <span class="mode-desc">Прикрепить к сообщению</span>
-                            </div>
-                            <span class="mode-hotkey"><kbd>1</kbd></span>
-                        </label>
-                        <label id="dragModeRag" data-mode="rag">
-                            <span class="mode-icon">📚</span>
-                            <div>
-                                <div class="mode-label">RAG документ</div>
-                                <span class="mode-desc">Добавить в контекст</span>
-                            </div>
-                            <span class="mode-hotkey"><kbd>2</kbd></span>
-                        </label>
-                    </div>
-                    <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
-                    <div class="drag-files-preview" id="dragFilesPreview"></div>
-                    <div class="drag-progress" id="dragProgress">
-                        <div class="drag-progress-fill" id="dragProgressFill"></div>
-                    </div>
-                    <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
-                </div>     
-
-                <!-- DRAG-DROP OVERLAY (закомментирован, оставлен на случай) -->
-                <!-- 
-                <div class="drag-overlay" id="dragOverlay">
-                    <div class="drag-icon" id="dragIcon">📚</div>
-                    <div class="drag-text">Отпустите файлы для загрузки</div>
-                    <div class="drag-subtext">Выберите режим наведением или клавишами <kbd>1</kbd> <kbd>2</kbd></div>
-                    <div class="drag-mode-selector" id="dragModeSelector">
-                        <label class="selected" id="dragModeAttachment" data-mode="rag">
                             <span class="mode-icon">📎</span>
                             <div><div class="mode-label">Вложение</div><span class="mode-desc">Прикрепить к сообщению</span></div>
                             <span class="mode-hotkey"><kbd>1</kbd></span>
@@ -267,14 +177,10 @@
                     </div>
                     <div class="drag-mode-indicator" id="dragModeIndicator">Режим: Вложение</div>
                     <div class="drag-files-preview" id="dragFilesPreview"></div>
-                    <div class="drag-progress" id="dragProgress">
-                        <div class="drag-progress-fill" id="dragProgressFill"></div>
-                    </div>
+                    <div class="drag-progress" id="dragProgress"><div class="drag-progress-fill" id="dragProgressFill"></div></div>
                     <div class="drag-status-text" id="dragStatusText">Загрузка...</div>
-                </div>
-                -->
+                </div>     
 
-                <!-- MULTI-USER BAR -->
                 <!-- Collaboration Bar (под шапкой) -->             
                 <div class="collaboration-bar" id="collaborationBar">
                     <span>👥 Совместная работа:</span>
@@ -289,7 +195,7 @@
                 <div class="chat-header">
                     <div class="header-left">
                         <button class="menu-toggle" id="menuToggle" style="display: none;">☰</button>
-                        <span>💻 Infocom LM Chat Pro v6.0</span> <!-- Изменено в 6.0 -->
+                        <span>💻 Infocom LM Chat Pro v6.0</span>
                         <span class="active-assistant-indicator" id="activeAssistantIndicator">
                             <span id="activeAssistantIcon"></span>
                             <span id="activeAssistantName"></span>
@@ -311,29 +217,17 @@
                             🔔
                             <span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:red;color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;">0</span>
                         </button>   
-                        <!-- Удалено в 6.0    
-                        <button id="userProfileBtn" title="Профиль">👤<span class="tooltip">Профиль</span></button>
-                        -->
-                        <!-- Добавлено в 5.3: Кнопка Приватный чат -->
+                        <!-- Кнопка приватного чата -->
                         <button id="privateChatBtn" title="Приватный чат">👥<span class="tooltip">Приватный чат</span></button>   
-                        <!-- Удалено в 6.0
-                        <button id="adminBtn" title="Администрирование">🛡️<span class="tooltip">Админ</span></button> 
-                        -->
-                        <!-- Удалено в 6.0                   
-                        <button id="gameBtn" title="Игры">🎮</button>
-                        -->
-
-                         <!-- Добавлено в 6.0: Они будут обрабатываться роутером через data-link -->    
+                        <!-- Навигационные кнопки -->
                         <button id="chatNavBtn" class="nav-btn active" data-link="/">💬 Чат с ИИ</button>
                         <button id="privateNavBtn" class="nav-btn" data-link="/private">👥 Приватные</button>
                         <button id="adminNavBtn" class="nav-btn" data-link="/admin">🛡️ Админ</button>
                         <button id="gamesNavBtn" class="nav-btn" data-link="/games">🎮 Игры</button>
                         <button id="profileNavBtn" class="nav-btn" data-link="/profile">👤 Профиль</button>   
-
-                        <!-- Добавлено в 5.1: Кнопка аналитики -->
+                        <!-- Кнопка аналитики -->
                         <button id="analyticsBtn" title="Аналитика">📊<span class="tooltip">Аналитика</span></button>
-
-                        <!-- Существующие кнопки -->
+                        <!-- Подключение -->
                         <button id="connectBtn" title="Подключиться к серверу" aria-label="Подключиться к серверу">
                             🌐<span class="tooltip">Подключиться</span>
                         </button>
@@ -354,7 +248,7 @@
                     </div>
                 </div>
 
-                <!-- ===== MODALS (остаются только всплывающие) ===== -->
+                <!-- ===== MODALS ===== -->
 
                 <!-- Room Info Modal -->
                 <div class="modal-overlay" id="roomInfoModal">
@@ -369,44 +263,26 @@
                             <p><strong>Статус:</strong> <span id="roomInfoStatus">Отключен</span></p>
                         </div>
                         <div class="modal-actions" style="margin-top:12px;">
-                            <button id="roomInfoRefreshBtn" class="btn-secondary">🔄 Обновить</button>
-                            <!-- Удалено в 5.4: кнопка дублирует roomInfoLeaveBtn -->
-                            <!-- <button id="userLogoutBtn" class="btn-secondary" style="background:var(--error-color);color:#fff;">🚪 Выйти</button> -->
-                            <button id="roomInfoLeaveBtn" class="btn-primary" style="background:var(--error-color);">🚪 Выйти</button>
+                            <!-- Изменено в 6.1: добавлены классы btn btn-secondary и btn-danger -->
+                            <button id="roomInfoRefreshBtn" class="btn btn-secondary">🔄 Обновить</button>
+                            <button id="roomInfoLeaveBtn" class="btn btn-danger">🚪 Выйти</button>
                         </div>
                     </div>
                 </div>           
                 
-                <!-- ===== USER MODAL (идентификация) - Удалено в 6.0 ===== -->
-                <!--
-                <div class="modal-overlay" id="userModal">
-                    ...
-                </div>
-                -->
-
-                <!-- ===== PRIVATE CHAT MODAL ===== -->
+                <!-- Private Chat Modal -->
                 <div class="modal-overlay" id="privateChatModal">
                     <div class="modal-content" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
                         <button class="modal-close" id="privateChatClose">✕</button>
                         <h2 id="privateChatTitle">💬 Приватный чат</h2>
-                        
-                        <div class="private-messages" id="privateMessages" style="flex:1;overflow-y:auto;padding:12px 0;min-height:300px;max-height:400px;">
-                            <!-- Сообщения будут здесь -->
-                        </div>
-                        
+                        <div class="private-messages" id="privateMessages" style="flex:1;overflow-y:auto;padding:12px 0;min-height:300px;max-height:400px;"></div>
                         <div class="private-input-area" style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);">
                             <textarea id="privateMessageInput" placeholder="Введите сообщение..." rows="2" style="flex:1;padding:8px 12px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);resize:none;font-family:inherit;"></textarea>
-                            <button id="privateSendBtn" style="padding:8px 20px;border:none;border-radius:12px;background:var(--send-btn-bg);color:#fff;cursor:pointer;font-weight:600;">Отправить</button>
+                            <!-- Изменено в 6.1: кнопка с классом btn btn-primary -->
+                            <button id="privateSendBtn" class="btn btn-primary">Отправить</button>
                         </div>
                     </div>
                 </div>
-
-                <!-- ===== ADMIN MODAL - Удалено в 6.0 (перенесено в #app-admin) ===== -->
-                <!--            
-                <div class="modal-overlay" id="adminModal">
-                    ...
-                </div>
-                -->
 
                 <!-- Server Settings Modal -->
                 <div class="modal-overlay server-settings-modal" id="serverSettingsModal">
@@ -425,10 +301,11 @@
                         </div>
                         <div class="form-group"><label for="serverApiPathInput">Путь к API</label><input type="text" id="serverApiPathInput" placeholder="/v1/chat/completions"></div>
                         <div class="test-result" id="serverTestResult"></div>
-                        <div class="modal-actions">
-                            <button class="btn-secondary" id="serverTestBtn">🔍 Проверить</button>
-                            <button class="btn-secondary" id="serverResetBtn">↺ Сбросить</button>
-                            <button class="btn-primary" id="serverSaveBtn">💾 Сохранить</button>
+                        <div class="modal-actions" style="margin-top:12px;">
+                            <!-- Изменено в 6.1: классы btn btn-secondary и btn-primary -->
+                            <button class="btn btn-secondary" id="serverTestBtn">🔍 Проверить</button>
+                            <button class="btn btn-secondary" id="serverResetBtn">↺ Сбросить</button>
+                            <button class="btn btn-primary" id="serverSaveBtn">💾 Сохранить</button>
                         </div>
                     </div>
                 </div>
@@ -440,7 +317,7 @@
                         <h2>🔗 Поделиться чатом</h2>
                         <div class="share-method">
                             <h4>📋 Прямая ссылка</h4>
-                            <div class="share-url-box"><input type="text" id="shareUrl" readonly><button onclick="window.__APP?.copyShareUrl()">📋 Копировать</button></div>
+                            <div class="share-url-box"><input type="text" id="shareUrl" readonly><button onclick="window.__APP?.copyShareUrl()" class="btn btn-primary">📋 Копировать</button></div>
                         </div>
                         <div class="share-method">
                             <h4>📱 QR-код</h4>
@@ -460,7 +337,7 @@
                         <h2>📋 Системный промт ассистента</h2>
                         <div class="prompt-viewer" id="promptContent"></div>
                         <div class="prompt-actions">
-                            <button class="btn-secondary" id="copyPromptBtn">📋 Копировать</button>
+                            <button class="btn btn-secondary" id="copyPromptBtn">📋 Копировать</button>
                         </div>
                     </div>
                 </div>
@@ -493,8 +370,8 @@
                             <textarea id="caPrompt" placeholder="Ты — полезный ассистент..."></textarea>
                         </div>
                         <div class="modal-actions" style="display:flex;gap:12px;justify-content:flex-end;">
-                            <button class="btn-secondary" id="caCancelBtn">Отмена</button>
-                            <button class="btn-primary" id="caSaveBtn">💾 Создать</button>
+                            <button class="btn btn-secondary" id="caCancelBtn">Отмена</button>
+                            <button class="btn btn-primary" id="caSaveBtn">💾 Создать</button>
                         </div>
                     </div>
                 </div>
@@ -505,15 +382,15 @@
                         <button class="modal-close" id="exportModalClose">✕</button>
                         <h2>💾 Экспорт диалога</h2>
                         <div class="export-options">
-                            <button data-format="txt">📄 TXT</button>
-                            <button data-format="json">📊 JSON</button>
-                            <button data-format="markdown">📝 Markdown</button>
-                            <button data-format="pdf">📕 PDF</button>
+                            <button data-format="txt" class="btn btn-secondary">📄 TXT</button>
+                            <button data-format="json" class="btn btn-secondary">📊 JSON</button>
+                            <button data-format="markdown" class="btn btn-secondary">📝 Markdown</button>
+                            <button data-format="pdf" class="btn btn-secondary">📕 PDF</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Info Modal (Wiki, Suggestions, Achievements) -->
+                <!-- Info Modal -->
                 <div class="modal-overlay" id="infoModal">
                     <div class="modal-content">
                         <button class="modal-close" id="infoModalClose">✕</button>
@@ -524,11 +401,11 @@
                         </div>
                         <!-- Wiki Tab -->
                         <div class="modal-tab-content active" id="tab-wiki" role="tabpanel">
-                            <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v6.0</span></h2> <!-- Изменено в 6.0 -->
+                            <h2>🧠 Infocom LM Chat Pro — Руководство пользователя<span class="badge version" style="background:var(--text-accent);color:var(--bg-primary);">v6.0</span></h2>
                             <p style="color:var(--text-secondary);margin-bottom:12px;">Последнее обновление: 2026</p>
                             <p>Современный веб-чат с настраиваемым сервером, групповыми чатами, улучшенной обработкой ошибок и кастомными ассистентами.</p>
                             <hr class="divider">
-                            <h3>🆕 Новое в v6.0</h3> <!-- Добавлено в 6.0 -->
+                            <h3>🆕 Новое в v6.0</h3>
                             <ul>
                                 <li><strong>🏗️ SPA-роутинг</strong> — разделение на страницы: чат, админка, игры, профиль</li>
                                 <li><strong>⚡ Динамическая загрузка</strong> — модули подгружаются по требованию</li>
@@ -603,19 +480,10 @@
                         <!-- Achievements Tab -->
                         <div class="modal-tab-content" id="tab-achievements" role="tabpanel">
                             <h2>🏆 Достижения <span class="badge gold" style="background:var(--gold-color);color:#1a1a2e;" id="achievementCounter">0/20</span></h2>
-                            <div id="achievementsList">
-                                <p style="color:var(--text-secondary);">Загружается...</p>
-                            </div>
+                            <div id="achievementsList"><p style="color:var(--text-secondary);">Загружается...</p></div>
                         </div>
                     </div>
                 </div>
-
-                <!-- ===== GAME MODAL - Удалено в 6.0 (перенесено в #app-games) ===== -->
-                <!--
-                <div class="modal-overlay" id="gameModal">
-                    ...
-                </div>
-                -->
 
                 <!-- ===== CHAT AREA ===== -->
                 <div class="error-boundary" id="errorBoundary"></div>
@@ -642,7 +510,8 @@
                             <button class="action-btn" id="reviewBtn" title="Code Review" aria-label="Code Review">🔍<span class="tooltip">Code Review</span></button>
                             <button class="action-btn" id="testBtn" title="Генерация тестов" aria-label="Генерация тестов">🧪<span class="tooltip">Тесты</span></button>
                         </div>
-                        <button class="send-btn" id="sendBtn">Отправить</button>
+                        <!-- Изменено в 6.1: кнопка отправки с классом btn btn-primary -->
+                        <button class="btn btn-primary send-btn" id="sendBtn">Отправить</button>
                     </div>
 
                     <div class="history-hint">
@@ -676,25 +545,21 @@
         <!-- ===== КОНЕЦ КОНТЕЙНЕРА ЧАТА ===== -->
 
         <!-- ===== КОНТЕЙНЕР ПРИВАТНЫХ ЧАТОВ ===== -->
-        <div id="app-private" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary);">
-            <!-- Сюда будет рендериться PrivateChatModule -->
-        </div>
+        <div id="app-private" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary);"></div>
 
-        <!-- ============================================================ -->
-        <!-- ===== КОНТЕЙНЕР АДМИН-ПАНЕЛИ (полноэкранная страница) ===== -->
-        <!-- ============================================================ -->
-        <!-- Добавлено в 6.0 -->
+        <!-- ===== КОНТЕЙНЕР АДМИН-ПАНЕЛИ ===== -->
         <div id="app-admin" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:1200px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>🛡️ Панель модерации</h2>
-                    <button id="backToChatBtnAdmin" class="btn-secondary" data-link="/">← Назад в чат</button>
+                    <!-- Изменено в 6.1: кнопка с классом btn btn-secondary -->
+                    <button id="backToChatBtnAdmin" class="btn btn-secondary" data-link="/">← Назад в чат</button>
                 </div>
                 <!-- Содержимое админ-панели (копия из #adminModal .modal-content, без оверлея) -->
                 <div class="admin-panel-full">
                     <!-- Вкладки и содержимое – те же, что были в модалке, с теми же ID -->
                     <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <button id="adminRefreshBtn" class="btn-secondary">🔄 Обновить</button>
+                        <button id="adminRefreshBtn" class="btn btn-secondary">🔄 Обновить</button>
                     </div>
                     
                     <div class="admin-panel">
@@ -710,7 +575,7 @@
                         <div class="admin-tab-content" id="tab-users">
                             <div class="admin-search">
                                 <input type="text" id="adminUserSearch" placeholder="🔍 Поиск пользователей...">
-                                <button id="adminUserRefresh">🔄</button>
+                                <button id="adminUserRefresh" class="btn btn-secondary">🔄</button>
                             </div>
                             <div class="admin-user-list" id="adminUserList">
                                 <!-- Добавлено в 5.4: пагинация пользователей -->
@@ -725,7 +590,7 @@
                         <div class="admin-tab-content" id="tab-messages" style="display:none;">
                             <div class="admin-search">
                                 <input type="text" id="adminMsgSearch" placeholder="🔍 Поиск сообщений...">
-                                <button id="adminMsgSearchBtn">🔍</button>
+                                <button id="adminMsgSearchBtn" class="btn btn-secondary">🔍</button>
                             </div>
                             <div class="admin-message-list" id="adminMessageList"></div>
                         </div>
@@ -748,28 +613,25 @@
                                     <label>Таймаут неактивности (мин)</label>
                                     <input type="number" id="settingInactiveTimeout" value="5">
                                 </div>
-                                <button id="settingSaveBtn">💾 Сохранить</button>
+                                <button id="settingSaveBtn" class="btn btn-primary">💾 Сохранить</button>
                             </div>
                         </div>
 
                         <div class="admin-tab-content" id="tab-logs" style="display:none;">
                             <div class="admin-log-list" id="adminLogList"></div>
-                            <button id="adminLogClear" class="btn-secondary" style="margin-top:8px;">🗑️ Очистить логи</button>
+                            <button id="adminLogClear" class="btn btn-secondary" style="margin-top:8px;">🗑️ Очистить логи</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- ===== КОНТЕЙНЕР ИГР (полноэкранная страница) ===== -->
-        <!-- ============================================================ -->
-        <!-- Добавлено в 6.0 -->
+        <!-- ===== КОНТЕЙНЕР ИГР ===== -->
         <div id="app-games" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:800px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>🎮 Игры</h2>
-                    <button id="backToChatBtnGames" class="btn-secondary" data-link="/">← Назад в чат</button>
+                    <button id="backToChatBtnGames" class="btn btn-secondary" data-link="/">← Назад в чат</button>
                 </div>
                 <!-- Содержимое игр (копия из #gameModal) -->
                 <div class="game-selector" id="gameSelector">
@@ -783,20 +645,17 @@
             </div>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- ===== КОНТЕЙНЕР ПРОФИЛЯ (полноэкранная страница) ===== -->
-        <!-- ============================================================ -->
-        <!-- Добавлено в 6.0 (пока просто открываем ProfileModal как модалку, но можно вынести сюда) -->
+        <!-- ===== КОНТЕЙНЕР ПРОФИЛЯ ===== -->
         <div id="app-profile" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:600px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>👤 Профиль</h2>
-                    <button id="backToChatBtnProfile" class="btn-secondary" data-link="/">← Назад в чат</button>
+                    <button id="backToChatBtnProfile" class="btn btn-secondary" data-link="/">← Назад в чат</button>
                 </div>
                 <!-- Здесь можно разместить содержимое профиля, но пока используем ProfileModal -->
                 <p style="color:var(--text-secondary);">Профиль будет загружен в модальном окне.</p>
-                <!-- Для быстрого перехода открываем модалку -->
-                <button id="openProfileModalBtn" class="btn-primary">Открыть профиль</button>
+                <!-- Изменено в 6.1: кнопка с классом btn btn-primary -->
+                <button id="openProfileModalBtn" class="btn btn-primary">Открыть профиль</button>
             </div>
         </div>
 

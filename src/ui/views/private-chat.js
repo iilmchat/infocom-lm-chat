@@ -5,6 +5,7 @@ import { sanitizeHTML } from '../../services/sanitizer.js';
 /**
  * Модальное окно приватного чата
  * Изменено в 5.1: добавлено создание чата с пользователем
+ * Изменено в 6.1: кнопки получили классы btn, btn-primary, btn-secondary
  */
 export class PrivateChat {
     constructor(app) {
@@ -283,33 +284,51 @@ export class PrivateChat {
      */
     setupEventListeners() {
         // Отправка по Enter
-        document.getElementById('privateMessageInput')?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
+        const input = document.getElementById('privateMessageInput');
+        if (input) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+        }
 
-        // Кнопка отправки
-        document.getElementById('privateSendBtn')?.addEventListener('click', () => {
-            this.sendMessage();
-        });
+        // Кнопка отправки – добавляем классы btn btn-primary
+        const sendBtn = document.getElementById('privateSendBtn');
+        if (sendBtn) {
+            sendBtn.classList.add('btn', 'btn-primary');
+            sendBtn.addEventListener('click', () => {
+                this.sendMessage();
+            });
+        }
 
         // Закрытие
-        document.getElementById('privateChatClose')?.addEventListener('click', () => {
-            this.close();
-        });
+        const closeBtn = document.getElementById('privateChatClose');
+        if (closeBtn) {
+            closeBtn.classList.add('btn', 'btn-secondary');
+            closeBtn.addEventListener('click', () => {
+                this.close();
+            });
+        }
 
         // Закрытие по клику на overlay
-        document.getElementById('privateChatModal')?.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('privateChatModal')) {
-                this.close();
-            }
-        });
+        const modal = document.getElementById('privateChatModal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.close();
+                }
+            });
+        }
 
         // Кнопка создания нового приватного чата в sidebar
-        document.getElementById('newPrivateChatBtn')?.addEventListener('click', () => {
-            this.showUserSelector();
-        });        
+        const newChatBtn = document.getElementById('newPrivateChatBtn');
+        if (newChatBtn) {
+            newChatBtn.classList.add('btn', 'btn-secondary', 'btn-sm');
+            newChatBtn.addEventListener('click', () => {
+                this.showUserSelector();
+            });
+        }     
     }
 }

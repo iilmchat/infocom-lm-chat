@@ -133,6 +133,9 @@ export class MultiUserManager {
             name: this.generateUserName(),
             avatar: this.generateAvatar(),
             color: this.generateColor(),
+            /* Добавлено в 6.1: поддержка AvatarService */
+            avatarType: 'emoji',
+            avatarData: this.generateAvatar(),
             lastSeen: Date.now(),
             status: 'online',
             token: null,
@@ -1361,36 +1364,33 @@ export class MultiUserManager {
         const container = document.getElementById('usersOnlineList');
         const collabContainer = document.getElementById('collabUsers');
         const collabBar = document.getElementById('collaborationBar');
+        const avatarHTML = this.app.avatarService.getAvatarHTML(this.app.multiUserManager.localUser);        
 
         if (!container) return;
 
-        // Сайдбар — список пользователей        
+        // Сайдбар — список пользователей       
+
+        let html = `<span class="user-badge self">
+            ${avatarHTML} 
+            ${this.sanitizeHTML(this.app.multiUserManager.localUser.Name)} (Вы)
+            ${this.app.multiUserManager.isConnected ? '🟢' : '⚪'}
+        </span>`;       
+        /* 6.0.1
         let html = `<span class="user-badge self">
             <span class="user-avatar">${this.localUser.Avatar}</span> 
             ${this.sanitizeHTML(this.localUser.Name)} (Вы)
             ${this.isConnected ? '🟢' : '⚪'}
         </span>`;
-        
-        this.peers.forEach(peer => {
+        */    
+
+        this.app.multiUserManager.peers.forEach(peer => {
             if (peer.Online !== false) {
+                const peerAvatar = this.app.avatarService.getAvatarHTML(peer);
                 html += `<span class="user-badge ${peer.IsTyping ? 'typing' : ''}" style="border-color:${peer.Color};">
-                    <span class="user-avatar">${peer.Avatar}</span> 
+                    ${peerAvatar} 
                     ${this.sanitizeHTML(peer.Name)}
                     ${peer.IsTyping ? '<span class="user-status">печатает...</span>' : ''}
-                </span>`;                
-                /*
-                html += `<span class="user-badge ${peer.typing ? 'typing' : ''}" style="border-color:${peer.color};">
-                        <span class="user-avatar">${peer.avatar}</span> ${this.sanitizeHTML(peer.name)}
-                        ${peer.typing ? '<span class="user-status">печатает...</span>' : ''}
-                    </span>`;
-                    */
-                   /*
-                html += `<span class="user-badge ${peer.typing ? 'typing' : ''}" style="border-color:${peer.color};">
-                    <span class="user-avatar">${peer.avatar}</span> 
-                    ${this.sanitizeHTML(peer.name)}
-                    ${peer.typing ? '<span class="user-status">печатает...</span>' : ''}
-                </span>`;        
-                */           
+                </span>`;
             }
         });
         container.innerHTML = html;
@@ -1434,6 +1434,7 @@ export class MultiUserManager {
     /**
      * Рендеринг приватных чатов в sidebar
      */
+// ... в renderPrivateChats    
     renderPrivateChats() {
         const container = document.getElementById('privateChatsList');
         if (!container) return;
@@ -1456,13 +1457,19 @@ export class MultiUserManager {
             const peer = this.peers.get(otherUserId);
             const name = peer?.Name || otherUserId;
             const avatar = peer?.Avatar || '👤';
+            const peerAvatar = this.app.avatarService.getAvatarHTML({ 
+                        name: name, 
+                        avatarType: peer?.avatarType, 
+                        avatarData: peer?.avatarData,
+                        color: peer?.Color || '#888'
+                    });            
             const color = peer?.Color || '#888';
             const lastMsg = chat.lastMessage || 'Нет сообщений';
             const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
 
             return `
                 <div class="private-chat-item" data-user-id="${otherUserId}" data-chat-id="${chat.id}">
-                    <div class="private-chat-avatar" style="color:${color};">${avatar}</div>
+                    <div class="private-chat-avatar">${peerAvatar}</div>
                     <div class="private-chat-info">
                         <div class="private-chat-name">${this.sanitizeHTML(name)}</div>
                         <div class="private-chat-last">${this.sanitizeHTML(lastMsg.substring(0, 50))}</div>

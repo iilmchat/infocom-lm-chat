@@ -37,6 +37,8 @@ import { CONFIG, SERVER_CONFIG, loadServerConfig, saveServerConfig } from './con
 import { EventBus } from './core/event-bus.js';
 import { ErrorBoundary } from './core/error-boundary.js';
 import { ToastManager } from './ui/components/toast.js';
+/* Добавлено в 6.1: импорт AvatarService */
+import { AvatarService } from './services/avatar-service.js';
 import { SessionManager } from './models/session-manager.js';
 import { RAGManager } from './models/rag-manager.js';
 import { AssistantManager } from './models/assistant-manager.js';
@@ -57,6 +59,7 @@ import { markdownService } from './services/markdown-service.js';
 import { applyTheme, cycleTheme } from './ui/theme.js';
 //import { ChatView } from './ui/views/chat-view.js';
 //import { Sidebar } from './ui/views/sidebar.js';
+
 // Изменено в 6.0: импорт ChatModule вместо прямых ChatView и Sidebar
 import { ChatModule } from './modules/chat/ChatModule.js';
 import { SettingsView } from './ui/views/settings-view.js';
@@ -86,6 +89,8 @@ import { Router } from './core/router.js'; /* Добавлено в 6.0 */
 // Добавлено в 6.0: для динамической загрузки AdminModule, GamesModule, ProfileModule
 // они будут импортироваться через import() в методах showAdmin, showGames, showProfile
 import { PrivateChatModule } from './modules/private/PrivateChatModule.js';
+
+
 
 // 5.3 Удалены импорты AuthModal и UserModal
 
@@ -142,6 +147,9 @@ class App {
         this.notificationManager = new NotificationManager(this);        
 
         // ===== Инициализация сервисов =====
+        /* Добавлено в 6.1: создание AvatarService */
+        this.avatarService = new AvatarService();        
+        
         // Сервис для работы с API
         this.apiService = new ChatApiClient(this.eventBus);
         // Сервис для работы с API проверки статуса сервера
