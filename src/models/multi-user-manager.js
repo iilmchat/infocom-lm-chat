@@ -18,9 +18,10 @@ const COMMON_ROOM_PREFIX = 'common_';
  * - Приватные чаты создаются как отдельные комнаты между двумя пользователями
  */
 export class MultiUserManager {
-    constructor(eventBus) {
-        this.eventBus = eventBus;
-        this.api = new ChatApiClient();
+    constructor(app) {
+        this.app = app;        
+        this.eventBus = app.eventBus;
+        this.api = app.apiService;
         
         // Локальный пользователь
         this.localUser = this.loadUser();
@@ -38,9 +39,9 @@ export class MultiUserManager {
         // Клиенты
 
         //this.api = new ChatApiClient();
-        this.polling = new LongPollingClient(eventBus);
+        this.polling = new LongPollingClient(this.eventBus);
         
-        this.workspaceManager = new WorkspaceManager(eventBus);   /* Добавлено в 5.3 */
+        this.workspaceManager = new WorkspaceManager(this.eventBus);   /* Добавлено в 5.3 */
 
         // Состояние
         this.isConnected = false;

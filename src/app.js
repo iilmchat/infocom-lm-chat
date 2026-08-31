@@ -124,6 +124,20 @@ class App {
         // История ввода сообщений (Ctrl+↑/↓)
         this.inputHistory = new InputHistory();
 
+        // ===== Инициализация сервисов =====
+        /* Добавлено в 6.1: создание AvatarService */
+        this.avatarService = new AvatarService();        
+        
+        // Сервис для работы с API
+        this.apiService = new ChatApiClient(this.eventBus);
+        // Сервис для работы с API проверки статуса сервера
+        this.api = new ApiService(this.eventBus);
+
+        // Добавлено в 5.1: Сервис аутентификации и управления сессиями
+        this.authService = new AuthService(this.eventBus);
+        // Добавлено в 5.2: сервис Markdown
+        this.markdownService = markdownService;
+
         // ===== Инициализация моделей =====
         // Управление диалогами (сессиями чата)
         this.sessionManager = new SessionManager(this.eventBus);
@@ -138,27 +152,13 @@ class App {
         this.achievementManager = new AchievementManager(this.eventBus);
         
         // Управление многопользовательским режимом (общие комнаты, приватные чаты)
-        this.multiUserManager = new MultiUserManager(this.eventBus);
+        this.multiUserManager = new MultiUserManager(this);
         
         // Отслеживание прогресса развития проекта (дорожная карта)
         this.roadmapTracker = new RoadmapTracker(this.eventBus);
 
         // Добавлено в 5.1: Управление уведомлениями
         this.notificationManager = new NotificationManager(this);        
-
-        // ===== Инициализация сервисов =====
-        /* Добавлено в 6.1: создание AvatarService */
-        this.avatarService = new AvatarService();        
-        
-        // Сервис для работы с API
-        this.apiService = new ChatApiClient(this.eventBus);
-        // Сервис для работы с API проверки статуса сервера
-        this.api = new ApiService(this.eventBus);
-
-        // Добавлено в 5.1: Сервис аутентификации и управления сессиями
-        this.authService = new AuthService(this.eventBus);
-        // Добавлено в 5.2: сервис Markdown
-        this.markdownService = markdownService;
 
         // ===== Состояние приложения =====
         // Текущая модель для генерации ответов
