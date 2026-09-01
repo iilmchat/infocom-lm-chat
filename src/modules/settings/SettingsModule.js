@@ -43,7 +43,7 @@ export class SettingsModule {
                     </div>
                     <div class="form-group">
                         <label for="settingsMaxTokens">Макс. токенов</label>
-                        <input type="number" id="settingsMaxTokens" placeholder="2048" value="${SERVER_CONFIG.maxTokens}" min="256" max="8192">
+                        <input type="number" id="settingsMaxTokens" placeholder="2048" value="${SERVER_CONFIG.maxTokens}" min="256" max="151000">
                     </div>
                     <div class="form-group">
                         <label for="settingsApiPath">Путь к API</label>

@@ -24,14 +24,14 @@ export const CONFIG = {
         // LM Studio
         LM_PORT: 8034,                     
         DEFAULT_TIMEOUT: 60,
-        DEFAULT_MAX_TOKENS: 2048,
+        DEFAULT_MAX_TOKENS: 131072,
         DEFAULT_API_PATH: '/v1/chat/completions',
         HEALTH_ENDPOINT: '/health',
         MODELS_ENDPOINT: '/v1/models',
         EMBEDDINGS_ENDPOINT: '/v1/embeddings',
         CHECK_INTERVAL: 30000,
-        TEMPERATURE: 0.6,
-        REVIEW_TEMPERATURE: 0.3,
+        TEMPERATURE: 0.4,
+        REVIEW_TEMPERATURE: 0.2,
         // Интервал между опросами
         POLLING_INTERVAL: 3000,
         // Таймаут Long Polling       
