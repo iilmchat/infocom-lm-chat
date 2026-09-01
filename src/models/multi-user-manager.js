@@ -101,17 +101,41 @@ export class MultiUserManager {
                 user.token = user.token || null;
                 user.role = user.role || 'Admin';
                 if(user.Id)
-                {user.id = user.Id;}
+                    {user.id = user.Id;}
+                else
+                    {user.Id = user.id;}
                 if(user.Name)
-                {user.name = user.Name;}
+                    {user.name = user.Name;}
+                else
+                    {user.Name = user.name;}                
                 if(user.Avatar)
-                {user.avatar = user.Avatar;}
+                    {user.avatar = user.Avatar;}
+                else
+                    {user.Avatar = user.avatar;}                   
                 if(user.Color)
-                {user.color = user.Color;}
+                    {user.color = user.Color;}
+                else
+                    {user.Color = user.color;}                    
                 if(user.LastSeen)
-                {user.lastSeen = user.LastSeen;}
+                    {user.lastSeen = user.LastSeen;}
+                else
+                    {user.LastSeen = user.lastSeen;}                   
                 if(user.Status)
-                {user.status = user.Status;}                
+                    {user.status = user.Status;}
+                else
+                    {user.Status = user.status;}                                      
+                if(user.Role)
+                    {user.role = user.Role || 'Admin';}
+                else
+                    {user.Role = user.role|| 'Admin';}         
+                if(user.AvatarType)
+                    {user.avatarType = user.AvatarType;}
+                else
+                    {user.AvatarType = user.avatarType;}         
+                if(user.AvatarData)
+                    {user.avatarData = user.AvatarData;}
+                else
+                    {user.AvatarData = user.avatarData;}                                                      
                 return user;
             } catch (e) {
                 console.warn('Ошибка загрузки профиля:', e);
@@ -126,7 +150,7 @@ export class MultiUserManager {
             /*
             id: this.generateUserId(),            
             name: 'User_' + Math.random().toString(36).slice(2, 6),
-            avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸'][Math.floor(Math.random() * 8)],
+            avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙','👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'][Math.floor(Math.random() * 8)],
             color: ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4'][Math.floor(Math.random() * 6)],
             lastSeen: Date.now()
             */
@@ -209,13 +233,13 @@ export class MultiUserManager {
             if ((result.success && result.user)||this.localUser) {
                 
                 const userData = result.user;
-                this.localUser.role = userData.role || 'Admin';
-                this.localUser.status = userData.status || 'online';
+                this.localUser.role = userData.role || userData.Role || 'Admin';
+                this.localUser.status = userData.status || userData.Status || 'online';
                 this.isAdmin = this.localUser.role === 'Admin';
                 this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
 
-                this.localUser.Role = userData.role || 'Admin';
-                this.localUser.Status = userData.status || 'online';
+                this.localUser.Role = userData.role || userData.Role || 'Admin';
+                this.localUser.Status = userData.status || userData.Status || 'online';
                 this.IsAdmin = this.localUser.role === 'Admin';
                 this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';      
 
@@ -371,7 +395,7 @@ export class MultiUserManager {
      * {string} Эмодзи-аватар
      */
     generateAvatar() {
-        const avatars = ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙'];
+        const avatars = ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙','👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'];
         return avatars[Math.floor(Math.random() * avatars.length)];
     }
 
@@ -1366,7 +1390,9 @@ export class MultiUserManager {
         const collabContainer = document.getElementById('collabUsers');
         const collabBar = document.getElementById('collaborationBar');
         const avatarHTML = this.app.avatarService.getAvatarHTML(this.app.multiUserManager.localUser);        
+        const avatarPeerHTML = this.app.avatarService.getAvatarPeerHTML(this.app.multiUserManager.localUser);        
 
+        
         if (!container) return;
 
         // Сайдбар — список пользователей       
@@ -1402,10 +1428,12 @@ export class MultiUserManager {
         if (collabBar && this.peers.size > 0) {
             collabBar.classList.add('active');        
             if (collabContainer) {
-                let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${this.localUser.Avatar}</span>`;
+                //let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${this.localUser.Avatar}</span>`;
+                let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${avatarPeerHTML}</span>`;
                 this.peers.forEach(peer => {
                     if (peer.Online) {
-                        collabHtml += `<span class="collab-user-dot ${peer.IsTyping ? 'typing' : ''}" style="background:${peer.Color};" title="${this.sanitizeHTML(peer.Name)}">${peer.Avatar}</span>`;                        
+                        const peerAvatar1 = this.app.avatarService.getAvatarPeerHTML(peer);                        
+                        collabHtml += `<span class="collab-user-dot ${peer.IsTyping ? 'typing' : ''}" style="background:${peer.Color};" title="${this.sanitizeHTML(peer.Name)}">${peerAvatar1}</span>`;                        
                         //collabHtml += `<span class="collab-user-dot ${peer.typing ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;
                     }
                 });

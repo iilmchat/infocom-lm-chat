@@ -61,6 +61,52 @@ export class AvatarService {
     return this.getAvatarHTML({ ...user, avatarType: 'emoji' });
   }
 
+
+  /**
+   * Генерирует маленький аватар на основе данных пользователя и выбранного типа.
+   * @param {Object} user - объект пользователя { name, avatarType?, avatarData?, color? }
+   * @param {string} user.name - имя пользователя
+   * @param {string} [user.avatarType] - 'emoji' | 'initials' | 'image'
+   * @param {string} [user.avatarData] - данные аватара (эмодзи, инициалы или DataURL)
+   * @param {string} [user.color] - цвет фона для инициалов
+   * @returns {string} HTML-строка для отображения аватара (или DataURL для img)
+   */
+  getAvatarPeerHTML(user) {
+    const type = user.avatarType || this.defaultType;
+    const name = user.name || 'User';
+    const color = user.color || this.defaultColor;
+    let data = user.avatarData;
+
+    if (type === 'emoji') {
+      // Если avatarData не задан, берём эмодзи из user.avatar (для обратной совместимости)
+      const emoji = data || user.avatar || this.defaultEmoji;
+      return `<span class="avatar-emoji" style="font-size: 12px;">${emoji}</span>`;
+    }
+
+    if (type === 'initials') {
+      // Генерируем инициалы: первые буквы слов (максимум 2)
+      const initials = name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+      return `<span class="avatar-initials" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${color};color:#fff;font-size:10px;font-weight:bold;">${initials}</span>`;
+    }
+
+    if (type === 'image') {
+      // data должен быть DataURL изображения
+      if (data && data.startsWith('data:image')) {
+        return `<img class="avatar-image" src="${data}" alt="Аватар" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">`;
+      } else {
+        // Если изображение не загружено, падаем на инициалы
+        return this.getAvatarHTML({ ...user, avatarType: 'initials' });
+      }
+    }
+
+    // fallback
+    return this.getAvatarPeerHTML({ ...user, avatarType: 'emoji' });
+  }
+
   /**
    * Генерирует DataURL для аватара-инициалов на canvas.
    * @param {string} name - имя пользователя

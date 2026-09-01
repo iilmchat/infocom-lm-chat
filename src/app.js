@@ -127,7 +127,7 @@ class App {
         
         // История ввода сообщений (Ctrl+↑/↓)
         this.inputHistory = new InputHistory();
-        // История ввода сообщений (Ctrl+↑/↓)
+        // Локализация
         this.i18n = i18n;
 
         // ===== Инициализация сервисов =====
@@ -1298,7 +1298,7 @@ class App {
         const userInput = document.getElementById('userInput');
         if (userInput) {
             //userInput.placeholder = 'Введите вопрос или код... (Ctrl+Enter для отправки)';
-            userInput.placeholder = this.app.i18n.t('chat.input_placeholder');
+            userInput.placeholder = this.i18n.t('chat.input_placeholder');
         }
         document.querySelectorAll('.message.reply-target').forEach(el => {
             el.classList.remove('reply-target');

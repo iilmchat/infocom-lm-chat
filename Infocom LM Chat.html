@@ -7390,9 +7390,10 @@ const eventBus = new EventBus();
             const user = {
                 id: crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).slice(2, 8),
                 name: 'User_' + Math.random().toString(36).slice(2, 6),
-                avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸'][Math.floor(Math.random() * 8)],
+                avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙','👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'][Math.floor(Math.random() * 8)],
                 color: ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4'][Math.floor(Math.random() * 6)],
-                lastSeen: Date.now()
+                lastSeen: Date.now(),
+                avatarType: 'emoji'
             };
             localStorage.setItem('user_profile', JSON.stringify(user));
             return user;

@@ -74,6 +74,21 @@ export class ProfileModule {
                             <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐶</span>
                             <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐼</span>
                             <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🦁</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐯</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐸</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐵</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🦄</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐲</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐳</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐧</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐨</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🦋</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">🐙</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">👩‍💻</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">👨‍💻</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">👩‍🔬</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">👨‍🎨</span>
+                            <span class="avatar-preset" style="font-size:28px; cursor:pointer; padding:4px 8px; border-radius:8px; border:2px solid transparent; transition:all 0.2s;">👩‍🏫</span>
                     </div>
                     <input type="text" id="profileAvatarInput" placeholder="👤" maxlength="2" style="width:60px;" value="${this.user.avatarType === 'emoji' ? (this.user.avatarData || '👤') : ''}">
                 </div>
@@ -137,10 +152,11 @@ export class ProfileModule {
         this.previewName = document.getElementById('profilePreviewName');
         this.previewStatus = document.getElementById('profilePreviewStatus');
         this.errorEl = document.getElementById('profileError');
+        this.initialsColorInput = document.getElementById('initialsColorInput');
 
         // Устанавливаем активный цвет
         const color = this.user.Color || '#7ec8e3';
-        this.colorInput.value = color;
+        this.initialsColorInput.value = color;
         document.querySelectorAll('.color-preset-option').forEach(el => {
             el.classList.toggle('selected', el.dataset.color === color);
         });
@@ -281,14 +297,19 @@ export class ProfileModule {
         //6.1 Скрыто?
         /*
         user.avatar = avatar;
-        user.color = color;
         */
+        user.color = color;
+        user.avatarType = type;
+        user.avatarData = avatarData;
+
         user.Name = name;
         //6.1 Скрыто?
         /*
         user.Avatar = avatar;
-        user.Color = color;
         */
+        user.Color = color;
+        user.AvatarType = type;
+        user.AvatarData = avatarData;
 
         this.app.multiUserManager.saveUser(user);
 
@@ -302,8 +323,8 @@ export class ProfileModule {
                 avatarData: avatarData,
 
                 Name: name,
-                Avatar: avatar,
-                Color: color,
+                Avatar: user.avatar,
+                Color: user.color,
                 AvatarType: type,
                 AvatarData: avatarData
             });

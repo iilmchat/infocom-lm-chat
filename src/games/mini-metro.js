@@ -2,6 +2,12 @@
 /**
  * Игра Mini Metro (упрощённая версия)
  * Добавлено в 6.1
+ * 
+ * Изменения в 6.1:
+ * - Станции генерируются каждые 30 секунд (было 10)
+ * - Пассажиры генерируются каждые 20 секунд (было 3)
+ * - У станций отображаются порядковые номера
+ * - У пассажиров на станции отображается номер станции назначения
  */
 
 export class MiniMetroGame {
@@ -30,13 +36,13 @@ export class MiniMetroGame {
         this.passengerRadius = 4;
         this.lineWidth = 4;
 
-        // Генерация
+        // Генерация (изменено в 6.1)
         this.stationGenInterval = null;
         this.passengerGenInterval = null;
         this.stationGenTimer = 0;
         this.passengerGenTimer = 0;
-        this.stationGenDelay = 10000; // 10 сек
-        this.passengerGenDelay = 3000; // 3 сек
+        this.stationGenDelay = 30000; // 30 секунд (было 10000)
+        this.passengerGenDelay = 10000; // 20 секунд (было 3000)
 
         // Текущая линия (строящаяся)
         this.currentLine = null; // { stations: [], color: '' }
@@ -48,6 +54,9 @@ export class MiniMetroGame {
             '#e67e22', '#1abc9c', '#e84393', '#00b894', '#fdcb6e'
         ];
         this.colorIndex = 0;
+
+        // Счётчик станций для нумерации (добавлено в 6.1)
+        this.stationCounter = 0;
 
         // Управление
         this.setupUI();
@@ -133,7 +142,7 @@ export class MiniMetroGame {
         for (let i = 0; i < 6; i++) {
             this.addStation();
         }
-        // Запускаем генерацию
+        // Запускаем генерацию (интервалы с новыми задержками)
         this.stationGenInterval = setInterval(() => this.addStation(), this.stationGenDelay);
         this.passengerGenInterval = setInterval(() => this.generatePassenger(), this.passengerGenDelay);
         // Запускаем анимацию
@@ -166,6 +175,7 @@ export class MiniMetroGame {
         this.currentLine = null;
         this.isBuildingLine = false;
         this.colorIndex = 0;
+        this.stationCounter = 0; // сброс счётчика
         this.updateUI();
         // Очищаем канвас
         this.render();
@@ -214,12 +224,15 @@ export class MiniMetroGame {
 
         const color = this.colors[this.colorIndex % this.colors.length];
         this.colorIndex++;
+        // Увеличиваем счётчик и присваиваем номер станции (добавлено в 6.1)
+        this.stationCounter++;
         const station = {
             id: Date.now() + Math.random(),
             x, y,
             color: color,
             passengers: [],
-            capacity: this.capacity
+            capacity: this.capacity,
+            number: this.stationCounter // номер станции (порядковый)
         };
         this.stations.push(station);
         this.updateUI();
@@ -242,6 +255,7 @@ export class MiniMetroGame {
             id: Date.now() + Math.random(),
             originId: origin.id,
             targetId: target.id,
+            targetNumber: target.number, // запоминаем номер целевой станции (добавлено в 6.1)
             currentStationId: origin.id,
             progress: 0, // 0..1 между станциями
             route: [], // массив id станций, включая начальную и конечную (если найден)
@@ -538,7 +552,7 @@ export class MiniMetroGame {
         }
     }
 
-    // ---- Рендеринг ----
+    // ---- Рендеринг (обновлен для отображения номеров) ----
     render() {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -581,9 +595,10 @@ export class MiniMetroGame {
             ctx.setLineDash([]);
         }
 
-        // Рисуем станции
+        // Рисуем станции с номерами (изменено в 6.1)
         for (const station of this.stations) {
             const radius = this.stationRadius;
+            // Круг станции
             ctx.beginPath();
             ctx.arc(station.x, station.y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = station.color;
@@ -596,6 +611,14 @@ export class MiniMetroGame {
             ctx.stroke();
 
             // Количество пассажиров
+            // Номер станции (белый, крупный) (добавлено в 6.1)
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(station.number, station.x, station.y);      
+
+            /*
             if (station.passengers.length > 0) {
                 ctx.fillStyle = '#fff';
                 ctx.font = '12px Arial';
@@ -603,8 +626,9 @@ export class MiniMetroGame {
                 ctx.textBaseline = 'middle';
                 ctx.fillText(station.passengers.length, station.x, station.y);
             }
+            */
 
-            // Пассажиры на станции (маленькие кружки вокруг)
+            // Пассажиры на станции (маленькие кружки) с номерами целей (изменено в 6.1)
             const count = station.passengers.length;
             const maxDisplay = Math.min(count, 8);
             for (let i = 0; i < maxDisplay; i++) {
@@ -612,10 +636,23 @@ export class MiniMetroGame {
                 const dist = radius + 8 + 4 * i;
                 const px = station.x + Math.cos(angle) * dist;
                 const py = station.y + Math.sin(angle) * dist;
+
+                // Кружок пассажира
                 ctx.beginPath();
                 ctx.arc(px, py, this.passengerRadius, 0, 2 * Math.PI);
                 ctx.fillStyle = '#ffd700';
                 ctx.fill();
+
+                // Номер целевой станции (маленький текст рядом) (добавлено в 6.1)
+                const passenger = station.passengers[i];
+                if (passenger && passenger.status === 'waiting') {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    // Рисуем номер над кружком или справа
+                    ctx.fillText(passenger.targetNumber, px, py - this.passengerRadius - 2);
+                }
             }
         }
 
@@ -633,6 +670,7 @@ export class MiniMetroGame {
             if (!fromStation || !toStation) continue;
             const x = fromStation.x + (toStation.x - fromStation.x) * p.progress;
             const y = fromStation.y + (toStation.y - fromStation.y) * p.progress;
+
             ctx.beginPath();
             ctx.arc(x, y, this.passengerRadius + 2, 0, 2 * Math.PI);
             ctx.fillStyle = '#ff6b6b';
@@ -640,9 +678,17 @@ export class MiniMetroGame {
             ctx.shadowBlur = 10;
             ctx.fill();
             ctx.shadowBlur = 0;
+
+            // Можно также показывать номер цели у движущихся пассажиров (опционально)
+            //начало
+             ctx.fillStyle = '#fff';
+             ctx.font = '7px Arial';
+             ctx.textAlign = 'center';
+             ctx.textBaseline = 'bottom';
+             ctx.fillText(p.targetNumber, x, y - this.passengerRadius - 4);
+             //окончание
         }
 
-        // Если игра окончена, выводим сообщение
         if (this.gameOver) {
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
