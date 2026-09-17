@@ -689,3 +689,13 @@ pre.hljs-pre .copy-btn:active {
   padding: 6px 8px;
   min-width: 32px;
 }
+
+/* Добавлено в 6.2: единый стиль для app-view контейнеров (KI-003, KI-013) */
+.app-view {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}

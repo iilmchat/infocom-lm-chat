@@ -36,152 +36,155 @@
         <!-- Изменено в 6.1 -->         
         <div class="copyright">© 2026 <a href="#" onclick="event.preventDefault();toast.info('RuChating (iilmchat) — AI Chat Platform');">RuChating</a> (iilmchat) · Infocom LM Chat Pro v6.1</div> 
 
+        <!-- ===== ГЛОБАЛЬНЫЙ SIDEBAR (Изменено в 6.2: вынесен из #app-chat — KI-003, KI-013) ===== -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <div class="sidebar" id="sidebar">
+            <!-- Заголовок боковой панели -->
+            <div class="sidebar-header">
+                <h3>💬 Диалоги</h3>
+                <!-- Изменено в 6.1: кнопка с классом btn btn-primary btn-sm -->
+                <button class="btn btn-primary btn-sm" id="newChatBtn">+ Новый</button>
+            </div>
+
+            <!-- ===== НАВИГАЦИЯ (добавлено в 6.1) ===== -->
+            <div class="sidebar-nav" style="border-bottom:1px solid var(--border-color); padding:8px 12px;">
+                <button class="nav-btn active" data-link="/" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    💬 Чат с ИИ
+                </button>
+                <button class="nav-btn" data-link="/private" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    👥 Приватные
+                </button>
+                <button class="nav-btn" data-link="/admin" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    🛡️ Админ
+                </button>
+                <button class="nav-btn" data-link="/games" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    🎮 Игры
+                </button>
+                <button class="nav-btn" data-link="/profile" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    👤 Профиль
+                </button>
+                <button class="nav-btn" data-link="/settings" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    ⚙️ Настройки
+                </button>
+                <button class="nav-btn" data-link="/stats" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
+                    📊 Статистика
+                </button>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="sidebar-section collapsed">
+                <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
+                    <span class="section-icon">📊</span>
+                    <span class="section-title">Статистика</span>
+                    <span class="section-arrow">▶</span>
+                </div>
+                <div class="section-content collapsed" id="statsPanel">
+                    <div style="padding:8px 16px;font-size:11px;">
+                        <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
+                        <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
+                        <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
+                        <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
+                        <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
+                        <div class="rag-progress" id="ragProgress"><div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ОБЩИЕ КОМНАТЫ ===== -->
+            <!-- Добавлено в 5.1. -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
+                    <span class="section-icon">💬</span>
+                    <span class="section-title">Общие комнаты</span>
+                    <span class="section-arrow">▶</span>
+                    <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                    <button id="createRoomBtn" class="btn btn-secondary btn-sm">+ Создать</button>
+                </div>
+                <div class="section-content rooms-panel collapsed" id="roomsPanel">
+                    <div style="padding:4px 8px;">
+                        <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
+                        <div id="roomList" style="margin-top:4px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Приватные чаты -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
+                    <span class="section-icon">💬</span>
+                    <span class="section-title">Приватные чаты</span>
+                    <span class="section-arrow">▶</span>
+                    <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                    <button id="newPrivateChatBtn" class="btn btn-secondary btn-sm">+</button>
+                    <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
+                </div>
+                <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
+                    <div id="privateChatsList" style="padding:4px 8px;"><div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">Загрузка...</div></div>
+                </div>
+            </div>
+
+            <!-- Пользователи онлайн -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
+                    <span class="section-icon">👥</span>
+                    <span class="section-title">Пользователи</span>
+                    <span class="section-arrow">▶</span>
+                </div>
+                <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
+                    <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
+                        <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
+                    </div>
+                    <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
+                        <span id="userCountDisplay">👥 1 онлайн</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Рабочие пространства -->
+            <div class="sidebar-section">
+                <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
+                    <span class="section-icon">📁</span>
+                    <span class="section-title">Рабочие пространства</span>
+                    <span class="section-arrow">▶</span>
+                    <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
+                    <button id="createWorkspaceBtn" class="btn btn-secondary btn-sm">+</button>
+                </div>
+                <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
+                    <div id="workspaceList" style="padding:4px 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Прогресс развития -->
+            <div class="sidebar-section collapsed">
+                <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
+                    <span class="section-icon">📊</span>
+                    <span class="section-title">Прогресс развития</span>
+                    <span class="section-arrow">▶</span>
+                </div>         
+                <div class="section-content collapsed" id="roadmapPanel">
+                    <div id="milestoneList"></div>
+                </div>
+            </div>
+
+            <!-- Тесты -->
+            <div class="test-panel" id="testPanel">
+                <h4>🧪 Тесты <button onclick="window.runAllTests()" class="btn btn-secondary btn-sm">▶ Запустить</button></h4>
+                <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
+            </div>
+
+            <!-- ===== ПОИСК ДИАЛОГОВ ===== -->
+            <div class="search-chats"><input type="text" id="chatSearch" placeholder="🔍 Поиск диалогов..."></div>
+            <div class="chat-list" id="chatList"></div>
+        </div>
+        
+        <!-- Добавлено в 6.2: разделитель для ресайза sidebar (KI-034) -->
+        <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" aria-label="Изменить ширину панели"></div>
+                
         <!-- ============================================================ -->
         <!-- ===== КОНТЕЙНЕР ОСНОВНОГО ЧАТА ===== -->
         <!-- ============================================================ -->
         <div id="app-chat" class="app-view active" style="display:flex; width:100%; height:100%;">
             
-            <!-- ===== SIDEBAR ===== -->
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
-            <div class="sidebar" id="sidebar">
-                <!-- Заголовок боковой панели -->
-                <div class="sidebar-header">
-                    <h3>💬 Диалоги</h3>
-                    <!-- Изменено в 6.1: кнопка с классом btn btn-primary btn-sm -->
-                    <button class="btn btn-primary btn-sm" id="newChatBtn">+ Новый</button>
-                </div>
-
-                <!-- ===== НАВИГАЦИЯ (добавлено в 6.1) ===== -->
-                <div class="sidebar-nav" style="border-bottom:1px solid var(--border-color); padding:8px 12px;">
-                    <button class="nav-btn active" data-link="/" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        💬 Чат с ИИ
-                    </button>
-                    <button class="nav-btn" data-link="/private" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        👥 Приватные
-                    </button>
-                    <button class="nav-btn" data-link="/admin" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        🛡️ Админ
-                    </button>
-                    <button class="nav-btn" data-link="/games" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        🎮 Игры
-                    </button>
-                    <button class="nav-btn" data-link="/profile" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        👤 Профиль
-                    </button>
-                    <button class="nav-btn" data-link="/settings" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        ⚙️ Настройки
-                    </button>
-                    <button class="nav-btn" data-link="/stats" style="display:block; width:100%; text-align:left; padding:6px 12px; margin:2px 0; border:none; background:var(--bg-primary); color:var(--text-primary); border-radius:6px; cursor:pointer; transition:background 0.2s;">
-                        📊 Статистика
-                    </button>
-                </div>
-                
-                <!-- Статистика -->
-                <div class="sidebar-section collapsed">
-                    <div class="section-header collapsed" onclick="window.toggleSection('statsPanel')" data-section="statsPanel">
-                        <span class="section-icon">📊</span>
-                        <span class="section-title">Статистика</span>
-                        <span class="section-arrow">▶</span>
-                    </div>
-                    <div class="section-content collapsed" id="statsPanel">
-                        <div style="padding:8px 16px;font-size:11px;">
-                            <div class="stat-row"><span class="stat-label">💬 Сообщения</span><span class="stat-value" id="statMessages">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📎 Файлы</span><span class="stat-value" id="statFiles">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📚 RAG чанки</span><span class="stat-value" id="statRagChunks">0</span></div>
-                            <div class="stat-row"><span class="stat-label">📊 RAG статус</span><span class="stat-value rag-status inactive" id="statRagStatus">Не активен</span></div>
-                            <div class="stat-row"><span class="stat-label">🏆 Достижения</span><span class="stat-value" id="statAchievements">0</span></div>
-                            <div class="rag-progress" id="ragProgress"><div class="rag-progress-fill" id="ragProgressFill" style="width:0%"></div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===== ОБЩИЕ КОМНАТЫ ===== -->
-                <!-- Добавлено в 5.1. -->
-                <div class="sidebar-section">
-                    <div class="section-header" onclick="window.toggleSection('roomsPanel')" data-section="roomsPanel">
-                        <span class="section-icon">💬</span>
-                        <span class="section-title">Общие комнаты</span>
-                        <span class="section-arrow">▶</span>
-                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
-                        <button id="createRoomBtn" class="btn btn-secondary btn-sm">+ Создать</button>
-                    </div>
-                    <div class="section-content rooms-panel collapsed" id="roomsPanel">
-                        <div style="padding:4px 8px;">
-                            <input type="text" id="roomSearchInput" placeholder="🔍 Поиск комнат..." style="width:100%;padding:4px 8px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);">
-                            <div id="roomList" style="margin-top:4px;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Приватные чаты -->
-                <div class="sidebar-section">
-                    <div class="section-header" onclick="window.toggleSection('privateChatsPanel')" data-section="privateChatsPanel">
-                        <span class="section-icon">💬</span>
-                        <span class="section-title">Приватные чаты</span>
-                        <span class="section-arrow">▶</span>
-                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
-                        <button id="newPrivateChatBtn" class="btn btn-secondary btn-sm">+</button>
-                        <span class="unread-badge" id="unreadBadge" style="display:none;background:var(--error-color);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:8px;">0</span>
-                    </div>
-                    <div class="section-content private-chats-panel collapsed" id="privateChatsPanel">
-                        <div id="privateChatsList" style="padding:4px 8px;"><div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">Загрузка...</div></div>
-                    </div>
-                </div>
-
-                <!-- Пользователи онлайн -->
-                <div class="sidebar-section">
-                    <div class="section-header" onclick="window.toggleSection('usersOnlinePanel')" data-section="usersOnlinePanel">
-                        <span class="section-icon">👥</span>
-                        <span class="section-title">Пользователи</span>
-                        <span class="section-arrow">▶</span>
-                    </div>
-                    <div class="section-content users-online-panel collapsed" id="usersOnlinePanel">
-                        <div style="padding:8px 16px;font-size:10px;" id="usersOnlineList">
-                            <span class="user-badge self"><span class="user-avatar">👤</span> Вы</span>
-                        </div>
-                        <div style="padding:0 16px 8px 16px;font-size:10px;color:var(--text-secondary);">
-                            <span id="userCountDisplay">👥 1 онлайн</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Рабочие пространства -->
-                <div class="sidebar-section">
-                    <div class="section-header" onclick="window.toggleSection('workspacesPanel')" data-section="workspacesPanel">
-                        <span class="section-icon">📁</span>
-                        <span class="section-title">Рабочие пространства</span>
-                        <span class="section-arrow">▶</span>
-                        <!-- Изменено в 6.1: кнопка с классом btn btn-secondary btn-sm -->
-                        <button id="createWorkspaceBtn" class="btn btn-secondary btn-sm">+</button>
-                    </div>
-                    <div class="section-content workspaces-panel collapsed" id="workspacesPanel">
-                        <div id="workspaceList" style="padding:4px 8px;"></div>
-                    </div>
-                </div>
-
-                <!-- Прогресс развития -->
-                <div class="sidebar-section collapsed">
-                    <div class="section-header collapsed" onclick="window.toggleSection('roadmapPanel')" data-section="roadmapPanel">
-                        <span class="section-icon">📊</span>
-                        <span class="section-title">Прогресс развития</span>
-                        <span class="section-arrow">▶</span>
-                    </div>         
-                    <div class="section-content collapsed" id="roadmapPanel">
-                        <div id="milestoneList"></div>
-                    </div>
-                </div>
-
-                <!-- Тесты -->
-                <div class="test-panel" id="testPanel">
-                    <h4>🧪 Тесты <button onclick="window.runAllTests()" class="btn btn-secondary btn-sm">▶ Запустить</button></h4>
-                    <div class="test-results" id="testResults">Нажмите "Запустить" для проверки</div>
-                </div>
-
-                <!-- ===== ПОИСК ДИАЛОГОВ ===== -->
-                <div class="search-chats"><input type="text" id="chatSearch" placeholder="🔍 Поиск диалогов..."></div>
-                <div class="chat-list" id="chatList"></div>
-            </div>
-
             <!-- ===== MAIN CONTAINER ===== -->
             <div class="main-container" id="mainContainer">
                 <!-- Drag-and-Drop Overlay (без изменений) -->
@@ -575,10 +578,10 @@
         <!-- ===== КОНЕЦ КОНТЕЙНЕРА ЧАТА ===== -->
 
         <!-- ===== КОНТЕЙНЕР ПРИВАТНЫХ ЧАТОВ ===== -->
-        <div id="app-private" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary);"></div>
+        <div id="app-private" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary);"></div>
 
         <!-- ===== КОНТЕЙНЕР АДМИН-ПАНЕЛИ ===== -->
-        <div id="app-admin" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+        <div id="app-admin" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:1200px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>🛡️ Панель модерации</h2>
@@ -657,7 +660,7 @@
         </div>
 
         <!-- ===== КОНТЕЙНЕР ИГР ===== -->
-        <div id="app-games" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+        <div id="app-games" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:800px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>🎮 Игры</h2>
@@ -678,7 +681,7 @@
         </div>
 
         <!-- ===== КОНТЕЙНЕР ПРОФИЛЯ ===== -->
-        <div id="app-profile" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+        <div id="app-profile" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <div style="max-width:600px; margin:0 auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2>👤 Профиль</h2>
@@ -692,12 +695,12 @@
         </div>
 
         <!-- ===== КОНТЕЙНЕР НАСТРОЕК ===== -->
-        <div id="app-settings" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+        <div id="app-settings" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <!-- Содержимое будет рендериться SettingsModule -->
         </div>
         
         <!-- ===== КОНТЕЙНЕР СТАТИСТИКИ ===== -->
-        <div id="app-stats" class="app-view" style="display:none; width:100%; height:100%; background:var(--bg-primary); overflow-y:auto; padding:20px;">
+        <div id="app-stats" class="app-view" style="display:none; flex:1; min-width:0; background:var(--bg-primary); overflow-y:auto; padding:20px;">
             <!-- Содержимое будет рендериться StatsModule -->
         </div>        
     </div> <!-- end #app -->

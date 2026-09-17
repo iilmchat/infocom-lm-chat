@@ -62,28 +62,30 @@
 
 ## KI-003 — Sidebar не является глобальным (внутри `#app-chat`)
 
-- **Приоритет:** 🔴 Critical (архитектурный блокер v6.2)
-- **Статус:** Open
+- **Приоритет:** 🔴 Critical
+- **Статус:** Fixed (v6.2)
 - **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-18
 - **Описание:**
-  Элемент `<div class="sidebar" id="sidebar">` находится внутри `#app-chat`.
+  Элемент `<div class="sidebar" id="sidebar">` находился внутри `#app-chat`.
   Из-за этого на страницах `#app-private`, `#app-admin`, `#app-games`,
-  `#app-profile`, `#app-settings`, `#app-stats` сайдбар скрыт.
-  Пользователь не может переключаться между модулями через единую навигацию.
-- **План (Задача A v6.2):**
-  1. Вынести `#sidebar` из `#app-chat` в корень `#app`.
-  2. `Sidebar` создавать в `App`, а не в `ChatModule`.
-  3. Методы `showChat/showPrivateChats/showAdmin/...` только скрывают/показывают
-     `#app-*`, сайдбар остаётся видимым (кроме мобильных).
-  4. Убрать вложенный сайдбар из `PrivateChatModule`.
+  `#app-profile`, `#app-settings`, `#app-stats` sidebar был скрыт.
+- **Решение:**
+  1. `#sidebar` и `#sidebarOverlay` вынесены из `#app-chat` в корень `#app`.
+  2. `Sidebar` создаётся в конструкторе `App`, а не в `ChatModule`.
+  3. Все методы `show*()` больше не переключают `sidebar.style.display`.
+  4. `ChatModule` отвечает только за `ChatView`.
+  5. `PrivateChatModule` — убран вложенный sidebar со списком чатов.
+  6. Клик по приватному чату в глобальном sidebar → `router.navigate('/private')`
+     + открытие чата в `PrivateChatModule` (через `App.openPrivateChatById`).
 - **Затронутые файлы:**
   - `index.html`
+  - `src/styles/main.css`
   - `src/app.js`
   - `src/modules/chat/ChatModule.js`
   - `src/modules/private/PrivateChatModule.js`
   - `src/ui/views/sidebar.js`
-  - `src/styles/sidebar.css`
-  - `src/styles/responsive.css`
+- **Связанные:** KI-013, KI-033, KI-034
 
 ---
 
@@ -272,22 +274,25 @@
 
 ---
 
-## KI-013 — `ChatModule` создаёт `Sidebar`/`ChatView` внутри себя, `App` дублирует ссылки
+## KI-013 — ChatModule создаёт Sidebar/ChatView, App дублирует ссылки
 
 - **Приоритет:** 🟠 High
-- **Статус:** Open
+- **Статус:** Fixed (v6.2)
 - **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-18
 - **Описание:**
-  В `ChatModule.init()` создаются новые `Sidebar` и `ChatView`,
-  а в `App.constructor` присваиваются `this.chatView = this.chatModule.chatView`
-  и `this.sidebar = this.chatModule.sidebar`. При этом в `App` есть
-  закомментированные геттеры (`get chatView() { ... }`), что
-  говорит о незавершённом рефакторинге. Риск: два экземпляра сайдбара,
-  если `ChatModule` создадут повторно.
-- **План:** устранить как часть KI-003 (рефакторинг sidebar).
+  В `ChatModule.init()` создавались новые `Sidebar` и `ChatView`, а в `App.constructor`
+  присваивались `this.chatView = this.chatModule.chatView` и
+  `this.sidebar = this.chatModule.sidebar`. Риск: два экземпляра, если
+  `ChatModule` создадут повторно.
+- **Решение:**
+  - `Sidebar` создаётся **только в `App`** (`this.sidebar = new Sidebar(this)`).
+  - `ChatModule` создаёт только `ChatView`.
+  - Убраны дублирующие ссылки в `App`.
 - **Затронутые файлы:**
-  - `src/modules/chat/ChatModule.js`
   - `src/app.js`
+  - `src/modules/chat/ChatModule.js`
+- **Связанные:** KI-003
 
 ---
 
@@ -739,6 +744,49 @@
       --btn-warning-text: #1a1a2e;
   }
 
+---
+
+## KI-033 — View-switching не скрывает все контейнеры одновременно
+
+- **Приоритет:** 🟠 High
+- **Статус:** Fixed (v6.2)
+- **Дата открытия:** 2026-09-18
+- **Дата закрытия:** 2026-09-18
+- **Описание:**
+  При переходе на `/settings` или `/stats` контейнер `#app-chat`
+  оставался видимым — чат и настройки отображались одновременно.
+  Причина: каждый `show*()` вручную перечислял 7 контейнеров и
+  устанавливал им `display: none` — легко забыть один или
+  получить рассинхрон при двойном срабатывании роутера.
+- **Решение:**
+  Введена утилита `App._showView(viewId)` — единая точка
+  переключения. Все `show*()` теперь вызывают только её.
+- **Затронутые файлы:**
+  - `src/app.js`
+- **Связанные:** KI-003
+
+---
+
+## KI-034 — Sidebar нельзя изменять по ширине (feature request)
+
+- **Приоритет:** 🟢 Low
+- **Статус:** Fixed (v6.2)
+- **Дата открытия:** 2026-09-18
+- **Дата закрытия:** 2026-09-18
+- **Описание:**
+  Ширина sidebar фиксирована (`--sidebar-width: 300px`). При длинных
+  названиях комнат / диалогов / юзернеймов места не хватает,
+  при широких экранах — много пустого места.
+- **Решение:**
+  Добавлен `.sidebar-resizer` между `#sidebar` и `#app-chat`.
+  Drag мышью/тачем меняет `--sidebar-width` (220–600px).
+  Ширина сохраняется в `localStorage` (`sidebar_width`).
+  Двойной клик — сброс к 300px. На мобильных (≤768px) ресайз отключён.
+- **Затронутые файлы:**
+  - `index.html`
+  - `src/styles/sidebar.css`
+  - `src/app.js`
+- **Связанные:** KI-003
 
 ## Шаблон для новой записи
 

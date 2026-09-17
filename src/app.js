@@ -60,6 +60,8 @@ import { applyTheme, cycleTheme } from './ui/theme.js';
 //import { ChatView } from './ui/views/chat-view.js';
 //import { Sidebar } from './ui/views/sidebar.js';
 
+/* Добавлено в 6.2: Sidebar перенесён из ChatModule (KI-003, KI-013) */
+import { Sidebar } from './ui/views/sidebar.js';
 // Изменено в 6.0: импорт ChatModule вместо прямых ChatView и Sidebar
 import { ChatModule } from './modules/chat/ChatModule.js';
 import { SettingsView } from './ui/views/settings-view.js';
@@ -164,7 +166,11 @@ class App {
         this.roadmapTracker = new RoadmapTracker(this.eventBus);
 
         // Добавлено в 5.1: Управление уведомлениями
-        this.notificationManager = new NotificationManager(this);        
+        this.notificationManager = new NotificationManager(this);  
+        
+        /* Добавлено в 6.2: Sidebar создаётся в App, а не в ChatModule (KI-003, KI-013) */
+        this.sidebar = new Sidebar(this);
+        this.initSidebarResizer();   /* Добавлено в 6.2: ресайз sidebar (KI-034) */    
 
         // ===== Состояние приложения =====
         // Текущая модель для генерации ответов
@@ -220,10 +226,10 @@ class App {
 
         // ===== Инициализация UI (постоянные модули) =====
         // Изменено в 6.0: создание ChatModule вместо прямых ChatView и Sidebar
+        // Изменено в 6.2: ChatModule теперь отвечает только за ChatView (KI-003, KI-013)
         this.chatModule = new ChatModule(this);
-        // Получаем ссылки для обратной совместимости (чтобы не ломать старый код)
         this.chatView = this.chatModule.chatView;
-        this.sidebar = this.chatModule.sidebar;
+        // this.sidebar уже создан выше в конструкторе
         
         // Настройки сервера
         this.settingsView = new SettingsView(this);
@@ -312,6 +318,78 @@ class App {
         this.router.navigate(window.location.pathname || '/', { replace: true });        
     }
 
+    /* Добавлено в 6.2: ресайз sidebar перетаскиванием (KI-034) */
+    initSidebarResizer() {
+        const resizer = document.getElementById('sidebarResizer');
+        const sidebar = document.getElementById('sidebar');
+        if (!resizer || !sidebar) return;
+
+        const MIN_WIDTH = 220;
+        const MAX_WIDTH = 600;
+        const STORAGE_KEY = 'sidebar_width';
+
+        /* Восстанавливаем сохранённую ширину */
+        const savedWidth = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+        if (savedWidth && savedWidth >= MIN_WIDTH && savedWidth <= MAX_WIDTH) {
+            document.documentElement.style.setProperty('--sidebar-width', savedWidth + 'px');
+        }
+
+        let isDragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        const onMouseDown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startWidth = sidebar.getBoundingClientRect().width;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            const delta = e.clientX - startX;
+            let newWidth = startWidth + delta;
+            if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+            if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+            document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
+        };
+
+        const onMouseUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            resizer.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            const currentWidth = sidebar.getBoundingClientRect().width;
+            localStorage.setItem(STORAGE_KEY, Math.round(currentWidth));
+        };
+
+        /* Двойной клик — сброс ширины */
+        const onDoubleClick = () => {
+            document.documentElement.style.setProperty('--sidebar-width', '300px');
+            localStorage.setItem(STORAGE_KEY, '300');
+        };
+
+        resizer.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        resizer.addEventListener('dblclick', onDoubleClick);
+
+        /* Touch-события для планшетов */
+        resizer.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            onMouseDown({ clientX: touch.clientX, preventDefault: () => e.preventDefault() });
+        }, { passive: false });
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            onMouseMove({ clientX: touch.clientX });
+        }, { passive: true });
+        document.addEventListener('touchend', onMouseUp);
+    }
+
     // ===== Роутер ===== 
 
     // Добавлено в 6.0: определение маршрутов
@@ -332,16 +410,8 @@ class App {
     // ===== Методы переключения представлений =====
 
     async showSettings() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'none';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('app-settings').style.display = 'block';
-        document.getElementById('app-stats').style.display = 'none';
-        document.getElementById('sidebar').style.display = 'flex';
+        this._showView('app-settings');
         this.updateActiveNav('settings');
-
         if (!this.settingsModule) {
             const container = document.getElementById('app-settings');
             this.settingsModule = new SettingsModule(this, container);
@@ -349,16 +419,8 @@ class App {
     }
 
     async showStats() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'none';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('app-settings').style.display = 'none';
-        document.getElementById('app-stats').style.display = 'block';
-        document.getElementById('sidebar').style.display = 'flex';
+        this._showView('app-stats');
         this.updateActiveNav('stats');
-
         if (!this.statsModule) {
             const container = document.getElementById('app-stats');
             this.statsModule = new StatsModule(this, container);
@@ -368,66 +430,42 @@ class App {
 
     // Добавлено в 6.0: импорт модулей       
     showChat() {
-        // Показываем чат, скрываем остальные
-        // Если модуль чата ещё не создан, создаём его
         if (!this.chatModule) {
             this.chatModule = new ChatModule(this);
         } else {
             this.chatModule.show();
-        }  
-        // Показываем контейнер чата, скрываем остальные       
-        document.getElementById('app-chat').style.display = 'flex';          
-        document.getElementById('app-private').style.display = 'none';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('sidebar').style.display = 'flex';
+        }
+        this._showView('app-chat');
         this.updateActiveNav('chat');
-     
     }
 
     // Добавлено в 6.0: импорт модулей       
     // Метод showPrivateChats:
     async showPrivateChats() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'block';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('sidebar').style.display = 'none';
+        this._showView('app-private');
         this.updateActiveNav('private');
-
         if (!this.privateChatModule) {
             const container = document.getElementById('app-private');
             this.privateChatModule = new PrivateChatModule(this, container);
         }
+        if (this._pendingPrivateChat) {
+            const { chatId, userId } = this._pendingPrivateChat;
+            this._pendingPrivateChat = null;
+            await Promise.resolve();
+            this.privateChatModule?.openChat?.(chatId, userId);
+        }
     }
 
-
+    /* Добавлено в 6.2: открытие приватного чата с навигацией на /private (KI-003) */
+    async openPrivateChatById(chatId, userId) {
+        this._pendingPrivateChat = { chatId, userId };
+        this.router.navigate('/private');
+    }
 
     // Добавлено в 6.0: импорт модулей       
     async showAdmin() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'none';        
-        document.getElementById('app-admin').style.display = 'block';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('sidebar').style.display = 'none';
+        this._showView('app-admin');
         this.updateActiveNav('admin');
-        /*
-        if (!this.adminModule) {
-            try {
-                const module = await import('./modules/admin/AdminModule.js');
-                this.adminModule = new module.AdminModule(this);
-                this.adminModule.enter();
-            } catch (error) {
-                console.error('Ошибка загрузки админ-модуля:', error);
-                this.toast.error('Не удалось загрузить админ-панель');
-            }
-        } else {
-            this.adminModule.enter();
-        }
-        */
         if (!this.adminLoaded) {
             try {
                 const module = await import('./modules/admin/AdminModule.js');
@@ -439,33 +477,14 @@ class App {
                 this.toast.error('Не удалось загрузить админ-панель');
             }
         } else {
-            this.adminModule.init(); // повторное открытие
-        }        
+            this.adminModule.init();
+        }
     }
 
     // Добавлено в 6.0: импорт модулей       
     async showGames() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'none';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'block';
-        document.getElementById('app-profile').style.display = 'none';
-        document.getElementById('sidebar').style.display = 'none';
+        this._showView('app-games');
         this.updateActiveNav('games');
-        /*
-        if (!this.gamesModule) {
-            try {
-                const module = await import('./modules/games/GamesModule.js');
-                this.gamesModule = new module.GamesModule(this);
-                this.gamesModule.enter();
-            } catch (error) {
-                console.error('Ошибка загрузки игрового модуля:', error);
-                this.toast.error('Не удалось загрузить игры');
-            }
-        } else {
-            this.gamesModule.enter();
-        }
-        */
         if (!this.gamesLoaded) {
             try {
                 const module = await import('./modules/games/GamesModule.js');
@@ -478,34 +497,13 @@ class App {
             }
         } else {
             this.gamesModule.init();
-        }       
+        }
     }
 
     // Добавлено в 6.0: импорт модулей       
     async showProfile() {
-        document.getElementById('app-chat').style.display = 'none';
-        document.getElementById('app-private').style.display = 'none';
-        document.getElementById('app-admin').style.display = 'none';
-        document.getElementById('app-games').style.display = 'none';
-        document.getElementById('app-profile').style.display = 'block';
-        document.getElementById('sidebar').style.display = 'none';
+        this._showView('app-profile');
         this.updateActiveNav('profile');
-        /*
-        if (!this.profileModule) {
-            try {
-                const module = await import('./modules/profile/ProfileModule.js');
-                this.profileModule = new module.ProfileModule(this);
-                this.profileModule.enter();
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-                this.toast.error('Не удалось загрузить профиль');
-                // Fallback: открываем ProfileModal
-                this.profileModal.open();
-            }
-        } else {
-            this.profileModule.enter();
-        }
-        */
         if (!this.profileLoaded) {
             try {
                 const module = await import('./modules/profile/ProfileModule.js');
@@ -517,10 +515,8 @@ class App {
                 this.toast.error('Не удалось загрузить профиль');
             }
         } else {
-            // Если уже загружен, можно перерисовать или просто показать
-            // Для простоты оставляем как есть, или вызываем метод обновления
             this.profileModule.updatePreview?.();
-        }       
+        }
     }
 
     // Добавлено в 6.0: импорт модулей           
@@ -1857,6 +1853,23 @@ class App {
         SectionHelpers.collapseAllSections();
     }    
 
+    /* Добавлено в 6.2: утилита для переключения view — гарантирует, что виден только один контейнер (KI-033) */
+    _showView(viewId) {
+        const views = {
+            'app-chat':     'flex',
+            'app-private':  'flex',
+            'app-admin':    'block',
+            'app-games':    'block',
+            'app-profile':  'block',
+            'app-settings': 'block',
+            'app-stats':    'block'
+        };
+        for (const [id, display] of Object.entries(views)) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            el.style.display = (id === viewId) ? display : 'none';
+        }
+    }    
     // ===== Остальные методы (init, updateStats, renderAssistantBar и т.д.) =====
     // Они остаются без изменений, так как используют this.chatView и this.sidebar,
     // которые теперь ссылаются на экземпляры из ChatModule.

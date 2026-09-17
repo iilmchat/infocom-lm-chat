@@ -13,11 +13,20 @@
 - `NotificationManager.addNotification()` — создание локальных уведомлений (KI-004)
 - `NotificationManager.clearLocal()` — очистка локальных уведомлений
 - Отслеживание реально новых сообщений в приватных чатах (KI-027)
+- Глобальный sidebar — доступен на всех страницах (чат, приватные, админ, игры, профиль, настройки, статистика) (KI-003)
+- Метод `App.openPrivateChatById(chatId, userId)` для навигации в приватный чат из sidebar (KI-003)
+- Утилита `App._showView(viewId)` для надёжного переключения view (KI-033)
+- Ресайзабельный sidebar: перетаскиваемая граница ширины 220–600px (KI-034)
+- Сохранение ширины sidebar в `localStorage` (KI-034)
 
 ### Changed
 - **i18n:** локали переведены из `.json` в ES-модули (`locales/ru.js`, `locales/en.js`)
   из-за несовместимости `import ... assert { type: 'json' }` с браузерами (KI-001)
 - Версия в `config.js` обновлена с 6.1 до 6.2
+- `Sidebar` перенесён из `ChatModule` в `App` (KI-013)
+- `#sidebar` вынесен из `#app-chat` в корень `#app` (KI-003)
+- `PrivateChatModule` — убран вложенный sidebar со списком чатов, используется глобальный (KI-003)
+- `ChatModule` теперь отвечает только за `ChatView` (KI-013)
 
 ### Fixed
 - `SyntaxError: Unexpected identifier 'assert'` в `src/services/i18n.js` (KI-001)
@@ -25,6 +34,9 @@
 - `NotificationManager.markRead()` корректно обрабатывает локальные ID (KI-004)
 - `NotificationManager.fetchNotifications()` больше не теряет локальные уведомления (KI-004)
 - Убран опциональный вызов `?.` для `notificationManager.addNotification()` (KI-012)
+- Sidebar больше не скрывается на страницах `/private`, `/admin`, `/games`, `/profile`, `/settings`, `/stats` (KI-003)
+- Убран риск дублирования Sidebar из-за пересоздания ChatModule (KI-013)
+- При переходе на `/settings`, `/stats` больше не остаётся видимым `#app-chat` (KI-033)
 
 ### Planned (Задачи v6.2)
 - Задача A — глобальный sidebar (KI-003, KI-013)

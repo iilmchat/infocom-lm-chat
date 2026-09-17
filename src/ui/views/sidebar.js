@@ -296,12 +296,13 @@ export class Sidebar {
         }).join('');
 
         // Обработчики клика
+        /* Изменено в 6.2: клик по приватному чату — навигация на /private с открытием чата (KI-003) */
         container.querySelectorAll('.private-chat-item').forEach(item => {
             item.addEventListener('click', () => {
                 const userId = item.dataset.userId;
-                const peer = this.app.multiUserManager.peers.get(userId);
-                if (peer) {
-                    this.app.privateChat.open(peer);
+                const chatId = item.dataset.chatId;
+                if (chatId && userId) {
+                    this.app.openPrivateChatById(chatId, userId);
                 }
             });
         });
