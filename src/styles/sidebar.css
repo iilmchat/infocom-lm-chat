@@ -1,6 +1,6 @@
 /* src/styles/sidebar.css */
 .sidebar {
-    width: var(--sidebar-width);
+    width: var(--sidebar-width, 300px);
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -719,4 +719,39 @@
     background: var(--bg-accent);
     color: var(--text-accent);
     border-left: 3px solid var(--text-accent);
+}
+
+/* Добавлено в 6.2: разделитель для ресайза sidebar (KI-034) */
+.sidebar-resizer {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1001;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.dragging {
+    background: var(--text-accent);
+}
+.sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 30px;
+    background: var(--border-color);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.sidebar-resizer:hover::after {
+    opacity: 1;
+}
+/* На мобильных отключаем ресайз */
+@media (max-width: 768px) {
+    .sidebar-resizer { display: none; }
 }

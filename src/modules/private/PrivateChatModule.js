@@ -55,65 +55,49 @@ export class PrivateChatModule {
 
         this.render();
         this.setupEventListeners();
-        this.loadChats();
+        /* Изменено в 6.2: loadChats() больше не вызывается — список в глобальном sidebar (KI-003) */
     }
 
     /* ===================== РЕНДЕРИНГ ===================== */
 
+    /* Изменено в 6.2: убран вложенный sidebar со списком чатов — теперь используется глобальный (KI-003) */
     render() {
         this.container.innerHTML = `
-            <div class="private-chat-layout" style="display:flex; height:100%;">
-                <!-- Сайдбар со списком чатов -->
-                <div class="private-chat-sidebar" style="width:280px; border-right:1px solid var(--border-color); display:flex; flex-direction:column; background:var(--bg-secondary);">
-                    <div class="private-chat-header" style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <h3>💬 Приватные чаты</h3>
-                        <button id="newPrivateChatBtnMain" class="btn btn-primary btn-sm">+ Новый</button>
+            <div class="private-chat-main" style="display:flex; flex-direction:column; height:100%; background:var(--bg-primary);">
+                <div class="private-chat-messages-header" style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span id="privateChatTitleMain" style="font-weight:600; font-size:16px;">Выберите чат из списка слева</span>
+                    <div class="private-chat-actions" style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="privateSearchInput" placeholder="🔍 Поиск по сообщениям..." style="padding:4px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); width:200px;">
+                        <button id="privateBackBtn" class="btn btn-secondary btn-sm" data-link="/">← Назад</button>
                     </div>
-                    <div id="privateChatList" class="private-chat-list" style="flex:1; overflow-y:auto; padding:8px;"></div>
                 </div>
 
-                <!-- Основная область чата -->
-                <div class="private-chat-main" style="flex:1; display:flex; flex-direction:column; background:var(--bg-primary);">
-                    <div class="private-chat-messages-header" style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <span id="privateChatTitleMain" style="font-weight:600; font-size:16px;">Выберите чат</span>
-                        <div class="private-chat-actions" style="display:flex; gap:8px; align-items:center;">
-                            <!-- Добавлено в 6.1: поле поиска -->
-                            <input type="text" id="privateSearchInput" placeholder="🔍 Поиск по сообщениям..." style="padding:4px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); width:200px;">
-                            <button id="privateBackBtn" class="btn btn-secondary btn-sm" data-link="/">← Назад</button>
+                <div id="privateMessagesMain" class="private-messages-container" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+
+                <div class="private-chat-input-area" style="padding:12px 16px; border-top:1px solid var(--border-color); background:var(--bg-secondary);">
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <textarea id="privateInput" placeholder="Введите сообщение... (Ctrl+Enter для отправки)" rows="2" style="flex:1; padding:8px 12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); resize:none; font-family:inherit;"></textarea>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button id="privateFileBtn" class="btn btn-secondary btn-sm" title="Прикрепить файл">📎</button>
+                            <button id="privateSendBtnMain" class="btn btn-primary">Отправить</button>
                         </div>
                     </div>
-
-                    <!-- Контейнер сообщений -->
-                    <div id="privateMessagesMain" class="private-messages-container" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px;"></div>
-
-                    <!-- Область ввода -->
-                    <div class="private-chat-input-area" style="padding:12px 16px; border-top:1px solid var(--border-color); background:var(--bg-secondary);">
-                        <div style="display:flex; gap:10px; align-items:flex-end;">
-                            <textarea id="privateInput" placeholder="Введите сообщение... (Ctrl+Enter для отправки)" rows="2" style="flex:1; padding:8px 12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); resize:none; font-family:inherit;"></textarea>
-                            <div style="display:flex; gap:6px; align-items:center;">
-                                <button id="privateFileBtn" class="btn btn-secondary btn-sm" title="Прикрепить файл">📎</button>
-                                <button id="privateSendBtnMain" class="btn btn-primary">Отправить</button>
-                        </div>
-                    </div>
-                        <div id="privateFileInfo" class="file-info" style="display:none; margin-top:4px;">
+                    <div id="privateFileInfo" class="file-info" style="display:none; margin-top:4px;">
                         <span>📎 Прикреплённые:</span>
                         <div id="privateFileList" class="rag-files-list"></div>
                     </div>
-                        <!-- Контейнер для подсказок упоминаний (добавлен в 6.1) -->
-                        <div id="mentionSuggestions" class="mention-suggestions" style="display:none;"></div>
-                    </div>
+                    <div id="mentionSuggestions" class="mention-suggestions" style="display:none;"></div>
                 </div>
             </div>
         `;
 
-        // Ссылки на элементы
         this.messagesEl = document.getElementById('privateMessagesMain');
         this.inputEl = document.getElementById('privateInput');
         this.sendBtn = document.getElementById('privateSendBtnMain');
-        this.chatListEl = document.getElementById('privateChatList');
         this.titleEl = document.getElementById('privateChatTitleMain');
         this.searchInput = document.getElementById('privateSearchInput');
         this.mentionContainer = document.getElementById('mentionSuggestions');
+        /* this.chatListEl больше не используется — список чатов в глобальном sidebar */
     }
 
     /* ===================== НАСТРОЙКА ОБРАБОТЧИКОВ ===================== */
@@ -135,11 +119,13 @@ export class PrivateChatModule {
             this.app.router.navigate('/');
         });
 
-        // Кнопка нового чата
+        // Кнопка нового чата УДАЛЕНО в 6.2
+        /*
         document.getElementById('newPrivateChatBtnMain')?.addEventListener('click', () => {
             this.showUserSelector();
         });
-
+        */
+       
         // Кнопка прикрепления файлов
         document.getElementById('privateFileBtn')?.addEventListener('click', () => {
             const input = document.createElement('input');
@@ -161,7 +147,8 @@ export class PrivateChatModule {
             this.handleMentionInput(e);
         });
 
-        // Делегирование для списка чатов
+        // Делегирование для списка чатов УДАЛЕНО 6.2
+        /*
         this.chatListEl.addEventListener('click', (e) => {
             const item = e.target.closest('.private-chat-item');
             if (item) {
@@ -170,7 +157,8 @@ export class PrivateChatModule {
                 this.openChat(chatId, userId);
             }
         });
-
+        */
+        
         // Делегирование для сообщений (реакции, закрепление, жалобы)
         this.messagesEl.addEventListener('click', (e) => {
             const target = e.target.closest('button');
@@ -295,7 +283,7 @@ export class PrivateChatModule {
     }
 
     /* ===================== ЗАГРУЗКА СПИСКА ЧАТОВ ===================== */
-    
+    /* УДАЛЕНО 6.2
     async loadChats() {
         try {
             const chats = await this.app.multiUserManager.loadPrivateChats();
@@ -305,7 +293,9 @@ export class PrivateChatModule {
             this.app.toast.error('Не удалось загрузить чаты');
         }
     }
+    */
 
+    /* УДАЛЕНО 6.2
     renderChats(chats) {
         if (!chats || chats.length === 0) {
             this.chatListEl.innerHTML = `
@@ -340,6 +330,7 @@ export class PrivateChatModule {
             `;
         }).join('');
     }
+    */
 
     /* ===================== ОТКРЫТИЕ ЧАТА ===================== */
 
