@@ -1,4 +1,4 @@
-{
+export default {
   "app": {
     "title": "Infocom LM Chat Pro",
     "version": "v6.1"

@@ -93,6 +93,7 @@ export class GameView {
         // Добавлено в 6.1: блок для Mini Metro
         if (type === 'minimetro') {
             // Создаём контейнер для игры
+            /*
             const gameContainer = document.createElement('div');
             gameContainer.id = 'miniMetroContainer';
             // Очищаем контейнер
@@ -104,6 +105,33 @@ export class GameView {
             hint.textContent = '🚇 Создайте линии метро, соединяя станции. Перевозите пассажиров, не допускайте переполнения!';
             this.container.appendChild(hint);
             this.currentGame = new MiniMetroGame(gameContainer);
+            */
+            // Контейнер для игры
+            const gameContainer = document.createElement('div');
+            gameContainer.id = 'miniMetroContainer';
+            this.container.innerHTML = '';
+            this.container.appendChild(gameContainer);
+
+            // Кнопки управления
+            const controls = document.createElement('div');
+            controls.style.cssText = 'display:flex;gap:4px;justify-content:center;margin-bottom:4px;flex-wrap:wrap;';
+            controls.innerHTML = `
+                <button onclick="window.gameView.currentGame?.startGame()" class="blast-btn">▶ Старт</button>
+                <button onclick="window.gameView.currentGame?.pauseGame()" class="blast-btn">⏯ Пауза</button>
+                <button onclick="window.gameView.currentGame?.resetGame()" class="blast-btn">🔄 Новая</button>
+                <button onclick="window.gameView.toggleFullscreen()" class="blast-btn">⛶ На весь экран</button>
+            `;
+            this.container.appendChild(controls);
+
+            // Пояснение
+            const hint = document.createElement('div');
+            hint.style.cssText = 'margin-top:8px;font-size:13px;color:var(--text-secondary);text-align:center;';
+            hint.textContent = '🚇 Создайте линии метро, соединяя станции. Перевозите пассажиров, не допускайте переполнения!';
+            this.container.appendChild(hint);
+
+            // Создаём игру
+            this.currentGame = new MiniMetroGame(gameContainer);
+            // Автоматический старт не включаем           
             // Автоматический старт не делаем, пусть пользователь нажмёт кнопку
             // this.currentGame.start();
         // Добавлено в 5.1: блок для Block Blast

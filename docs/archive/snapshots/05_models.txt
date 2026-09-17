@@ -1,0 +1,3833 @@
+/* ============================================================ */
+/* ARCHIVE: 05_models.txt */
+/* Generated: 2026-09-17T19:01:11.441Z */
+/* Project: Infocom LM Chat Pro (v6.1 → v6.2) */
+/* Files: 13 */
+/* ============================================================ */
+
+// ===== FILE: src/models/multi-user-manager.js =====
+// src/models/multi-user-manager.js
+/* Изменено в 5.3 — добавлен WorkspaceManager */
+import { CONFIG } from '../config.js';
+import { ChatApiClient } from '../services/http-client.js';
+import { LongPollingClient } from '../services/long-polling-client.js';
+import { deepEqual } from '../utils/string-helpers.js';
+import { WorkspaceManager } from './workspace-manager.js';   /* Добавлено в 5.3 */
+
+// Константы
+const COMMON_ROOM_NAME = 'Общая комната';
+const COMMON_ROOM_PREFIX = 'common_';
+
+/**
+ * Управление многопользовательским режимом через Long Polling
+ * 
+ * Архитектура:
+ * - Все пользователи подключаются к ОБЩЕЙ комнате (common room)
+ * - Приватные чаты создаются как отдельные комнаты между двумя пользователями
+ */
+export class MultiUserManager {
+    constructor(app) {
+        this.app = app;        
+        this.eventBus = app.eventBus;
+        this.api = app.apiService;
+        
+        // Локальный пользователь
+        this.localUser = this.loadUser();
+        
+        // Хранилище пользователей (пиры) в общей комнате
+        this.peers = new Map();
+        this.isHost = false;
+        
+        // Текущая комната (общая)        
+        this.roomId = null;
+        //Убираем симуляцию пользователей
+        //this.simulateUsers();
+        this.roomName = null;
+  
+        // Клиенты
+
+        //this.api = new ChatApiClient();
+        this.polling = new LongPollingClient(this.eventBus);
+        
+        this.workspaceManager = new WorkspaceManager(this.eventBus);   /* Добавлено в 5.3 */
+
+        // Состояние
+        this.isConnected = false;
+        this.isPolling = false;   
+        this.pollingTimer = null;   
+        this.typingTimers = new Map();                  
+        this.connectionMode = 'offline'; // 'offline' | 'polling' | 'signalr'
+        this.lastSyncTime = Date.now();
+        this.syncInterval = null;
+        this.messages = [];
+        this.messageCount = 0;      
+        this.userRole = null; // Текущая роль пользователя      
+        this.isAdmin = false;
+        this.isModerator = false;    
+        // Приватные чаты
+        this.privateChats = [];
+        this.privateChatRooms = new Map(); // chatId -> { roomId, user1Id, user2Id }
+        this.unreadCount = 0;
+
+        this.pendingMessages = [];
+        
+        // Колбэки
+        this.messageCallbacks = new Set();
+        this.userCallbacks = new Set();
+        this.typingCallbacks = new Set();
+
+        //this.privateChats = [];
+        // Сердцебиение        
+        this.heartbeatInterval = null;
+        //this.unreadCount = 0;
+        this.setupHeartbeat();
+
+        // Подписка на события
+        // Настройка обработчиков        
+        this.setupEventListeners();
+        this.setupAuthEvents();     
+
+        this.setupWorkspaceEvents();   /* Добавлено в 5.3 */           
+    }
+
+    // ===== ИНИЦИАЛИЗАЦИЯ =====
+
+    /**
+     * Загрузка профиля пользователя
+     * {Object} Профиль пользователя
+     */   
+    // Изменено в 5.1: Добавлена проверка, не используется ли уже пользователь из auth     
+    loadUser() {
+        // Если уже есть пользователь из сессии (установлен извне), не создаём нового
+        // Проверяем наличие в localStorage
+        const stored = localStorage.getItem('user_profile');
+        //if (stored) return JSON.parse(stored);
+        if (stored) {
+            try {
+                const user = JSON.parse(stored);
+                // Добавляем поля для авторизации
+                user.token = user.token || null;
+                user.role = user.role || 'Admin';
+                if(user.Id)
+                    {user.id = user.Id;}
+                else
+                    {user.Id = user.id;}
+                if(user.Name)
+                    {user.name = user.Name;}
+                else
+                    {user.Name = user.name;}                
+                if(user.Avatar)
+                    {user.avatar = user.Avatar;}
+                else
+                    {user.Avatar = user.avatar;}                   
+                if(user.Color)
+                    {user.color = user.Color;}
+                else
+                    {user.Color = user.color;}                    
+                if(user.LastSeen)
+                    {user.lastSeen = user.LastSeen;}
+                else
+                    {user.LastSeen = user.lastSeen;}                   
+                if(user.Status)
+                    {user.status = user.Status;}
+                else
+                    {user.Status = user.status;}                                      
+                if(user.Role)
+                    {user.role = user.Role || 'Admin';}
+                else
+                    {user.Role = user.role|| 'Admin';}         
+                if(user.AvatarType)
+                    {user.avatarType = user.AvatarType;}
+                else
+                    {user.AvatarType = user.avatarType;}         
+                if(user.AvatarData)
+                    {user.avatarData = user.AvatarData;}
+                else
+                    {user.AvatarData = user.avatarData;}                                                      
+                return user;
+            } catch (e) {
+                console.warn('Ошибка загрузки профиля:', e);
+            }
+        }        
+
+        // Создание нового пользователя (только если нет сохранённого)
+        // Добавлено в 5.1: Генерируем ID и сохраняем
+        const user = {
+            //Убираем симуляцию пользователей
+            //id: crypto.randomUUID ? crypto.randomUUID() : 'user_' + Math.random().toString(36).slice(2, 8),
+            /*
+            id: this.generateUserId(),            
+            name: 'User_' + Math.random().toString(36).slice(2, 6),
+            avatar: ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙','👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'][Math.floor(Math.random() * 8)],
+            color: ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4'][Math.floor(Math.random() * 6)],
+            lastSeen: Date.now()
+            */
+            id: this.generateUserId(),
+            name: this.generateUserName(),
+            avatar: this.generateAvatar(),
+            color: this.generateColor(),
+            /* Добавлено в 6.1: поддержка AvatarService */
+            avatarType: 'emoji',
+            avatarData: this.generateAvatar(),
+            lastSeen: Date.now(),
+            status: 'online',
+            token: null,
+            role: 'Admin'       
+        };
+        user.Id = user.id;
+        user.Name = user.name;
+        user.Avatar= user.avatar;
+        user.Color= user.color;
+        user.LastSeen= user.lastSeen;
+        user.Status= user.status;
+        user.Token= user.token;
+        user.Role= user.role;    
+
+        this.saveUser(user);        
+        //localStorage.setItem('user_profile', JSON.stringify(user));
+        return user;
+    }
+
+    /**
+     * Сохранение пользователя
+     */
+    saveUser(user) {
+        localStorage.setItem('user_profile', JSON.stringify(user));
+    }
+
+    /**
+     * Обновление профиля на сервере
+     */
+    // Добавлено в 5.1: метод для обновления профиля на сервере    
+    async updateProfile(name, avatar, color) {
+        try {
+            const result = await this.api.updateUserProfile({
+                userId: this.localUser.Id,
+                name: name,
+                avatar: avatar,
+                color: color,
+
+                Name: name,
+                Avatar: avatar,
+                Color: color                
+            });
+
+            if (result.success) {
+                this.localUser.name = name;
+                this.localUser.avatar = avatar;
+                this.localUser.color = color;
+
+                this.localUser.Name = name;
+                this.localUser.Avatar = avatar;
+                this.localUser.Color = color;        
+
+                this.saveUser(this.localUser);
+                this.eventBus?.emit('profile:updated', this.localUser);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Ошибка обновления профиля:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Получение информации о пользователе с сервера (Пока отключено. ВКлючить)
+     */
+    async fetchUserInfo() {
+        try {
+            const result = /*this.localUser;*/await this.api.getUser(this.localUser.Id);
+            if ((result.success && result.user)||this.localUser) {
+                
+                const userData = result.user;
+                this.localUser.role = userData.role || userData.Role || 'Admin';
+                this.localUser.status = userData.status || userData.Status || 'online';
+                this.isAdmin = this.localUser.role === 'Admin';
+                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+
+                this.localUser.Role = userData.role || userData.Role || 'Admin';
+                this.localUser.Status = userData.status || userData.Status || 'online';
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';      
+
+                this.saveUser(this.localUser);
+                this.eventBus?.emit('user:info_updated', this.localUser);
+                return userData;
+                
+                //Локальная работа
+                /*
+                const userData = result;
+                this.localUser.role = 'Admin';
+                this.localUser.status = 'online';
+                this.localUser.Role = 'Admin';
+                this.localUser.Status = 'online';                
+                this.isAdmin = this.localUser.role === 'Admin';
+                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';                
+                this.saveUser(this.localUser);
+                this.eventBus?.emit('user:info_updated', this.localUser);
+                return userData;       
+                */        
+            }
+            return null;
+        } catch (error) {
+            console.error('Ошибка получения информации о пользователе:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Проверка прав пользователя
+     */
+    hasRole(requiredRole) {
+        const rolePriority = {
+            'Admin': 4,
+            'Manager': 3,
+            'User': 2,
+            'Guest': 1
+        };
+
+        const userPriority = rolePriority[this.localUser.Role] || 0;
+        const requiredPriority = rolePriority[requiredRole] || 0;
+
+        return userPriority >= requiredPriority;
+    }
+
+    /**
+     * Проверка, является ли пользователь администратором
+     */
+    isAdminUser() {
+        return this.hasRole('Admin');
+    }
+
+    /**
+     * Проверка, является ли пользователь модератором
+     */
+    isModeratorUser() {
+        return this.hasRole('Manager');
+    }
+
+    /**
+     * Настройка событий авторизации
+     */
+    setupAuthEvents() {
+        // При подключении к серверу получаем информацию о пользователе
+        this.eventBus.on('server:connected', async () => {
+            await this.fetchUserInfo();
+            this.updateAuthUI();
+        });
+
+        // Обновление роли пользователя
+        this.eventBus.on('user:role_changed', (data) => {
+            if (data.userId === this.localUser.Id) {
+                this.localUser.role = data.newRole;
+                this.isAdmin = this.localUser.role === 'Admin';
+                this.isModerator = this.isAdmin || this.localUser.role === 'Manager';
+
+                this.localUser.Role = data.newRole;
+                this.IsAdmin = this.localUser.role === 'Admin';
+                this.IsModerator = this.isAdmin || this.localUser.role === 'Manager';                
+                this.saveUser(this.localUser);
+                this.updateAuthUI();
+                this.eventBus?.emit('toast:info', `Ваша роль изменена на: ${data.newRole}`);
+            }
+        });
+    }
+
+    /**
+     * Обновление UI в зависимости от роли
+     */
+    updateAuthUI() {
+        const adminBtn = document.getElementById('adminBtn');
+        const moderatorPanel = document.getElementById('moderatorPanel');
+        const userRoleDisplay = document.getElementById('userRoleDisplay');
+
+        if (adminBtn) {
+            adminBtn.style.display = this.isAdminUser() ? 'flex' : 'none';
+        }
+
+        if (moderatorPanel) {
+            moderatorPanel.style.display = this.isModeratorUser() ? 'block' : 'none';
+        }
+
+        if (userRoleDisplay) {
+            const roleNames = {
+                'Admin': '🛡️ Администратор',
+                'Manager': '🔧 Руководитель',
+                'User': '👤 Пользователь',
+                'Guest': '👋 Гость'
+            };
+            if(this.localUser.Role)
+            {
+                userRoleDisplay.textContent = roleNames[this.localUser.Role] || this.localUser.Role;
+            }
+            else
+            {
+                userRoleDisplay.textContent = roleNames[this.localUser.role] || this.localUser.role;
+            }
+        }
+
+        // Показываем/скрываем элементы для администратора
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = this.isAdminUser() ? 'block' : 'none';
+        });
+
+        // Показываем/скрываем элементы для модератора
+        document.querySelectorAll('.moderator-only').forEach(el => {
+            el.style.display = this.isModeratorUser() ? 'block' : 'none';
+        });
+    }
+    
+    /**
+     * Генерация ID пользователя
+     * {string} Уникальный ID
+     */
+    generateUserId() {
+        return 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    }
+
+    /**
+     * Генерация имени пользователя
+     * {string} Случайное имя
+     */
+    generateUserName() {
+        const names = ['Анна', 'Пётр', 'Мария', 'Иван', 'Елена', 'Алексей', 'Ольга', 'Дмитрий', 
+                       'Екатерина', 'Сергей', 'Наталья', 'Андрей', 'Татьяна', 'Михаил', 'Юлия', 'Владимир'];
+        return names[Math.floor(Math.random() * names.length)] + '_' + Math.random().toString(36).slice(2, 4);
+    }
+
+    /**
+     * Генерация аватара (эмодзи)
+     * {string} Эмодзи-аватар
+     */
+    generateAvatar() {
+        const avatars = ['🦊', '🐱', '🐶', '🐼', '🐨', '🦁', '🐯', '🐸', '🐵', '🦄', '🐲', '🐳', '🐧', '🐨', '🦋', '🐙','👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'];
+        return avatars[Math.floor(Math.random() * avatars.length)];
+    }
+
+    /**
+     * Генерация цвета (HEX)
+     *{string} HEX-цвет
+     */
+    generateColor() {
+        const colors = ['#7ec8e3', '#4caf50', '#9b4dca', '#f0db4f', '#dd0031', '#ff69b4', '#ff9800', '#00bcd4',
+                        '#e91e63', '#3f51b5', '#009688', '#ff5722', '#795548', '#607d8b'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    /* Удалено 5.4
+    simulateUsers() {
+        if (!CONFIG.MULTI_USER.SIMULATED_USERS) return;
+
+        const names = ['Анна', 'Петр', 'Мария', 'Иван', 'Елена'];
+        const avatars = ['👩‍💻', '👨‍💻', '👩‍🔬', '👨‍🎨', '👩‍🏫'];
+        const colors = ['#4caf50', '#9b4dca', '#ff69b4', '#ff9800', '#f0db4f'];
+
+        for (let i = 0; i < CONFIG.MULTI_USER.USER_COUNT; i++) {
+            const peer = {
+                id: 'peer_' + i,
+                name: names[i] || 'User_' + i,
+                avatar: avatars[i] || '👤',
+                color: colors[i] || '#888',
+                online: true,
+                typing: false,
+                lastSeen: Date.now(),
+
+                Id: 'peer_' + i,
+                Name: names[i] || 'User_' + i,
+                Avatar: avatars[i] || '👤',
+                COMMON_ROOM_NAMEolor: colors[i] || '#888',
+                Online: true,
+                Typing: false,
+                LastSeen: Date.now()                
+            };
+            this.peers.set(peer.Id, peer);
+        }
+        this.renderUsers();
+    }
+    */
+
+    generateUserId() {
+        return 'user_' + Math.random().toString(36).slice(2, 10);
+    }
+
+    // ===== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ =====
+
+    /**
+     * Подключение к серверу и вход в общую комнату
+     * {string} roomId - ID комнаты (если указан, пытаемся подключиться к существующей)
+     * {string} connectionMode - Режим подключения ('polling' | 'signalr')
+     * {Promise<boolean>} Успех подключения
+     * Подключение к серверу через HTTP API + Polling
+     */
+    async connectToServer(roomId = null, connectionMode = 'polling') {
+        try {
+            this.connectionMode = connectionMode;
+            
+            // 1. Проверяем доступность сервера
+            const available = await this.checkServerAvailability();
+            if (!available) {
+                console.warn('⚠️ Сервер недоступен, режим офлайн');
+                this.isConnected = false;
+                this.eventBus?.emit('server:disconnected');
+                return false;
+            }
+
+            /*
+            //До 5.1
+            // Если указан roomId - присоединяемся
+            if (roomId) {
+                await this.joinRoom(roomId);
+            } else {
+                // Создаем новую комнату
+                const result = await this.api.createRoom({
+                    name: `Комната ${new Date().toLocaleString()}`,
+                    createdBy: this.localUser.id
+                });
+                
+                if (result.success) {
+                    this.roomId = result.roomId;
+                    await this.joinRoom(this.roomId);
+                } else {
+                    throw new Error('Не удалось создать комнату');
+                }
+            }
+            */
+
+            // 2. Определяем ID общей комнаты
+            let targetRoomId = roomId;
+            
+            if (!targetRoomId) {
+                // Пытаемся найти общую комнату
+                targetRoomId = await this.findOrCreateCommonRoom();
+            }
+
+            if (!targetRoomId) {
+                console.error('❌ Не удалось найти или создать общую комнату');
+                return false;
+            }
+
+            // 3. Вход в комнату
+            const joinResult = await this.joinRoom(targetRoomId);
+            if (!joinResult) {
+                console.error('❌ Не удалось войти в комнату');
+                return false;
+            }
+
+            this.roomId = targetRoomId;
+            this.isConnected = true;
+
+            //this.startSync();
+
+            // 4. Запускаем синхронизацию            
+            this.startPolling();
+            //this.eventBus?.emit('server:connected', { roomId: this.roomId });
+            this.eventBus?.emit('server:connected', { 
+                roomId: this.roomId,
+                roomName: this.roomName,
+                userCount: this.peers.size + 1
+            });
+            
+            // 5. Загружаем приватные чаты
+            await this.loadPrivateChats();
+            
+            console.log(`✅ Подключен к общей комнате: ${this.roomName} (${this.roomId})`);
+            console.log(`👥 Пользователей в комнате: ${this.peers.size + 1}`);
+           
+            return true;
+
+        } catch (error) {
+            console.error('❌ Ошибка подключения:', error);
+            this.isConnected = false;
+            this.eventBus?.emit('server:disconnected', { error: error.message });
+            return false;
+        }
+    }
+
+    // 5.3 ===== Рабочие места =====
+    /* Добавлено в 5.3 */
+    setupWorkspaceEvents() {
+        this.eventBus.on('workspace:switched', (ws) => {
+            // Перезагружаем комнаты и чаты
+            this.loadPrivateChats();
+            this.findOrCreateCommonRoom();
+            this.app?.sidebar.render();
+            this.app?.chatView.loadMessages();
+        });
+    }
+
+    /**
+     * Поиск существующей общей комнаты или создание новой
+     * {Promise<string|null>} ID комнаты или null
+     */
+    // 5.3 В методе findOrCreateCommonRoom можно использовать текущий workspace    
+    async findOrCreateCommonRoom() {
+        // Добавлено 5.3 (Начало)
+        const currentWs = this.workspaceManager.getCurrentWorkspace();
+        // Здесь можно искать комнату в текущем workspace, либо использовать общий ID
+        // Например, если в workspace хранится ID общей комнаты:
+        // const commonRoomId = currentWs.commonRoomId;
+        // ...
+        // Создаём новую и сохраняем в workspace, если её нет        
+        // Добавлено 5.3 (Окончание)
+        try {
+            // 1. Получаем список всех комнат
+            const roomsResult = await this.api.getRooms();
+            
+            if (roomsResult.success && roomsResult.rooms) {
+                // 2. Ищем общую комнату
+                const commonRoom = roomsResult.rooms.find(room => 
+                    room.Name === COMMON_ROOM_NAME || 
+                    room.RoomId?.startsWith(COMMON_ROOM_PREFIX) ||
+                    room.Id?.startsWith(COMMON_ROOM_PREFIX)||
+                    room.id?.startsWith(COMMON_ROOM_PREFIX)
+                );
+
+                if (commonRoom) {
+                    const roomId = commonRoom.RoomId || commonRoom.Id || commonRoom.id;
+                    console.log(`🔍 Найдена общая комната: ${roomId}`);
+                    return roomId;
+                }
+            }
+
+            // 3. Если общей комнаты нет — создаём
+            console.log('🆕 Создаём новую общую комнату...');
+            const createResult = await this.api.createRoom({
+                name: COMMON_ROOM_NAME,
+                createdBy: this.localUser.Id
+            });
+
+            if (createResult.success) {
+                const newRoomId = createResult.roomId;
+                console.log(`✅ Создана общая комната: ${newRoomId}`);
+                return newRoomId;
+            }
+
+            console.error('❌ Не удалось создать общую комнату');
+            return null;
+
+        } catch (error) {
+            console.error('❌ Ошибка поиска/создания общей комнаты:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Проверка доступности сервера
+     * {Promise<boolean>} Доступен ли сервер
+     */
+    async checkServerAvailability() {
+        try {
+            //const result = await this.api.getRooms();
+            const result = await this.api.ping();            
+            return result.success === true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Вход в комнату
+     * {string} roomId - ID комнаты
+     * {Promise<boolean>} Успех входа
+     */
+    async joinRoom(roomId) {
+        try {
+            const result = await this.api.joinRoom({
+                roomId: roomId,
+                //user: this.localUser
+                user: {
+                    id: this.localUser.Id,
+                    name: this.localUser.Name,
+                    avatar: this.localUser.Avatar,
+                    color: this.localUser.Color,
+
+                    Id: this.localUser.Id,
+                    Name: this.localUser.Name,
+                    Avatar: this.localUser.Avatar,
+                    Color: this.localUser.Color,                   
+                }                
+            });
+
+            if (result.success) {
+                this.roomId = roomId;
+                this.roomName = result.room?.name || `Комната ${roomId}`;
+                
+                // Загружаем историю сообщений
+                if (result.history) {
+                    this.messages = result.history;
+                    this.messageCount = result.history.length;
+                    this.eventBus?.emit('chat:history', result.history);
+                }
+                
+                // Обновляем список пользователей
+                if (result.users) {
+                    this.updateUsers(result.users);
+                }
+                
+                // Запускаем polling
+                //this.polling.start(roomId);
+                
+                //this.eventBus?.emit('room:joined', { roomId, users: result.users });
+                this.eventBus?.emit('room:joined', { 
+                    roomId, 
+                    roomName: this.roomName,
+                    users: result.users,
+                    history: result.history 
+                });                
+                
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ Ошибка входа в комнату:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Выход из комнаты
+     * {Promise<void>}
+     */
+    async leaveRoom() {
+        if (!this.roomId) return;
+
+        try {
+            await this.api.leaveRoom({
+                roomId: this.roomId,
+                userId: this.localUser.Id
+            });
+            
+            //this.polling.stop();
+            //this.stopSync();
+            
+            this.stopPolling();            
+            
+            this.roomId = null;
+            this.roomName = null;
+            this.peers.clear();
+            this.messages = [];
+            this.messageCount = 0;
+            this.isConnected = false;
+            
+            this.eventBus?.emit('room:left');
+            
+        } catch (error) {
+            console.error('❌ Ошибка выхода из комнаты:', error);
+        }
+    }
+
+    /**
+     * Отключение от сервера
+     */
+    disconnect() {
+        this.leaveRoom();
+        this.isConnected = false;
+        this.connectionMode = 'offline';
+        this.stopHeartbeat();
+    }  
+
+    // ===== ОБЩАЯ КОМНАТА: СООБЩЕНИЯ =====
+        
+    /**
+     * Отправка сообщения в общую комнату
+     * {string} content - Текст сообщения
+     * {Object} options - Дополнительные параметры
+     * {Promise<Object|null>} Отправленное сообщение
+     */
+    async sendMessage(content, options = {}) {
+        if (!this.roomId) {
+            console.warn('⚠️ Нет комнаты для отправки');
+            return null;
+        }
+
+        if (!content || !content.trim()) return null;
+
+        const message = {
+            roomId: this.roomId,
+            userId: this.localUser.Id,
+            userName: this.localUser.Name,
+            userAvatar: this.localUser.Avatar,
+            content: content.trim(),
+            role: options.role || 'user',
+            replyToId: options.replyToId || null,
+            model: options.model || null,
+            attachments: options.attachments || []
+        };
+
+        try {
+            // Пытаемся отправить через API
+            const result = await this.api.sendMessage(message);
+            
+            if (result.success) {
+                const msg = result.message;
+                // Проверяем, не дублируется ли сообщение
+                if (!this.messages.some(m => m.id === msg.id || m.Id === msg.id)) 
+                {
+                    this.messages.push(msg);
+                    this.messageCount = this.messages.length;
+                }
+                this.eventBus?.emit('message:sent', msg);
+                return msg;
+            }
+            
+            // Если не удалось отправить — добавляем в локальный кеш как ожидающее
+            const localMessage = {
+                ...message,
+                id: 'local_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                _pending: true
+            };
+            this.messages.push(localMessage);
+            //this.pendingMessages.push(localMessage);
+            this.messageCount = this.messages.length;            
+            this.pendingMessages.push(localMessage);
+            
+            this.eventBus?.emit('message:pending', localMessage);
+            return localMessage;
+            
+        } catch (error) {
+            console.error('❌ Ошибка отправки:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Редактирование сообщения в общей комнате
+     * {string} messageId - ID сообщения
+     * {string} newContent - Новый текст
+     * {Promise<boolean>} Успех редактирования
+     */
+    async editMessage(messageId, newContent) {
+        if (!this.roomId) return false;
+
+        try {
+            const result = await this.api.editMessage({
+                roomId: this.roomId,
+                messageId: messageId,
+                userId: this.localUser.Id,
+                newContent: newContent
+            });
+
+            if (result.success) {
+                // Обновляем локальное сообщение УБРАНО в 5.1
+                /*
+                const msg = this.messages.find(m => m.Id === messageId);
+                if (msg) {
+                    msg.Content = newContent;
+                    msg.IsEdited = true;
+                    this.eventBus?.emit('message:edited', msg);
+                }
+                    */
+                const msg = this.messages.find(m => m.id === messageId || m.Id === messageId);
+                if (msg) {
+                    msg.content = newContent;
+                    msg.isEdited = true;
+                    this.eventBus?.emit('message:edited', msg);
+                }                
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('❌ Ошибка редактирования:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Удаление сообщения из общей комнаты
+     * {string} messageId - ID сообщения
+     * {Promise<boolean>} Успех удаления
+     */
+    async deleteMessage(messageId) {
+        if (!this.roomId) return false;
+
+        try {
+            const result = await this.api.deleteMessage(
+                this.roomId,
+                messageId,
+                this.localUser.Id
+            );
+
+            if (result.success) {
+                //this.messages = this.messages.filter(m => m.Id !== messageId);
+                this.messages = this.messages.filter(m => 
+                    m.id !== messageId && m.Id !== messageId
+                );
+                this.messageCount = this.messages.length;                
+                this.eventBus?.emit('message:deleted', messageId);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('❌ Ошибка удаления:', error);
+            return false;
+        }
+    }
+
+    // ===== СТАТУС ПЕЧАТАНИЯ =====
+
+    /**
+     * Установка статуса печатания в общей комнате
+     * {boolean} isTyping - Печатает ли пользователь
+     */
+    setTyping(isTyping) {
+        // Отправляем через SignalR если доступен, или сохраняем локально
+
+        if (!this.roomId) return;
+
+        this.localUser.isTyping = isTyping;
+        this.localUser.IsTyping = isTyping;        
+        
+        // Отправляем статус на сервер
+        this.api.setTypingStatus({
+            roomId: this.roomId,
+            userId: this.localUser.Id,
+            isTyping: isTyping
+        }).catch(err => console.warn('⚠️ Ошибка отправки статуса печатания:', err));
+
+        this.eventBus?.emit('typing:status', {
+            userId: this.localUser.Id,
+            isTyping: isTyping,
+            roomId: this.roomId
+        });
+    }
+
+    // ===== ПОЛЬЗОВАТЕЛИ =====
+
+    /**
+     * Обновление списка пользователей в общей комнате
+     * {Array} users - Список пользователей
+     */
+    updateUsers(users) {
+        if (!users) return;
+        let userList = Array.isArray(users) ? users : Array.from(users.values());//Object.values(users);
+        // Проверяем, изменился ли список
+        const newUserIds = new Set(userList.map(u => u.Id));
+        const currentUserIds = new Set(this.peers.keys());
+        
+        // Если списки совпадают, не обновляем
+        if (newUserIds.size === currentUserIds.size && 
+            [...newUserIds].every(Id => currentUserIds.has(Id))) {
+            return;
+        }
+
+        this.peers.clear();
+
+        userList.forEach(user => {
+            // Не добавляем себя
+            if (user.Id !== this.localUser.Id) {
+                this.peers.set(user.Id, {
+                    id: user.Id,
+                    name: user.Name || 'Пользователь',
+                    avatar: user.Avatar || '👤',
+                    color: user.Color || '#888',
+                    isTyping: user.IsTyping || false,
+                    lastSeen: user.LastSeen || Date.now(),
+                    online: true,
+                    status: user.Status || 'online',
+
+                    Id: user.Id,
+                    Name: user.Name || 'Пользователь',
+                    Avatar: user.Avatar || '👤',
+                    Color: user.Color || '#888',
+                    IsTyping: user.IsTyping || false,
+                    LastSeen: user.LastSeen || Date.now(),
+                    Online: true,
+                    Status: user.Status || 'online'                    
+                });
+            }
+        });
+
+        this.renderUsers();
+        this.eventBus?.emit('users:updated', this.peers);
+    }
+     
+    /**
+     * Получение списка пользователей в общей комнате
+     * {Array} Список пользователей
+     */
+    getUsers() {
+        return Array.from(this.peers.values());
+    }
+
+    /**
+     * Получение количества пользователей в общей комнате
+     * {number} Количество пользователей (включая себя)
+     */
+    getUserCount() {
+        // +1 для локального пользователя
+        return this.peers.size + 1;         
+    }
+    
+   /**
+     * Получение доступных пользователей для приватного чата
+     * {Array} Список доступных пользователей
+     */
+    getAvailableUsers() {
+        // Все пользователи, кроме себя
+        return Array.from(this.peers.values())
+            .filter(p => p.Online !== false);
+    }   
+
+    // ===== ПРИВАТНЫЕ ЧАТЫ =====
+    
+    /**
+     * Создание или получение приватного чата с пользователем
+     * {Object} user - Пользователь для чата
+     * {Promise<string|null>} ID чата
+     */
+    async openPrivateChat(user) {
+        if (!user || user.Id === this.localUser.Id) {
+            this.app?.toast.warning('Нельзя открыть чат с самим собой');
+            return null;
+        }
+
+        try {
+            // Проверяем, не существует ли уже чат
+            const existingChat = this.privateChats.find(chat => 
+                (chat.user1Id === this.localUser.Id && chat.user2Id === user.Id) ||
+                (chat.user1Id === user.Id && chat.user2Id === this.localUser.Id)
+            );
+
+            if (existingChat) {
+                this.eventBus?.emit('private:chat_opened', {
+                    chatId: existingChat.id,
+                    user: user
+                });
+                return existingChat.id;
+            }
+
+            // Создаём новый приватный чат
+            const result = await this.api.createPrivateChat({
+                user1Id: this.localUser.Id,
+                user2Id: user.Id
+            });
+
+            if (result.success) {
+                const chatId = result.chatId;
+                
+                // Сохраняем в список приватных чатов
+                const newChat = {
+                    id: chatId,
+                    user1Id: this.localUser.Id,
+                    user2Id: user.Id,
+                    lastMessage: null,
+                    lastMessageAt: null,
+                    unreadCount: 0
+                };
+                this.privateChats.push(newChat);
+                
+                this.eventBus?.emit('private:chat_opened', {
+                    chatId: chatId,
+                    user: user
+                });
+                
+                return chatId;
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('❌ Ошибка открытия приватного чата:', error);
+            this.app?.toast.error('Не удалось открыть чат');
+            return null;            
+        }
+    }
+
+    /**
+     * Загрузка списка приватных чатов пользователя
+     * {Promise<Array>} Список приватных чатов
+     */
+    // 5.3 В loadPrivateChats можно загружать чаты, сохранённые в workspace    
+    async loadPrivateChats() {
+        try {
+            const result = await this.api.getUserChats(this.localUser.Id);
+            if (result.success) {
+                //Новое сравнение массивов
+                if (!deepEqual(this.privateChats, result.chats)) 
+                {
+                    this.privateChats = result.chats || [];
+                    this.eventBus?.emit('private:chats_updated', this.privateChats);
+                }
+
+                // Добавлено 5.3 (Начало)
+                // После загрузки сохраняем в текущий workspace
+                const currentWs = this.workspaceManager.getCurrentWorkspace();
+                currentWs.privateChats = this.privateChats;
+                this.workspaceManager.saveToStorage();    
+                // Добавлено 5.3 (Окончание)
+
+                return this.privateChats;
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки приватных чатов:', error);
+        }
+        return [];
+    }
+
+    /**
+     * Отправка сообщения в приватный чат
+     * {string} chatId - ID чата
+     * {string} content - Текст сообщения
+     * {string} replyToId - ID сообщения, на которое отвечаем (опционально)
+     * {Promise<Object|null>} Отправленное сообщение
+     */
+    async sendPrivateMessage(chatId, content, replyToId = null) {
+        if (!chatId || !content || !content.trim()) return null;
+
+        // Находим получателя
+        const chat = this.privateChats.find(c => c.id === chatId);
+        if (!chat) {
+            console.warn('⚠️ Чат не найден');
+            return null;
+        }
+
+        const receiverId = chat.user1Id === this.localUser.Id ? chat.user2Id : chat.user1Id;
+
+        try {
+            const result = await this.api.sendPrivateMessage({
+                chatId: chatId,
+                senderId: this.localUser.Id,
+                receiverId: receiverId,
+                content: content.trim(),
+                replyToId: replyToId
+            });
+
+            if (result.success) {
+                const msg = result.message;
+                // Обновляем последнее сообщение в чате
+                chat.lastMessage = content;
+                chat.lastMessageAt = new Date().toISOString();
+                
+                this.eventBus?.emit('private:message_sent', msg);
+                return msg;
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Ошибка отправки приватного сообщения:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Получение истории приватного чата
+     * {string} chatId - ID чата
+     * {number} limit - Количество сообщений
+     * {number} offset - Смещение
+     * {Promise<Array>} Список сообщений
+     */
+    async getPrivateHistory(chatId, limit = 50, offset = 0) {
+        try {
+            const result = await this.api.getPrivateHistory(chatId, limit, offset);
+            if (result.success) {
+                // Отмечаем сообщения как прочитанные
+                await this.api.markPrivateRead({
+                    chatId: chatId,
+                    userId: this.localUser.Id
+                });
+                return result.messages || [];
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки истории:', error);
+        }
+        return [];
+    }
+
+    /**
+     * Получение количества непрочитанных сообщений
+     * {Promise<number>} Количество непрочитанных
+     */
+    async getUnreadCount() {
+        try {
+            const result = await this.api.getUnreadCount(this.localUser.Id);
+            if (result.success) {
+                this.unreadCount = result.unread || 0;
+                this.eventBus?.emit('private:unread_updated', this.unreadCount);
+                return this.unreadCount;
+            }
+        } catch (error) {
+            console.error('❌ Ошибка получения непрочитанных:', error);
+        }
+        return 0;
+    }
+
+    // ===== LONG POLLING =====
+        
+    /**
+     * Запуск Long Polling для синхронизации
+     */
+    startPolling() {
+        if (this.isPolling) return;
+        this.isPolling = true;
+        this.poll();
+    }
+     
+    /**
+     * Остановка Long Polling
+     */
+    stopPolling() {
+        this.isPolling = false;
+        if (this.pollingTimer) {
+            clearTimeout(this.pollingTimer);
+            this.pollingTimer = null;
+        }
+    }
+
+    /**
+     * Основной цикл Long Polling
+     */
+    async poll() {
+        if (!this.isPolling || !this.roomId) return;
+
+        try {
+            const result = await this.api.poll({
+                roomId: this.roomId,
+                userId: this.localUser.Id,
+                lastMessageCount: this.messageCount,
+                timeoutSeconds: CONFIG.SERVER.POLLING_TIMEOUT || 30
+            });
+
+            if (result.success) {
+                // Обновляем счётчик сообщений
+                if (result.messageCount !== undefined) {
+                    this.messageCount = result.messageCount;
+                }
+
+                // Обрабатываем новые сообщения
+                if (result.hasNewMessages && result.messages) {
+                    for (const msg of result.messages) {
+                        // Пропускаем свои сообщения (уже добавлены локально)
+                        if (msg.userId === this.localUser.Id) continue;
+                        
+                        // Проверяем, нет ли уже такого сообщения
+                        if (!this.messages.some(m => m.id === msg.id || m.Id === msg.id)) {
+                            this.messages.push(msg);
+                            this.messageCount = this.messages.length;
+                            this.eventBus?.emit('message:new', msg);
+                        }
+                    }
+                }
+
+                // Обновляем список пользователей
+                if (result.users) {
+                    this.updateUsers(result.users);
+                }
+
+                // Обновляем статус соединения
+                this.isConnected = true;
+            }
+
+        } catch (error) {
+            console.warn('⚠️ Ошибка Long Polling:', error);
+            // При ошибке делаем паузу
+            await this.delay(5000);
+        }
+
+        // Планируем следующий опрос
+        if (this.isPolling) {
+            this.pollingTimer = setTimeout(() => this.poll(), CONFIG.SERVER.POLLING_INTERVAL || 3000);
+        }
+    }
+
+    // ===== СЕРДЦЕБИЕНИЕ =====
+
+    /**
+     * Настройка отправки heartbeat
+     */
+    setupHeartbeat() {
+        // Отправляем heartbeat каждые 30 секунд
+        this.heartbeatInterval = setInterval(async () => {
+            if (this.isConnected && this.roomId) {
+                try {
+                    await this.api.heartbeat({
+                        userId: this.localUser.Id
+                    });
+                } catch (error) {
+                    console.warn('⚠️ Heartbeat error:', error);
+                }
+            }
+        }, 30000);
+    }
+
+    /**
+     * Остановка heartbeat
+     */
+    stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+    }
+
+    // ===== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ =====
+
+    /**
+     * Задержка (Promise)
+     * {number} ms - Время в миллисекундах
+     * {Promise<void>}
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Синхронизация состояния Устарело в 5.1
+     */
+    startSync() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+
+        this.syncInterval = setInterval(async () => {
+            if (!this.isConnected || !this.roomId) return;
+            
+            try {
+                // Синхронизация пользователей
+                const roomInfo = await this.api.getRoomInfo(this.roomId);
+                if (roomInfo.success) {
+                    this.updateUsers(roomInfo.room?.Users);
+                }
+
+                // Синхронизация непрочитанных сообщений
+                this.lastSyncTime = Date.now();
+                
+            } catch (error) {
+                console.warn('Sync error:', error);
+            }
+        }, 10000); // Каждые 10 секунд
+    }
+
+    //Устарело в 5.1
+    stopSync() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
+        }
+    }
+
+    /**
+     * Получение истории сообщений из общей комнаты
+     * {number} limit - Количество сообщений
+     * {Array} Список сообщений
+     */
+    getMessages(limit = 100) {
+        return this.messages.slice(-limit);
+    }
+
+    /**
+     * Получение статуса подключения
+     * {Object} Статус
+     */
+    getStatus() {
+        return {
+            isConnected: this.isConnected,
+            connectionMode: this.connectionMode,
+            roomId: this.roomId,
+            roomName: this.roomName,
+            userCount: this.peers.size + 1,
+            messageCount: this.messageCount,
+            pendingMessages: this.pendingMessages.length,           
+            isPolling: this.isPolling,                  
+            lastSyncTime: Date.now(),
+            privateChatsCount: this.privateChats.length,
+            unreadCount: this.unreadCount       
+        };
+    }
+
+    /**
+     * Санитизация HTML
+     * {string} str - Строка для санитизации
+     * {string} Безопасная строка
+     */
+    sanitizeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    addPeer(peer) {
+        this.peers.set(peer.Id, peer);
+        this.renderUsers();
+        if (this.eventBus) {
+            this.eventBus.emit('peer:joined', peer);
+        }
+    }
+
+    removePeer(id) {
+        this.peers.delete(id);
+        this.renderUsers();
+        if (this.eventBus) {
+            this.eventBus.emit('peer:left', id);
+        }
+    }
+
+    setPeerTyping(id, isTyping) {
+        const peer = this.peers.get(id);
+        if (peer) {
+            peer.typing = isTyping;
+            peer.Typing = isTyping;            
+            this.renderUsers();
+            if (isTyping) {
+                this.showTypingNotification(peer);
+            }
+        }
+    }
+
+    showTypingNotification(peer) {
+        const notif = document.getElementById('typingNotification');
+        if (notif) {
+            notif.textContent = `${peer.Avatar} ${peer.Name} печатает...`;
+            setTimeout(() => {
+                if (notif.textContent.includes(peer.Name)) {
+                    notif.textContent = '';
+                }
+            }, 3000);
+        }
+    }
+
+    // ===== UI РЕНДЕРИНГ =====
+
+    /**
+     * Рендеринг пользователей в UI
+     */    
+    renderUsers() {
+        const container = document.getElementById('usersOnlineList');
+        const collabContainer = document.getElementById('collabUsers');
+        const collabBar = document.getElementById('collaborationBar');
+        const avatarHTML = this.app.avatarService.getAvatarHTML(this.app.multiUserManager.localUser);        
+        const avatarPeerHTML = this.app.avatarService.getAvatarPeerHTML(this.app.multiUserManager.localUser);        
+
+        
+        if (!container) return;
+
+        // Сайдбар — список пользователей       
+
+        let html = `<span class="user-badge self">
+            ${avatarHTML} 
+            ${this.sanitizeHTML(this.app.multiUserManager.localUser.Name)} (Вы)
+            ${this.app.multiUserManager.isConnected ? '🟢' : '⚪'}
+        </span>`;       
+        /* 6.0.1
+        let html = `<span class="user-badge self">
+            <span class="user-avatar">${this.localUser.Avatar}</span> 
+            ${this.sanitizeHTML(this.localUser.Name)} (Вы)
+            ${this.isConnected ? '🟢' : '⚪'}
+        </span>`;
+        */    
+
+        this.app.multiUserManager.peers.forEach(peer => {
+            if (peer.Online !== false) {
+                const peerAvatar = this.app.avatarService.getAvatarHTML(peer);
+                html += `<span class="user-badge ${peer.IsTyping ? 'typing' : ''}" style="border-color:${peer.Color};">
+                    ${peerAvatar} 
+                    ${this.sanitizeHTML(peer.Name)}
+                    ${peer.IsTyping ? '<span class="user-status">печатает...</span>' : ''}
+                </span>`;
+            }
+        });
+        container.innerHTML = html;
+
+        // Коллаборационная панель
+        //if (collabBar && this.peers.size > 0) {
+        //    collabBar.classList.add('active');
+        if (collabBar && this.peers.size > 0) {
+            collabBar.classList.add('active');        
+            if (collabContainer) {
+                //let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${this.localUser.Avatar}</span>`;
+                let collabHtml = `<span class="collab-user-dot" style="background:${this.localUser.Color};" title="Вы">${avatarPeerHTML}</span>`;
+                this.peers.forEach(peer => {
+                    if (peer.Online) {
+                        const peerAvatar1 = this.app.avatarService.getAvatarPeerHTML(peer);                        
+                        collabHtml += `<span class="collab-user-dot ${peer.IsTyping ? 'typing' : ''}" style="background:${peer.Color};" title="${this.sanitizeHTML(peer.Name)}">${peerAvatar1}</span>`;                        
+                        //collabHtml += `<span class="collab-user-dot ${peer.typing ? 'typing' : ''}" style="background:${peer.color};" title="${this.sanitizeHTML(peer.name)}">${peer.avatar}</span>`;
+                    }
+                });
+                collabContainer.innerHTML = collabHtml;
+            }
+       // } else if (collabBar) {
+       //     collabBar.classList.remove('active');
+       // }
+        } else if (collabBar) {
+            collabBar.classList.remove('active');
+        }
+
+        // Обновляем share модалку, если открыта
+        const activeUsersEl = document.getElementById('activeUsers');
+        if (activeUsersEl) {
+            let shareHtml = `<span class="active-user-badge">${this.localUser.Avatar} ${this.sanitizeHTML(this.localUser.Name)} (Вы)</span>`;
+            this.peers.forEach(peer => {
+                if (peer.Online !== false) 
+                {
+                    shareHtml += `<span class="active-user-badge">${peer.Avatar} ${this.sanitizeHTML(peer.Name)}</span>`;
+                }
+            });
+            activeUsersEl.innerHTML = shareHtml;
+        }
+    }
+
+    /**
+     * Рендеринг приватных чатов в sidebar
+     */
+// ... в renderPrivateChats    
+    renderPrivateChats() {
+        const container = document.getElementById('privateChatsList');
+        if (!container) return;
+
+        if (!this.privateChats || this.privateChats.length === 0) {
+            container.innerHTML = `
+                <div style="padding:8px 16px;font-size:11px;color:var(--text-secondary);">
+                    Нет приватных чатов
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.privateChats.map(chat => {
+            const otherUserId = chat.user1Id === this.localUser.Id 
+                ? chat.user2Id 
+                : chat.user1Id;
+            
+            // Получаем имя пользователя из кэша
+            const peer = this.peers.get(otherUserId);
+            const name = peer?.Name || otherUserId;
+            const avatar = peer?.Avatar || '👤';
+            const peerAvatar = this.app.avatarService.getAvatarHTML({ 
+                        name: name, 
+                        avatarType: peer?.avatarType, 
+                        avatarData: peer?.avatarData,
+                        color: peer?.Color || '#888'
+                    });            
+            const color = peer?.Color || '#888';
+            const lastMsg = chat.lastMessage || 'Нет сообщений';
+            const lastMsgAt = chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString() : '';
+
+            return `
+                <div class="private-chat-item" data-user-id="${otherUserId}" data-chat-id="${chat.id}">
+                    <div class="private-chat-avatar">${peerAvatar}</div>
+                    <div class="private-chat-info">
+                        <div class="private-chat-name">${this.sanitizeHTML(name)}</div>
+                        <div class="private-chat-last">${this.sanitizeHTML(lastMsg.substring(0, 50))}</div>
+                    </div>
+                    <div class="private-chat-time">${lastMsgAt}</div>
+                    ${chat.unreadCount > 0 ? `<span class="unread-badge">${chat.unreadCount}</span>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        // Обработчики клика
+        container.querySelectorAll('.private-chat-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const userId = item.dataset.userId;
+                const peer = this.peers.get(userId);
+                if (peer) {
+                    this.app?.privateChat?.open(peer);
+                }
+            });
+        });
+    }
+
+    // ===== НАСТРОЙКА СОБЫТИЙ =====
+
+    /**
+     * Настройка обработчиков событий
+     */
+    setupEventListeners() {
+        this.eventBus.on('message:new', (message) => {
+            this.handleNewMessage(message);
+        });
+
+        this.eventBus.on('users:updated', (users) => {
+            this.updateUsers(users);
+        });        
+    }
+
+    /* Удалено 5.4
+    startSimulation() {
+        setInterval(() => {
+            const peers = Array.from(this.peers.values()).filter(p => p.Online);
+            if (peers.length > 0) {
+                const randomPeer = peers[Math.floor(Math.random() * peers.length)];
+                this.setPeerTyping(randomPeer.Id, Math.random() > 0.7);
+            }
+        }, 5000);
+    }
+    */
+
+    /**
+     * Обработка нового сообщения
+     * {Object} message - Новое сообщение
+     */
+    handleNewMessage(message) {
+        // Пропускаем свои сообщения
+        /*
+        if (message.UserId === this.localUser.id) {
+            // Убираем статус pending
+            const pending = this.pendingMessages.find(m => m.Id === message.Id);
+            if (pending) {
+                pending._pending = false;
+            }
+            return;
+        }
+        */
+        if (message.userId === this.localUser.Id) {
+            return;
+        }
+
+        // Добавляем в историю, если ещё нет
+        /*
+        if (!this.messages.some(m => m.Id === message.Id)) {
+            this.messages.push(message);
+            this.eventBus?.emit('chat:message', message);
+        }
+            */
+        if (!this.messages.some(m => m.id === message.id || m.Id === message.id)) {
+            this.messages.push(message);
+            this.messageCount = this.messages.length;
+            this.eventBus?.emit('chat:message', message);
+        }           
+    }
+
+    // ===== АВТОМАТИЧЕСКОЕ ПОДКЛЮЧЕНИЕ =====
+
+    /**
+     * Автоматическое подключение при загрузке страницы
+     * {Promise<boolean>} Успех подключения
+     */
+    async autoConnect() {
+        // Проверяем параметр комнаты в URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+        
+        if (roomId) {
+            return await this.connectToServer(roomId);
+        } else {
+            return await this.connectToServer();
+        }
+    } 
+}
+// ===== END: src/models/multi-user-manager.js =====
+
+// ===== FILE: src/models/session-manager.js =====
+// src/models/session-manager.js
+// Изменено в 5.2: удалена ручная подсветка синтаксиса, теперь используется markdownService
+import { CONFIG } from '../config.js';
+// Удалено: import { syntaxHighlighter } from '../services/syntax-highlighter.js';
+
+/* //Изменено в 5.2:
+export class SessionManager {
+    // ... конструктор и другие методы без изменений
+
+    // Удалены методы: upgradeSessions, extractCodeBlocks, createCodeBlockHTML, highlightMessageSync, getMessagesWithHighlight
+
+    // Вместо getMessagesWithHighlight теперь используется обычный getMessages, 
+    // а рендеринг выполняется через markdownService в message-renderer
+    getMessages() {
+        const session = this.getCurrent();
+        return session ? session.messages : [];
+    }
+
+    // ... остальные методы (save, create, addMessage, etc.) без изменений
+}
+*/
+
+/**
+ * Управление диалогами (сессиями чата)
+ */
+export class SessionManager {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.sessions = [];
+        this.currentId = null;
+        this.defaultModel = 'local-model';
+        this.load();
+    }
+   
+    load() {
+        try {
+            const storedData = localStorage.getItem('chat_sessions_v5');
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                this.sessions = parsedData.sessions || [];
+                this.currentId = parsedData.currentId || null;
+
+                // Обновляем сообщения в сессиях для поддержки подсветки синтаксиса
+                //this.upgradeSessions(); // УДАЛЕНО в 5.2
+            }
+            if (!this.sessions.length) {
+                this.create('Новый диалог');
+            }
+        } catch (error) {
+            console.warn('Ошибка при загрузке данных чатов:', error);
+            this.create('Новый диалог');
+        }
+    }
+
+    /**
+     * Обновление сессий для поддержки подсветки синтаксиса
+     * УДАЛЕНО в 5.2
+     */
+    upgradeSessions() {
+        /* // УДАЛЕНО в 5.2
+        let needsSave = false;
+        
+        for (const session of this.sessions) {
+            if (session.messages) {
+                for (const message of session.messages) {
+                    if (message.role === 'assistant' && message.content) {
+                        // Проверяем, есть ли в сообщении блоки кода
+                        const codeBlocks = this.extractCodeBlocks(message.content);
+                        if (codeBlocks.length > 0) {
+                            // Сохраняем оригинальное содержимое, если ещё не сохранено
+                            if (!message._rawContent) {
+                                message._rawContent = message.content;
+                                needsSave = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (needsSave) {
+            this.save();
+        }
+        */
+    }
+
+    /**
+     * Извлечение блоков кода из текста
+     * УДАЛЕНО в 5.2
+     */
+    extractCodeBlocks(content) {
+        const blocks = [];
+        const regex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        while ((match = regex.exec(content)) !== null) {
+            blocks.push({
+                language: match[1] || 'text',
+                code: match[2]
+            });
+        }
+        return blocks;
+    }
+
+    /**
+     * Создание HTML для блока кода с подсветкой и кнопкой копирования
+     * УДАЛЕНО в 5.2
+     */
+    createCodeBlockHTML(code, language) {
+        let highlighted;
+        try {
+            highlighted = syntaxHighlighter.highlightSync(code, language);
+        } catch (e) {
+            // Fallback при ошибке
+            const escaped = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            highlighted = `<code class="hljs language-${language}">${escaped}</code>`;
+        }
+        
+        // Создаём полную структуру с pre и кнопкой копирования
+        // Используем data-атрибуты для идентификации
+        return `<pre class="hljs-pre" data-language="${language}" data-has-copy="true">
+    ${highlighted}
+    <button class="copy-btn" aria-label="Копировать код">📋 Копировать</button>
+</pre>`;
+    }
+
+    /**
+     * Подсветка синтаксиса для сообщения (синхронная, с кэшированием)
+     * Используется для быстрой загрузки истории
+     * Возвращает HTML с подсветкой и включает кнопки копирования
+     * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
+     * УДАЛЕНО в 5.2
+     */
+    highlightMessageSync(content) {
+        if (!content || typeof content !== 'string') return content;
+        
+        // Проверяем, есть ли блоки кода
+        const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        //let result = content;
+        let lastIndex = 0;
+        const parts = [];
+        
+        while ((match = codeRegex.exec(content)) !== null) {
+            // Добавляем текст до блока кода
+            if (match.index > lastIndex) {
+                const textContent = content.substring(lastIndex, match.index);
+                if (textContent) {
+                    parts.push({
+                        type: 'text',
+                            content: textContent
+                    });
+                }
+            }
+            
+            // Добавляем блок кода с полной структурой
+            const language = match[1] || 'text';
+            const code = match[2];
+            /*
+            // Используем синхронную подсветку с кэшированием
+            let highlighted;
+            try {
+                highlighted = syntaxHighlighter.highlightSync(code, language);
+            } catch (e) {
+                // Fallback при ошибке
+                const escaped = code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                highlighted = `<code class="hljs language-${language}">${escaped}</code>`;
+            }
+            */
+            
+            // Создаём полный HTML для блока кода
+            const codeBlockHTML = this.createCodeBlockHTML(code, language);   
+                     
+            parts.push({
+                type: 'code',
+                language: language,
+                content: code,
+                html: codeBlockHTML
+            });
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        // Добавляем оставшийся текст
+        if (lastIndex < content.length) {
+            const textContent = content.substring(lastIndex);
+            if (textContent) {
+                parts.push({
+                    type: 'text',
+                        content: textContent
+                });
+            }
+        }
+        
+        // Если нет блоков кода, возвращаем исходный текст
+        if (parts.length === 0 || (parts.length === 1 && parts[0].type === 'text' && parts[0].content === content)) {
+            return content;
+        }
+        
+        // Собираем результат с полной структурой
+        let result = '';
+        for (const part of parts) {
+            if (part.type === 'text') {
+                result += part.content;
+            } else if (part.type === 'code') {
+                result += part.html;
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * Получение сообщений с подсветкой синтаксиса (синхронно)
+     * Используется при загрузке истории
+     * Возвращает HTML с подсветкой и включает кнопки копирования
+     * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
+     * УДАЛЕНО в 5.2
+     */
+    getMessagesWithHighlight() {
+        const session = this.getCurrent();
+        if (!session) return [];
+        
+        return session.messages.map(msg => {
+            if (msg.role === 'assistant' && msg.content) {
+                // Если есть сохранённый сырой контент, используем его для подсветки
+                const rawContent = msg._rawContent || msg.content;
+                
+                // Проверяем, не подсвечен ли уже контент и содержит ли он pre теги
+                if (rawContent.includes('<span class="hljs-') || rawContent.includes('<code class="hljs')) {
+                    // Проверяем, есть ли уже pre обёртка
+                    if (rawContent.includes('<pre') && rawContent.includes('class="hljs-pre"')) {
+                        // Уже имеет полную структуру, возвращаем как есть
+                        return {
+                            ...msg,
+                            content: rawContent,
+                            _rawContent: rawContent
+                        };
+                    }
+                    
+                    // Частично подсвечен, но без pre - нужно обновить
+                    // Пересоздаём структуру с pre и кнопкой
+                    const highlighted = this.highlightMessageSync(rawContent);
+                    return {
+                        ...msg,
+                        content: highlighted,
+                        _rawContent: rawContent
+                    };
+                }
+                
+                // Полная подсветка с pre и кнопкой
+                const highlighted = this.highlightMessageSync(rawContent);
+                
+                return {
+                    ...msg,
+                    content: highlighted,
+                    _rawContent: rawContent
+                };
+            }
+            return msg;
+        });
+    }
+
+    /**
+     * Асинхронная подсветка сообщения (для новых сообщений)
+     * Возвращает HTML с подсветкой и включает кнопки копирования
+     * Возвращает HTML с полной структурой (pre + code + кнопка копирования)
+     */
+    async highlightMessageAsync(content) {
+        if (!content || typeof content !== 'string') return content;
+        
+        // Проверяем, есть ли блоки кода
+        const codeRegex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        let lastIndex = 0;
+        const parts = [];
+        
+        while ((match = codeRegex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push({
+                    type: 'text',
+                    content: content.substring(lastIndex, match.index)
+                });
+            }
+            
+            const language = match[1] || 'text';
+            const code = match[2];
+            
+            // Асинхронная подсветка
+            let highlighted;
+            try {
+                highlighted = await syntaxHighlighter.highlight(code, language);
+            } catch (e) {
+                // Fallback
+                const escaped = code
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                highlighted = `<code class="hljs language-${language}">${escaped}</code>`;
+            }
+            
+            // Создаём полную структуру с pre и кнопкой
+            const codeBlockHTML = `<pre class="hljs-pre" data-language="${language}" data-has-copy="true">
+    ${highlighted}
+    <button class="copy-btn" aria-label="Копировать код">📋 Копировать</button>
+</pre>`;
+            
+                parts.push({
+                    type: 'code',
+                    language: language,
+                    content: code,
+                html: codeBlockHTML
+                });
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < content.length) {
+            parts.push({
+                type: 'text',
+                content: content.substring(lastIndex)
+            });
+        }
+        
+        if (parts.length === 0 || (parts.length === 1 && parts[0].type === 'text')) {
+            return content;
+        }
+        
+        let result = '';
+        for (const part of parts) {
+            if (part.type === 'text') {
+                result += part.content;
+            } else if (part.type === 'code') {
+                result += part.html;
+            }
+        }
+        
+        return result;
+    }
+        
+    save_old() {
+        try {
+            const dataToSave = {
+                sessions: this.sessions,
+                currentId: this.currentId
+            };
+            localStorage.setItem('chat_sessions_v5', JSON.stringify(dataToSave));
+            if (this.eventBus) {
+                this.eventBus.emit('sessions:updated');
+            }
+        } catch (error) {
+            if (error.name === "QuotaExceededError" || error instanceof DOMException) {
+                console.error("Ошибка при сохранении сессии: превышен лимит хранилища", error);
+
+                // Очистка старых данных и повторная попытка
+                this.clearOldSessions();
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (retryError) {
+                    console.error("Ошибка при сохранении после очистки:", retryError);
+                }
+            } else        
+            {   
+                console.error('Ошибка при сохранении сессий чата:', error);
+            }
+        }
+    }
+
+    //обновленный метод save с обработкой ошибок
+    save() {
+        try {
+            const dataToSave = {
+                sessions: this.sessions,
+                currentId: this.currentId
+            };
+            
+            // Проверяем размер данных перед сохранением
+            const serializedData = JSON.stringify(dataToSave);
+            const dataSize = new Blob([serializedData]).size;
+            
+            // Если данные слишком большие, очищаем старые сессии
+            if (dataSize > 5 * 1024 * 1024) { // Примерно 5MB лимит
+                console.warn(`Данные размером "${dataSize}" превышают лимит, происходит очистка старых сессий`);
+                this.clearOldSessions();
+                
+                // Повторная попытка сохранения после очистки
+                try {
+                    localStorage.setItem('chat_sessions_v5', serializedData);
+                    if (this.eventBus) {
+                        this.eventBus.emit('sessions:updated');
+                    }
+                } catch (retryError) {
+                    console.error('Ошибка при повторном сохранении:', retryError);
+                    // Если все еще ошибка, показываем пользователю сообщение
+                    this.handleStorageExceeded();
+                }
+            } else {
+                localStorage.setItem('chat_sessions_v5', serializedData);
+                if (this.eventBus) {
+                    this.eventBus.emit('sessions:updated');
+                }
+            }
+        } catch (error) {
+            // Обработка ошибки QuotaExceededError
+            if (error.name === "QuotaExceededError" || error instanceof DOMException) {
+                console.error("Ошибка при сохранении сессии: превышен лимит хранилища", error);
+                
+                // Попытка очистить старые данные и повторить попытку
+                this.clearOldSessions();
+                try {
+                    localStorage.setItem('chat_sessions_v5', JSON.stringify({
+                        sessions: this.sessions,
+                        currentId: this.currentId
+                    }));
+                } catch (retryError) {
+                    console.error("Ошибка при сохранении после очистки:", retryError);
+                    this.handleStorageExceeded();
+                }
+            } else {
+                console.error('Ошибка при сохранении сессий чата:', error);
+            }
+        }
+    }
+
+    // Метод для обработки превышения лимита хранилища
+    handleStorageExceeded() {
+        // Показываем пользователю сообщение об ошибке
+        const errorEvent = new CustomEvent('storage-exceeded', {
+            detail: {
+                message: 'Превышен лимит хранилища. Некоторые старые сессии были удалены.'
+            }
+        });
+        
+        // Если есть eventBus, отправляем событие
+        if (this.eventBus) {
+            this.eventBus.emit('storage-exceeded', errorEvent);
+        } else {
+            // Альтернативное решение: показываем уведомление в интерфейсе
+            console.warn('Превышен лимит хранилища. Удалены старые сессии.');
+        }
+    }
+
+    // Добавляем метод для очистки старых сессий
+    clearOldSessions(maxSessions = 50) {
+        // Сортируем сессии по дате создания (новые первыми)
+        this.sessions.sort((a, b) => new Date(b.created) - new Date(a.created));
+        
+        // Оставляем только последние maxSessions сессий
+        if (this.sessions.length > maxSessions) {
+            this.sessions = this.sessions.slice(0, maxSessions);
+            
+            // Если текущая сессия была удалена, устанавливаем первую в списке как активную
+            if (this.currentId && !this.sessions.some(s => s.id === this.currentId)) {
+                this.currentId = this.sessions.length > 0 ? this.sessions[0].id : null;
+            }
+        }
+    }
+
+    create(name, model = null) {
+        const modelName = model || (typeof currentModel !== 'undefined' ? currentModel : this.defaultModel);
+        const session = {
+            id: Date.now(),
+            name: name || 'Новый диалог',
+            messages: [
+                {
+                    role: 'system',
+                    content: CONFIG.SYSTEM_PROMPT
+                }
+            ],
+            created: new Date().toISOString(),
+            model: modelName,
+            ragData: null,
+            messageCount: 0
+        };
+
+        this.sessions.push(session);
+        this.currentId = session.id;
+        this.save();
+
+        if (this.eventBus) {
+            this.eventBus.emit('session:created', session);
+        }
+
+        return session;
+    }
+
+    getCurrent() {
+        const currentSession = this.sessions.find(s => s.id === this.currentId);
+        return currentSession || this.sessions[0];
+    }
+
+    // Вместо getMessagesWithHighlight теперь используется обычный getMessages, 
+    // а рендеринг выполняется через markdownService в message-renderer    
+    getMessages() {
+        const session = this.getCurrent();
+        return session ? session.messages : [];
+    }
+
+    setMessages(messages) {
+        const session = this.getCurrent();
+        if (session) {
+            session.messages = messages;
+            this.save();
+        }
+    }
+
+    addMessage(role, content, replyTo = null) {
+        const session = this.getCurrent();
+        if (!session) return;
+
+        const sanitized = this.sanitizeMessage(content);
+        const message = { 
+            role, 
+            content: sanitized,
+            _rawContent: content // Сохраняем оригинал для возможной переподсветки
+        };
+        if (replyTo) {
+            message.replyTo = replyTo;
+        }
+
+        session.messages.push(message);
+
+        if (role === 'user') {
+            session.messageCount = (session.messageCount || 0) + 1;
+        }
+
+        if (session.messages.length > CONFIG.LIMITS.MAX_MESSAGES_KEEP + 5) {
+            this.compressSession(session);
+        }
+
+        const userMessages = session.messages.filter(m => m.role === 'user');
+        if (userMessages.length === 1) {
+            const firstMessageContent = userMessages[0].content.trim().replace(/\n/g, ' ');
+            session.name = firstMessageContent.length > 30
+                ? this.sanitizeHTML(firstMessageContent.substring(0, 30)) + '...'
+                : this.sanitizeHTML(firstMessageContent) || 'Новый диалог';
+        }
+
+        this.save();
+        if (this.eventBus) {
+            this.eventBus.emit('message:added', { role, content, replyTo });
+        }
+    }
+
+    compressSession(session) {
+        const systemMessages = session.messages.filter(m => m.role === 'system');
+        const userMessages = session.messages.filter(m => m.role !== 'system');
+
+        if (userMessages.length <= CONFIG.LIMITS.MAX_MESSAGES_KEEP) {
+            return;
+        }
+
+        const firstMessages = userMessages.slice(0, 5);
+        const lastMessages = userMessages.slice(-20);
+        const summaryMessage = {
+            role: 'assistant',
+            content: `[Пропущено ${userMessages.length - 25} сообщений для экономии контекста]`,
+            _rawContent: `[Пропущено ${userMessages.length - 25} сообщений для экономии контекста]`
+        };
+
+        session.messages = [
+            ...systemMessages,
+            ...firstMessages,
+            summaryMessage,
+            ...lastMessages
+        ];
+    }
+
+    switch(id) {
+        const session = this.sessions.find(s => s.id === id);
+        if (session) {
+            this.currentId = id;
+            this.save();
+            if (this.eventBus) {
+                this.eventBus.emit('session:switched', session);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    delete(id) {
+        if (this.sessions.length <= 1) {
+            if (this.eventBus) {
+                this.eventBus.emit('toast:warning', 'Нельзя удалить последний диалог');
+            }
+            return false;
+        }
+
+        this.sessions = this.sessions.filter(s => s.id !== id);
+        if (this.currentId === id) {
+            this.currentId = this.sessions[0].id;
+        }
+        this.save();
+        if (this.eventBus) {
+            this.eventBus.emit('session:deleted', id);
+        }
+        return true;
+    }
+
+    rename(id, name) {
+        const session = this.sessions.find(s => s.id === id);
+        if (session) {
+            session.name = this.sanitizeHTML(name);
+            this.save();
+            if (this.eventBus) {
+                this.eventBus.emit('session:renamed', { id, name: session.name });
+            }
+            return true;
+        }
+        return false;
+    }
+
+    getRAG() {
+        const session = this.getCurrent();
+        return session ? session.ragData : null;
+    }
+
+    setRAG(data) {
+        const session = this.getCurrent();
+        if (session) {
+            session.ragData = data;
+            this.save();
+        }
+    }
+
+    getModelForChat(id = null) {
+        const session = id ? this.sessions.find(s => s.id === id) : this.getCurrent();
+        return session ? (session.model ? session.model : this.defaultModel) : this.defaultModel;
+    }
+
+    setModelForChat(model, id = null) {
+        const session = id ? this.sessions.find(s => s.id === id) : this.getCurrent();
+        if (session) {
+            session.model = model;
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    getMessageCount() {
+        const session = this.getCurrent();
+        return session ? (session.messageCount || 0) : 0;
+    }
+
+    getAllSessions() {
+        return [...this.sessions];
+    }
+
+    sanitizeMessage(content) {
+        const div = document.createElement('div');
+        div.textContent = content;
+        return div.innerHTML;
+    }
+
+    sanitizeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
+     * Очистка сессий с удалением старых
+     */
+    cleanup(maxSessions = 50) {
+        if (this.sessions.length <= maxSessions) return;
+        
+        // Сортируем по дате создания (новые первые)
+        const sorted = [...this.sessions].sort((a, b) => {
+            return new Date(b.created) - new Date(a.created);
+        });
+        
+        // Оставляем только maxSessions последних
+        const keep = sorted.slice(0, maxSessions);
+        const toRemove = sorted.slice(maxSessions);
+        
+        // Проверяем, не удаляем ли текущую сессию
+        const currentInKeep = keep.some(s => s.id === this.currentId);
+        if (!currentInKeep) {
+            this.currentId = keep[0].id;
+        }
+        
+        this.sessions = keep;
+        this.save();
+        
+        return toRemove.length;
+    }
+}
+// ===== END: src/models/session-manager.js =====
+
+// ===== FILE: src/models/notification-manager.js =====
+// src/models/notification-manager.js
+export class NotificationManager {
+    constructor(app) {
+        this.app = app;
+        this.notifications = [];
+        this.unreadCount = 0;
+        this.pollInterval = null;
+        this.startPolling();
+    }
+
+    async fetchNotifications(onlyUnread = true) {
+        try {
+            const result = await this.app.apiService.getNotifications({
+                userId: this.app.multiUserManager.localUser.Id,
+                onlyUnread: onlyUnread,
+                limit: 50
+            });
+            if (result.success) {
+                this.notifications = result.notifications || [];
+                this.unreadCount = result.unreadCount || 0;
+                this.app.eventBus.emit('notifications:updated', this.notifications);
+                this.updateBadge();
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки уведомлений:', error);
+        }
+    }
+
+    async markRead(notificationIds = []) {
+        try {
+            const result = await this.app.apiService.markNotificationsRead({
+                userId: this.app.multiUserManager.localUser.Id,
+                notificationIds: notificationIds
+            });
+            if (result.success) {
+                this.unreadCount = result.unreadCount || 0;
+                this.updateBadge();
+                this.app.eventBus.emit('notifications:read', notificationIds);
+            }
+        } catch (error) {
+            console.error('Ошибка отметки прочитанных:', error);
+        }
+    }
+
+    updateBadge() {
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (this.unreadCount > 0) {
+                badge.textContent = this.unreadCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    startPolling() {
+        this.pollInterval = setInterval(() => {
+            if (this.app.multiUserManager.isConnected) {
+                this.fetchNotifications(true);
+            }
+        }, 30000); // каждые 30 секунд
+    }
+
+    stopPolling() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+    }
+}
+// ===== END: src/models/notification-manager.js =====
+
+// ===== FILE: src/models/achievement-manager.js =====
+// src/models/achievement-manager.js
+
+/**
+ * Управление достижениями пользователя
+ */
+export class AchievementManager {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.achievements = {
+            first_message: { id: 'first_message', name: '💬 Первое сообщение', desc: 'Отправьте первое сообщение', unlocked: false },
+            first_rag: { id: 'first_rag', name: '📚 Первый RAG', desc: 'Загрузите первый документ в RAG', unlocked: false },
+            first_review: { id: 'first_review', name: '🔍 Первый Code Review', desc: 'Выполните первый Code Review', unlocked: false },
+            first_test: { id: 'first_test', name: '🧪 Первые тесты', desc: 'Сгенерируйте первые тесты', unlocked: false },
+            first_edit: { id: 'first_edit', name: '✏️ Первое редактирование', desc: 'Отредактируйте сообщение', unlocked: false },
+            first_regenerate: { id: 'first_regenerate', name: '↻ Первая перегенерация', desc: 'Перегенерируйте ответ', unlocked: false },
+            first_reply: { id: 'first_reply', name: '💬 Первый ответ', desc: 'Ответьте на сообщение', unlocked: false },
+            message_10: { id: 'message_10', name: '📝 10 сообщений', desc: 'Отправьте 10 сообщений', unlocked: false },
+            message_50: { id: 'message_50', name: '📝 50 сообщений', desc: 'Отправьте 50 сообщений', unlocked: false },
+            message_100: { id: 'message_100', name: '📝 100 сообщений', desc: 'Отправьте 100 сообщений', unlocked: false },
+            message_500: { id: 'message_500', name: '📝 500 сообщений', desc: 'Отправьте 500 сообщений', unlocked: false },
+            rag_10: { id: 'rag_10', name: '📚 10 RAG чанков', desc: 'Загрузите 10 чанков в RAG', unlocked: false },
+            rag_50: { id: 'rag_50', name: '📚 50 RAG чанков', desc: 'Загрузите 50 чанков в RAG', unlocked: false },
+            rag_100: { id: 'rag_100', name: '📚 100 RAG чанков', desc: 'Загрузите 100 чанков в RAG', unlocked: false },
+            rag_250: { id: 'rag_250', name: '📚 250 RAG чанков', desc: 'Загрузите 250 чанков в RAG', unlocked: false },
+            assistant_first: { id: 'assistant_first', name: '🤖 Первый ассистент', desc: 'Активируйте ассистента', unlocked: false },
+            share_first: { id: 'share_first', name: '🔗 Первый share', desc: 'Поделитесь чатом', unlocked: false },
+            custom_assistant: { id: 'custom_assistant', name: '🔧 Свой ассистент', desc: 'Создайте кастомного ассистента', unlocked: false },
+            tests_passed: { id: 'tests_passed', name: '🧪 Все тесты пройдены', desc: 'Пройти все unit-тесты', unlocked: false },
+            edit_10: { id: 'edit_10', name: '✏️ 10 редактирований', desc: 'Отредактируйте 10 сообщений', unlocked: false },
+            regenerate_10: { id: 'regenerate_10', name: '↻ 10 перегенераций', desc: 'Перегенерируйте 10 ответов', unlocked: false },
+            review_10: { id: 'review_10', name: '🔍 10 Code Review', desc: 'Выполните 10 Code Review', unlocked: false },
+            test_10: { id: 'test_10', name: '🧪 10 генераций тестов', desc: 'Сгенерируйте 10 тестов', unlocked: false },
+            chat_master: { id: 'chat_master', name: '👑 Мастер чата', desc: 'Разблокируйте все достижения', unlocked: false }
+        };
+        this.messageCount = 0;
+        this.ragChunkCount = 0;
+        this.editCount = 0;
+        this.regenerateCount = 0;
+        this.reviewCount = 0;
+        this.testCount = 0;
+        this.replyCount = 0;
+        this.unlockedCount = 0;
+        this.load();
+    }
+
+    load() {
+        try {
+            const data = localStorage.getItem('achievements');
+            if (data) {
+                const parsed = JSON.parse(data);
+                Object.keys(this.achievements).forEach(key => {
+                    if (parsed[key] !== undefined) {
+                        this.achievements[key].unlocked = parsed[key].unlocked || false;
+                    }
+                });
+                this.messageCount = parsed.messageCount || 0;
+                this.ragChunkCount = parsed.ragChunkCount || 0;
+                this.editCount = parsed.editCount || 0;
+                this.regenerateCount = parsed.regenerateCount || 0;
+                this.reviewCount = parsed.reviewCount || 0;
+                this.testCount = parsed.testCount || 0;
+                this.replyCount = parsed.replyCount || 0;
+                this.unlockedCount = Object.values(this.achievements).filter(a => a.unlocked).length;
+            }
+        } catch (error) {
+            console.warn('Ошибка загрузки данных достижений:', error);
+        }
+    }
+
+    save() {
+        try {
+            const data = {
+                messageCount: this.messageCount,
+                ragChunkCount: this.ragChunkCount,
+                editCount: this.editCount,
+                regenerateCount: this.regenerateCount,
+                reviewCount: this.reviewCount,
+                testCount: this.testCount,
+                replyCount: this.replyCount
+            };
+            Object.keys(this.achievements).forEach(key => {
+                data[key] = { unlocked: this.achievements[key].unlocked };
+            });
+            localStorage.setItem('achievements', JSON.stringify(data));
+        } catch (error) {
+            console.warn('Ошибка при сохранении достижений:', error);
+        }
+    }
+
+    checkAndUnlock(id, callback) {
+        const ach = this.achievements[id];
+        if (!ach || ach.unlocked) return false;
+
+        ach.unlocked = true;
+        this.unlockedCount++;
+        this.save();
+
+        if (callback) {
+            callback(ach);
+        }
+
+        // Проверка на получение мастер-достижения
+        const allUnlocked = Object.values(this.achievements).every(a => a.unlocked);
+        if (allUnlocked && !this.achievements.chat_master.unlocked) {
+            this.achievements.chat_master.unlocked = true;
+            this.unlockedCount++;
+            this.save();
+            if (callback) callback(this.achievements.chat_master);
+        }
+
+        if (this.eventBus) {
+            this.eventBus.emit('achievement:unlocked', ach);
+        }
+
+        return true;
+    }
+
+    incrementMessage() {
+        this.messageCount++;
+        if (this.messageCount >= 500) this.checkAndUnlock('message_500');
+        else if (this.messageCount >= 100) this.checkAndUnlock('message_100');
+        else if (this.messageCount >= 50) this.checkAndUnlock('message_50');
+        else if (this.messageCount >= 10) this.checkAndUnlock('message_10');
+        this.save();
+    }
+
+    incrementRag(count) {
+        this.ragChunkCount += count;
+        if (this.ragChunkCount >= 250) this.checkAndUnlock('rag_250');
+        else if (this.ragChunkCount >= 100) this.checkAndUnlock('rag_100');
+        else if (this.ragChunkCount >= 50) this.checkAndUnlock('rag_50');
+        else if (this.ragChunkCount >= 10) this.checkAndUnlock('rag_10');
+        this.save();
+    }
+
+    incrementEdit() {
+        this.editCount++;
+        if (this.editCount >= 10) this.checkAndUnlock('edit_10');
+        this.save();
+    }
+
+    incrementRegenerate() {
+        this.regenerateCount++;
+        if (this.regenerateCount >= 10) this.checkAndUnlock('regenerate_10');
+        this.save();
+    }
+
+    incrementReview() {
+        this.reviewCount++;
+        if (this.reviewCount >= 10) this.checkAndUnlock('review_10');
+        this.save();
+    }
+
+    incrementTest() {
+        this.testCount++;
+        if (this.testCount >= 10) this.checkAndUnlock('test_10');
+        this.save();
+    }
+
+    incrementReply() {
+        this.replyCount++;
+        this.checkAndUnlock('first_reply');
+        this.save();
+    }
+
+    getUnlocked() {
+        return Object.values(this.achievements).filter(a => a.unlocked);
+    }
+
+    getLocked() {
+        return Object.values(this.achievements).filter(a => !a.unlocked);
+    }
+
+    getAll() {
+        return Object.values(this.achievements);
+    }
+}
+// ===== END: src/models/achievement-manager.js =====
+
+// ===== FILE: src/models/rag-manager.js =====
+// src/models/rag-manager.js
+import { CONFIG } from '../config.js';
+import { EmbeddingCache } from './embedding-cache.js';
+
+/**
+ * Управление RAG документами и поиском
+ */
+export class RAGManager {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.chunks = [];
+        this.embeddings = [];
+        this.fileNames = [];
+        this.isReady = false;
+        this.cache = new EmbeddingCache();
+        this._pendingEmbeddings = new Map();
+        this.maxChunks = CONFIG.RAG.MAX_CHUNKS;
+        this._index = null;
+        this._indexBuilt = false;
+        this.tfidfIndex = new Map();
+        this.documentVectors = [];
+        this.totalChunks = 0;
+        this.chunkSize = CONFIG.RAG.CHUNK_SIZE;
+        this.similarityThreshold = CONFIG.RAG.MIN_SIMILARITY;
+    }
+
+    get chunkCount() {
+        return this.chunks.length;
+    }
+
+    get isFull() {
+        return this.chunkCount >= this.maxChunks;
+    }
+
+    get usagePercent() {
+        return (this.chunkCount / this.maxChunks) * 100;
+    }
+
+    splitIntoChunks(text, size = CONFIG.RAG.CHUNK_SIZE) {
+        const chunkSize = size || this.chunkSize;
+        const chunks = [];
+        const sentences = text.split(/[.!?]+/);
+        let currentChunk = '';
+
+        for (const sentence of sentences) {
+            if (sentence.length < 5) continue;
+
+            if (currentChunk.length + sentence.length > chunkSize) {
+                if (currentChunk) {
+                    chunks.push(currentChunk.trim());
+                }
+                currentChunk = sentence;
+            } else {
+                currentChunk += sentence + '. ';
+            }
+        }
+
+        if (currentChunk) {
+            chunks.push(currentChunk.trim());
+        }
+
+        return chunks;
+    }
+
+    async getEmbedding(text) {
+        const hash = this._hash(text);
+        const cached = await this.cache.get(hash);
+        if (cached) {
+            return cached;
+        }
+
+        if (this._pendingEmbeddings.has(hash)) {
+            return this._pendingEmbeddings.get(hash);
+        }
+
+        const promise = (async () => {
+            try {
+                const response = await fetch(
+                    `${this.getBaseUrl()}${this.getEmbeddingsEndpoint()}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: CONFIG.RAG.EMBEDDING_MODEL,
+                            input: text
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Ошибка получения эмбеддинга');
+                }
+
+                const data = await response.json();
+                const embedding = data.data[0].embedding;
+                await this.cache.set(hash, embedding);
+                return embedding;
+            } catch (error) {
+                console.warn('Используется fallback-эмбеддинг из-за ошибки:', error);
+                return Array(768).fill(0).map(() => Math.random() - 0.5);
+            } finally {
+                this._pendingEmbeddings.delete(hash);
+            }
+        })();
+
+        this._pendingEmbeddings.set(hash, promise);
+        return promise;
+    }
+
+    getBaseUrl() {
+        // Получаем URL из глобальной конфигурации
+        const config = window.__CONFIG__ || CONFIG;
+        return `http://${config.SERVER.DEFAULT_LM_IP}:${config.SERVER.LM_PORT}`;
+    }
+
+    getEmbeddingsEndpoint() {
+        return CONFIG.SERVER.EMBEDDINGS_ENDPOINT || '/v1/embeddings';
+    }
+
+    _hash(text) {
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            const charCode = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + charCode;
+            hash = hash & hash;
+        }
+        return 'emb_' + hash.toString(16);
+    }
+
+    cosine(a, b) {
+        let dot = 0;
+        let na = 0;
+        let nb = 0;
+
+        for (let i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+
+        const magnitudeA = Math.sqrt(na);
+        const magnitudeB = Math.sqrt(nb);
+        return dot / (magnitudeA * magnitudeB || 1);
+    }
+
+    _buildIndex() {
+        if (this.embeddings.length === 0) {
+            this._indexBuilt = false;
+            this._index = null;
+            return;
+        }
+
+        this._index = this.embeddings.map((embedding, index) => {
+            const norm = Math.sqrt(
+                embedding.reduce((sum, value) => sum + value * value, 0)
+            );
+            const normalizedVector = embedding.map(value => value / norm);
+            return {
+                normalized: normalizedVector,
+                index: index
+            };
+        });
+
+        this._indexBuilt = true;
+    }
+
+    buildIndex() {
+        if (this.chunks.length === 0) {
+            this._indexBuilt = false;
+            this._index = null;
+            return;
+        }        
+        this.tfidfIndex.clear();
+        this.documentVectors = [];
+        const docFreq = new Map();
+        const termDocs = new Map();
+
+        this.chunks.forEach((chunk, idx) => {
+            const terms = this.tokenize(chunk);
+            const uniqueTerms = new Set(terms);
+            uniqueTerms.forEach(term => {
+                if (!termDocs.has(term)) {
+                    termDocs.set(term, new Set());
+                }
+                termDocs.get(term).add(idx);
+            });
+        });
+
+        const N = this.chunks.length;
+        termDocs.forEach((docs, term) => {
+            docFreq.set(term, Math.log(N / docs.size));
+        });
+
+        this.chunks.forEach((chunk, idx) => {
+            const terms = this.tokenize(chunk);
+            const tf = new Map();
+            terms.forEach(t => tf.set(t, (tf.get(t) || 0) + 1));
+
+            const vector = new Map();
+            tf.forEach((count, term) => {
+                const idf = docFreq.get(term) || 0;
+                vector.set(term, (count / terms.length) * idf);
+            });
+            this._index = vector;
+            this.documentVectors.push(vector);
+        });
+
+        this.totalChunks = this.chunks.length;
+        // Отмечаем, что индекс успешно построен
+        this._indexBuilt = true;           
+    }
+
+    tokenize(text) {
+        const lowerText = text.toLowerCase();
+        const normalizedText = lowerText.replace(/[^a-zа-яё0-9]/g, ' ');
+        const wordsArray = normalizedText.split(/\s+/);
+        return wordsArray.filter(word => word.length > 2);
+    }
+
+    cosineSimilarity(vecA, vecB) {
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+
+        const allKeys = new Set([...vecA.keys(), ...vecB.keys()]);
+        for (const key of allKeys) {
+            const valueA = vecA.get(key) || 0;
+            const valueB = vecB.get(key) || 0;
+            dotProduct += valueA * valueB;
+            normA += valueA * valueA;
+            normB += valueB * valueB;
+        }
+
+        if (normA === 0 || normB === 0) {
+            return 0;
+        }
+
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
+    async addDocuments(files) {
+        const results = [];
+        let addedCount = 0;
+        const maxAdd = this.maxChunks - this.chunkCount;
+
+        for (const file of files) {
+            if (this.chunks.length >= this.maxChunks) {
+                if (this.eventBus) {
+                    this.eventBus.emit('toast:warning', `Достигнут лимит чанков (${this.maxChunks}). Пропускаем "${file.name}"`);
+                }
+                continue;
+            }
+
+            if (this.isFull) break;
+
+            const chunks = this.splitIntoChunks(file.content);
+            let added = 0;
+
+            for (const chunk of chunks) {
+                if (this.isFull || addedCount >= maxAdd) break;
+
+                const emb = await this.getEmbedding(chunk);
+                this.chunks.push(chunk);
+                this.embeddings.push(emb);
+                this.fileNames.push(file.name);
+
+                results.push({ chunk, source: file.name });
+                added++;
+                addedCount++;
+            }
+
+            if (added < chunks.length) {
+                if (this.eventBus) {
+                    this.eventBus.emit('toast:warning', `"${file.name}" обрезан: добавлено ${added} из ${chunks.length} чанков (лимит)`);
+                }
+            }
+        }
+
+        this.isReady = this.chunkCount > 0;
+        if (this.isReady) {
+            this.buildIndex();
+        }
+
+        if (this.eventBus) {
+            this.eventBus.emit('rag:updated', { count: this.chunkCount });
+        }
+
+        return results;
+    }
+
+    async findRelevant(query, topK = CONFIG.RAG.TOP_K) {
+        const maxCI = topK || CONFIG.RAG.TOP_K;
+        if (!this.isReady || this.embeddings.length === 0) return [];
+
+        const queryEmbedding = await this.getEmbedding(query);
+        const similarities = this.embeddings.map((embedding, index) => ({
+            index: index,
+            similarity: this.cosine(queryEmbedding, embedding)
+        }));
+
+        similarities.sort((a, b) => b.similarity - a.similarity);
+
+        const relevantResults = similarities
+            .slice(0, maxCI)
+            .filter(item => item.similarity >= CONFIG.RAG.MIN_SIMILARITY)
+            .map(item => ({
+                chunk: this.chunks[item.index],
+                source: this.fileNames[item.index] || 'unknown',
+                similarity: item.similarity
+            }));
+
+        return relevantResults;
+    }
+
+    async getContext(query) {
+        const relevantDocuments = await this.findRelevant(query);
+        if (!relevantDocuments.length) {
+            return null;
+        }
+
+        let contextText = '📚 Контекст из документов:\n\n';
+        relevantDocuments.forEach((document, index) => {
+            const cleanSource = this.sanitizeHTML(document.source);
+            const similarityPercentage = (document.similarity * 100).toFixed(1);
+            contextText += `Источник ${index + 1} (${cleanSource}, рел.: ${similarityPercentage}%):\n${document.chunk}\n\n`;
+        });
+
+        return {
+            text: contextText,
+            sources: relevantDocuments
+        };
+    }
+
+    getFileNames() {
+        return [...new Set(this.fileNames)];
+    }
+
+    getStats() {
+        return {
+            chunks: this.chunks.length,
+            maxChunks: this.maxChunks,
+            files: this.getFileNames().length
+        };
+    }
+
+    clear() {
+        this.chunks = [];
+        this.embeddings = [];
+        this.fileNames = [];
+        this.isReady = false;
+        this.tfidfIndex.clear();
+        this.documentVectors = [];
+        this.totalChunks = 0;
+        this._index = null;
+        this._indexBuilt = false;
+        this.cache.clear();
+        if (this.eventBus) {
+            this.eventBus.emit('rag:cleared');
+        }
+    }
+
+    toJSON() {
+        return {
+            chunks: this.chunks,
+            embeddings: this.embeddings,
+            fileNames: this.fileNames,
+            isReady: this.isReady
+        };
+    }
+
+    fromJSON(data) {
+        if (!data) return;
+        this.chunks = data.chunks || [];
+        this.embeddings = data.embeddings || [];
+        this.fileNames = data.fileNames || [];
+        this.isReady = data.isReady || false;
+
+        if (this.chunks.length > this.maxChunks) {
+            this.chunks = this.chunks.slice(0, this.maxChunks);
+            this.embeddings = this.embeddings.slice(0, this.maxChunks);
+            this.fileNames = this.fileNames.slice(0, this.maxChunks);
+        }
+
+        if (this.chunks.length > 0) {
+            this.buildIndex();
+        }
+    }
+
+    sanitizeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+}
+// ===== END: src/models/rag-manager.js =====
+
+// ===== FILE: src/models/workspace-manager.js =====
+// src/models/workspace-manager.js
+/* Добавлено в 5.3 */
+
+/**
+ * Менеджер рабочих пространств (Workspaces)
+ * Хранит список пространств, каждое из которых содержит список комнат и приватных чатов.
+ * Данные сохраняются в localStorage.
+ */
+export class WorkspaceManager {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.workspaces = [];
+        this.currentWorkspaceId = null;
+        this.loadFromStorage();
+    }
+
+    /**
+     * Загружает данные из localStorage
+     */
+    loadFromStorage() {
+        try {
+            const data = localStorage.getItem('workspaces');
+            if (data) {
+                const parsed = JSON.parse(data);
+                this.workspaces = parsed.workspaces || [];
+                this.currentWorkspaceId = parsed.currentWorkspaceId || null;
+            }
+        } catch (e) {
+            console.warn('Ошибка загрузки рабочих пространств', e);
+        }
+        if (this.workspaces.length === 0) {
+            // Создаём рабочее пространство по умолчанию
+            this.createWorkspace('Личное');
+        }
+        this.saveToStorage();
+    }
+
+    /**
+     * Сохраняет данные в localStorage
+     */
+    saveToStorage() {
+        localStorage.setItem('workspaces', JSON.stringify({
+            workspaces: this.workspaces,
+            currentWorkspaceId: this.currentWorkspaceId
+        }));
+    }
+
+    /**
+     * Создаёт новое рабочее пространство
+     * @param {string} name - Название пространства
+     * @returns {Object} Созданное пространство
+     */
+    createWorkspace(name) {
+        const newWorkspace = {
+            id: 'ws_' + Date.now().toString(36),
+            name: name || 'Новое пространство',
+            rooms: [],          // массив ID комнат или объектов
+            privateChats: []    // массив ID приватных чатов
+        };
+        this.workspaces.push(newWorkspace);
+        this.currentWorkspaceId = newWorkspace.id;
+        this.saveToStorage();
+        this.eventBus?.emit('workspace:created', newWorkspace);
+        return newWorkspace;
+    }
+
+    /**
+     * Переключает текущее рабочее пространство
+     * @param {string} id - ID пространства
+     * @returns {boolean} Успех операции
+     */
+    switchWorkspace(id) {
+        const ws = this.workspaces.find(w => w.id === id);
+        if (ws) {
+            this.currentWorkspaceId = id;
+            this.saveToStorage();
+            this.eventBus?.emit('workspace:switched', ws);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Возвращает текущее рабочее пространство
+     * @returns {Object}
+     */
+    getCurrentWorkspace() {
+        return this.workspaces.find(w => w.id === this.currentWorkspaceId) || this.workspaces[0];
+    }
+
+    /**
+     * Возвращает все пространства
+     * @returns {Array}
+     */
+    getAllWorkspaces() {
+        return this.workspaces;
+    }
+
+    /**
+     * Удаляет рабочее пространство
+     * @param {string} id - ID пространства
+     * @returns {boolean} Успех операции
+     */
+    deleteWorkspace(id) {
+        if (this.workspaces.length <= 1) {
+            this.eventBus?.emit('toast:warning', 'Нельзя удалить последнее пространство');
+            return false;
+        }
+        this.workspaces = this.workspaces.filter(w => w.id !== id);
+        if (this.currentWorkspaceId === id) {
+            this.currentWorkspaceId = this.workspaces[0].id;
+        }
+        this.saveToStorage();
+        this.eventBus?.emit('workspace:deleted', id);
+        return true;
+    }
+
+    // === Методы для управления комнатами и чатами внутри workspace ===
+
+    /**
+     * Добавляет комнату в указанное пространство
+     * @param {string} workspaceId - ID пространства
+     * @param {Object} roomData - Данные комнаты
+     */
+    addRoomToWorkspace(workspaceId, roomData) {
+        const ws = this.workspaces.find(w => w.id === workspaceId);
+        if (ws) {
+            // Проверяем, нет ли уже такой комнаты
+            if (!ws.rooms.some(r => r.id === roomData.id)) {
+                ws.rooms.push(roomData);
+                this.saveToStorage();
+                this.eventBus?.emit('workspace:room_added', { workspaceId, roomData });
+            }
+        }
+    }
+
+    /**
+     * Удаляет комнату из пространства
+     * @param {string} workspaceId - ID пространства
+     * @param {string} roomId - ID комнаты
+     */
+    removeRoomFromWorkspace(workspaceId, roomId) {
+        const ws = this.workspaces.find(w => w.id === workspaceId);
+        if (ws) {
+            ws.rooms = ws.rooms.filter(r => r.id !== roomId);
+            this.saveToStorage();
+            this.eventBus?.emit('workspace:room_removed', { workspaceId, roomId });
+        }
+    }
+
+    /**
+     * Добавляет приватный чат в пространство
+     */
+    addPrivateChatToWorkspace(workspaceId, chatData) {
+        const ws = this.workspaces.find(w => w.id === workspaceId);
+        if (ws) {
+            if (!ws.privateChats.some(c => c.id === chatData.id)) {
+                ws.privateChats.push(chatData);
+                this.saveToStorage();
+                this.eventBus?.emit('workspace:chat_added', { workspaceId, chatData });
+            }
+        }
+    }
+
+    /**
+     * Удаляет приватный чат из пространства
+     */
+    removePrivateChatFromWorkspace(workspaceId, chatId) {
+        const ws = this.workspaces.find(w => w.id === workspaceId);
+        if (ws) {
+            ws.privateChats = ws.privateChats.filter(c => c.id !== chatId);
+            this.saveToStorage();
+            this.eventBus?.emit('workspace:chat_removed', { workspaceId, chatId });
+        }
+    }
+}
+// ===== END: src/models/workspace-manager.js =====
+
+// ===== FILE: src/models/assistant-manager.js =====
+// src/models/assistant-manager.js
+
+/**
+ * Управление ассистентами (встроенными и кастомными)
+ */
+export class AssistantManager {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.assistants = new Map();
+        this.activeAssistant = null;
+        this.loadBuiltIn();
+        this.loadCustom();
+    }
+
+    loadBuiltIn() {
+        const builtIn = [
+            { id: 'general-programmer', name: '💻 Программист', icon: '💻', description: 'Универсальный', color: '#7ec8e3', systemPrompt: 'Ты — опытный full-stack разработчик. Отвечай на русском. Пиши чистый код с комментариями.' },
+            { id: 'sql-master', name: '🗄️ SQL Мастер', icon: '🗄️', description: 'Базы данных', color: '#4caf50', systemPrompt: 'Ты — DBA эксперт. Специализация: MSSQL, PostgreSQL, MySQL. Пиши оптимальные запросы.' },
+            { id: 'csharp-guru', name: '🔷 C# Гуру', icon: '🔷', description: '.NET, ASP.NET', color: '#9b4dca', systemPrompt: 'Ты — Senior C# разработчик. Экспертиза: .NET 8, ASP.NET Core, LINQ.' },
+            { id: 'js-ts-ninja', name: '🟨 JS/TS Ниндзя', icon: '🟨', description: 'JavaScript/TypeScript', color: '#f0db4f', systemPrompt: 'Ты — Senior JS/TS разработчик. Node.js, React, TypeScript strict mode.' },
+            { id: 'angular-architect', name: '🅰️ Angular Архитектор', icon: '🅰️', description: 'Angular 17+, RxJS', color: '#dd0031', systemPrompt: 'Ты — Angular Architect. Standalone components, signals, NgRx.' },
+            { id: 'pythonista', name: '🐍 Pythonista', icon: '🐍', description: 'Python, Django, ML', color: '#3776ab', systemPrompt: 'Ты — Senior Python разработчик. FastAPI, pandas, type hints.' },
+            { id: 'soul-companion', name: '💫 Для души', icon: '💫', description: 'Общение', color: '#ff69b4', systemPrompt: 'Ты — добрый собеседник. Поддержи, расскажи историю, пошути. Используй эмодзи 🌟' }
+        ];
+        builtIn.forEach(a => this.assistants.set(a.id, a));
+    }
+
+    loadCustom() {
+        try {
+            const saved = localStorage.getItem('custom_assistants');
+            if (saved) {
+                const custom = JSON.parse(saved);
+                custom.forEach(a => this.assistants.set(a.id, a));
+            }
+        } catch (e) {
+            console.warn('Ошибка загрузки кастомных ассистентов:', e);
+        }
+    }
+
+    saveCustom() {
+        try {
+            const custom = Array.from(this.assistants.values()).filter(a => a.custom);
+            localStorage.setItem('custom_assistants', JSON.stringify(custom));
+        } catch (e) {
+            console.warn('Ошибка сохранения кастомных ассистентов:', e);
+        }
+    }
+
+    addCustom(name, icon, description, color, systemPrompt) {
+        const id = 'custom_' + Date.now();
+        const assistant = {
+            id,
+            name,
+            icon: icon || '🤖',
+            description: description || '',
+            color: color || '#7ec8e3',
+            systemPrompt,
+            custom: true
+        };
+        this.assistants.set(id, assistant);
+        this.saveCustom();
+        
+        if (this.eventBus) {
+            this.eventBus.emit('assistant:created', assistant);
+        }
+        
+        return assistant;
+    }
+
+    removeCustom(id) {
+        const assistant = this.assistants.get(id);
+        if (!assistant || !assistant.custom) return false;
+        
+        if (this.activeAssistant?.id === id) {
+            this.deactivate();
+        }
+        
+        this.assistants.delete(id);
+        this.saveCustom();
+        
+        if (this.eventBus) {
+            this.eventBus.emit('assistant:deleted', id);
+        }
+        
+        return true;
+    }
+
+    activate(id) {
+        const assistant = this.assistants.get(id);
+        if (!assistant) return false;
+        
+        this.activeAssistant = assistant;
+        
+        if (this.eventBus) {
+            this.eventBus.emit('assistant:activated', assistant);
+        }
+        
+        return true;
+    }
+
+    deactivate() {
+        this.activeAssistant = null;
+        
+        if (this.eventBus) {
+            this.eventBus.emit('assistant:deactivated');
+        }
+    }
+
+    getPrompt() {
+        return this.activeAssistant?.systemPrompt || '';
+    }
+
+    getAll() {
+        return Array.from(this.assistants.values());
+    }
+
+    get(id) {
+        return this.assistants.get(id);
+    }
+}
+// ===== END: src/models/assistant-manager.js =====
+
+// ===== FILE: src/models/file-manager.js =====
+// src/models/file-manager.js
+/**
+ * Управление файлами: загрузка, скачивание, удаление
+ * Добавлено в 5.1.
+ */
+export class FileManager {
+    constructor(app) {
+        this.app = app;
+        this.uploadedFiles = new Map(); // attachmentId -> { name, size, type, url }
+        this.pendingUploads = new Map(); // fileId -> progress
+    }
+
+    /**
+     * Загрузка файла на сервер
+     * @param {File|Blob} file - Файл для загрузки
+     * @param {string} messageId - ID сообщения (опционально)
+     * @param {Function} onProgress - callback для отслеживания прогресса
+     * @returns {Promise<Object>} - результат загрузки
+     */
+    async uploadFile(file, messageId = null, onProgress = null) {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (messageId) {
+            formData.append('messageId', messageId);
+        }
+
+        // Используем XMLHttpRequest для отслеживания прогресса
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const fileId = Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            this.pendingUploads.set(fileId, { progress: 0 });
+
+            xhr.open('POST', `${this.app.apiService.baseUrl}/attachment/upload`, true);
+            xhr.withCredentials = false;
+
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const progress = Math.round((event.loaded / event.total) * 100);
+                    this.pendingUploads.set(fileId, { progress });
+                    if (onProgress) onProgress(progress);
+                }
+            };
+
+            xhr.onload = () => {
+                this.pendingUploads.delete(fileId);
+                if (xhr.status === 200) {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            const attachment = result.attachment;
+                            this.uploadedFiles.set(attachment.attachmentId, {
+                                name: attachment.fileName,
+                                size: attachment.fileSize,
+                                type: attachment.mimeType,
+                                url: `${this.app.apiService.baseUrl}/attachment/${attachment.attachmentId}`
+                            });
+                            resolve(result);
+                        } else {
+                            reject(new Error(result.error || 'Ошибка загрузки'));
+                        }
+                    } catch (e) {
+                        reject(new Error('Некорректный ответ сервера'));
+                    }
+                } else {
+                    reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+                }
+            };
+
+            xhr.onerror = () => {
+                this.pendingUploads.delete(fileId);
+                reject(new Error('Ошибка сети при загрузке'));
+            };
+
+            xhr.send(formData);
+        });
+    }
+
+    /**
+     * Загрузка нескольких файлов
+     */
+    async uploadMultipleFiles(files, messageId = null, onProgress = null) {
+        const results = [];
+        const total = files.length;
+        let completed = 0;
+
+        for (const file of files) {
+            try {
+                const result = await this.uploadFile(file, messageId, (progress) => {
+                    if (onProgress) {
+                        const overall = (completed + progress / 100) / total * 100;
+                        onProgress(Math.round(overall));
+                    }
+                });
+                results.push(result);
+                completed++;
+                if (onProgress) onProgress(Math.round((completed / total) * 100));
+            } catch (error) {
+                console.error('Ошибка загрузки файла:', error);
+                results.push({ success: false, error: error.message, file: file.name });
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Скачивание файла по ID
+     */
+    async downloadFile(attachmentId, fileName = null) {
+        try {
+            const response = await this.app.apiService.getAttachment(attachmentId);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName || 'download';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return true;
+        } catch (error) {
+            console.error('Ошибка скачивания:', error);
+            this.app.toast.error('Не удалось скачать файл');
+            return false;
+        }
+    }
+
+    /**
+     * Удаление файла
+     */
+    async deleteFile(attachmentId) {
+        try {
+            const result = await this.app.apiService.deleteAttachment(attachmentId);
+            if (result.success) {
+                this.uploadedFiles.delete(attachmentId);
+                return true;
+            }
+        } catch (error) {
+            console.error('Ошибка удаления:', error);
+        }
+        return false;
+    }
+
+    /**
+     * Получение списка файлов для сообщения
+     */
+    async getFilesForMessage(messageId) {
+        try {
+            const result = await this.app.apiService.getAttachmentsForMessage(messageId);
+            if (result.success) {
+                return result.attachments || [];
+            }
+        } catch (error) {
+            console.error('Ошибка получения файлов:', error);
+        }
+        return [];
+    }
+
+    /**
+     * Получение прогресса загрузки
+     */
+    getUploadProgress(fileId) {
+        return this.pendingUploads.get(fileId)?.progress || 0;
+    }
+
+    /**
+     * Форматирование размера файла
+     */
+    formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    }
+}
+// ===== END: src/models/file-manager.js =====
+
+// ===== FILE: src/models/reaction-manager.js =====
+// src/models/reaction-manager.js
+export class ReactionManager {
+    constructor(app) {
+        this.app = app;
+        this.reactions = new Map(); // messageId -> { reactions: {emoji: count}, userReaction: emoji }
+    }
+
+    async addReaction(messageId, emoji) {
+        try {
+            const result = await this.app.apiService.addReaction({
+                messageId,
+                userId: this.app.multiUserManager.localUser.Id,
+                reaction: emoji
+            });
+            if (result.success) {
+                this.updateLocalReactions(messageId, result.reactions, result.userReaction);
+                this.app.eventBus.emit('reaction:updated', { messageId, reactions: result.reactions });
+                return true;
+            }
+        } catch (error) {
+            console.error('Ошибка добавления реакции:', error);
+        }
+        return false;
+    }
+
+    async removeReaction(messageId) {
+        try {
+            const result = await this.app.apiService.removeReaction({
+                messageId,
+                userId: this.app.multiUserManager.localUser.Id
+            });
+            if (result.success) {
+                this.updateLocalReactions(messageId, result.reactions, null);
+                this.app.eventBus.emit('reaction:updated', { messageId, reactions: result.reactions });
+                return true;
+            }
+        } catch (error) {
+            console.error('Ошибка удаления реакции:', error);
+        }
+        return false;
+    }
+
+    updateLocalReactions(messageId, reactions, userReaction) {
+        this.reactions.set(messageId, { reactions, userReaction });
+    }
+
+    getReactions(messageId) {
+        return this.reactions.get(messageId) || { reactions: {}, userReaction: null };
+    }
+}
+// ===== END: src/models/reaction-manager.js =====
+
+// ===== FILE: src/models/input-history.js =====
+// src/models/input-history.js
+import { CONFIG } from '../config.js';
+
+/**
+ * История ввода сообщений (Ctrl+↑ / Ctrl+↓)
+ */
+export class InputHistory {
+    constructor(maxSize = CONFIG.HISTORY.MAX_INPUT_HISTORY) {
+        this.history = [];
+        this.maxSize = maxSize;
+        this.currentIndex = -1;
+        this.savedValue = '';
+        this.enabled = true;
+    }
+
+    push(text) {
+        if (!text || !text.trim()) return;
+        this.history = this.history.filter(item => item !== text);
+        this.history.push(text);
+        if (this.history.length > this.maxSize) {
+            this.history.shift();
+        }
+        this.currentIndex = this.history.length;
+        this.savedValue = '';
+    }
+
+    getPrevious(currentText) {
+        if (!this.enabled || this.history.length === 0) return null;
+
+        if (this.currentIndex === this.history.length) {
+            this.savedValue = currentText;
+        }
+
+        if (this.currentIndex > 0) {
+            this.currentIndex--;
+            return this.history[this.currentIndex];
+        }
+        return this.history[0];
+    }
+
+    getNext(currentText) {
+        if (!this.enabled || this.history.length === 0) return null;
+
+        if (this.currentIndex < this.history.length - 1) {
+            this.currentIndex++;
+            return this.history[this.currentIndex];
+        } else if (this.currentIndex === this.history.length - 1) {
+            this.currentIndex = this.history.length;
+            return this.savedValue || '';
+        }
+        return null;
+    }
+
+    reset() {
+        this.currentIndex = this.history.length;
+        this.savedValue = '';
+    }
+
+    clear() {
+        this.history = [];
+        this.currentIndex = -1;
+        this.savedValue = '';
+    }
+
+    getHistory() {
+        return [...this.history];
+    }
+
+    getCurrentIndex() {
+        return this.currentIndex;
+    }
+
+    setEnabled(enabled) {
+        this.enabled = enabled;
+    }
+
+    isEnabled() {
+        return this.enabled;
+    }
+}
+// ===== END: src/models/input-history.js =====
+
+// ===== FILE: src/models/rate-limiter.js =====
+// src/models/rate-limiter.js
+import { CONFIG } from '../config.js';
+
+/**
+ * Ограничитель частоты запросов
+ */
+export class RateLimiter {
+    constructor(maxRequests = CONFIG.RATE.LIMIT_MAX, windowMs = CONFIG.RATE.LIMIT_WINDOW) {
+        this.requests = [];
+        this.maxRequests = maxRequests;
+        this.windowMs = windowMs;
+    }
+
+    isAllowed() {
+        const now = Date.now();
+        this.requests = this.requests.filter(t => now - t < this.windowMs);
+        if (this.requests.length >= this.maxRequests) return false;
+        this.requests.push(now);
+        return true;
+    }
+
+    getRemaining() {
+        const now = Date.now();
+        this.requests = this.requests.filter(t => now - t < this.windowMs);
+        return Math.max(0, this.maxRequests - this.requests.length);
+    }
+
+    reset() {
+        this.requests = [];
+    }
+
+    getStats() {
+        const now = Date.now();
+        this.requests = this.requests.filter(t => now - t < this.windowMs);
+        return {
+            remaining: Math.max(0, this.maxRequests - this.requests.length),
+            total: this.requests.length,
+            max: this.maxRequests,
+            windowMs: this.windowMs
+        };
+    }
+}
+// ===== END: src/models/rate-limiter.js =====
+
+// ===== FILE: src/models/roadmap-tracker.js =====
+// src/models/roadmap-tracker.js
+
+/**
+ * Управление дорожной картой проекта
+ */
+export class RoadmapTracker {
+    constructor(eventBus) {
+        this.eventBus = eventBus;
+        this.milestones = [
+            { id: 'security', title: '🔒 Безопасность', tasks: [{ id: 's1', text: 'XSS-защита', done: true }, { id: 's2', text: 'Санитизация ввода', done: true }] },
+            { id: 'architecture', title: '🏗️ Архитектура', tasks: [{ id: 'a1', text: 'EventBus', done: true }, { id: 'a2', text: 'ES модули', done: true }] },
+            { id: 'assistants', title: '🤖 Ассистенты', tasks: [{ id: 'as1', text: '7 встроенных', done: true }, { id: 'as2', text: 'Кастомные', done: true }, { id: 'as3', text: 'UI бар', done: true }] },
+            { id: 'multi-user', title: '👥 Multi-user', tasks: [{ id: 'm1', text: 'Индикаторы', done: true }, { id: 'm2', text: 'Share ссылка', done: true }, { id: 'm3', text: 'QR-код', done: true }, { id: 'm4', text: 'Real-time', done: false }] },
+            { id: 'tests', title: '🧪 Тестирование', tasks: [{ id: 't1', text: 'Unit-тесты RAG', done: true }, { id: 't2', text: 'Unit-тесты Session', done: true }, { id: 't3', text: 'E2E тесты', done: false }] },
+            { id: 'perf', title: '⚡ Производительность', tasks: [{ id: 'p1', text: 'Вирт.скроллинг', done: false }, { id: 'p2', text: 'Web Workers', done: false }, { id: 'p3', text: 'PWA', done: false }] }
+        ];
+        this.load();
+    }
+
+    load() {
+        try {
+            const saved = localStorage.getItem('roadmap_progress_v41');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                this.milestones.forEach(m => {
+                    const sm = progress.find(p => p.id === m.id);
+                    if (sm) {
+                        m.tasks.forEach(t => {
+                            const st = sm.tasks?.find(st => st.id === t.id);
+                            if (st) t.done = st.done;
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Ошибка загрузки прогресса roadmap:', e);
+        }
+    }
+
+    save() {
+        try {
+            localStorage.setItem('roadmap_progress_v41', JSON.stringify(this.milestones));
+        } catch (e) {
+            console.warn('Ошибка сохранения прогресса roadmap:', e);
+        }
+    }
+
+    toggleTask(mid, tid) {
+        const m = this.milestones.find(m => m.id === mid);
+        if (!m) return;
+        const t = m.tasks.find(t => t.id === tid);
+        if (t) {
+            t.done = !t.done;
+            this.save();
+            this.render();
+            if (this.eventBus) {
+                this.eventBus.emit('roadmap:updated');
+            }
+        }
+    }
+
+    getProgress() {
+        const total = this.milestones.reduce((s, m) => s + m.tasks.length, 0);
+        const done = this.milestones.reduce((s, m) => s + m.tasks.filter(t => t.done).length, 0);
+        return { total, done, percent: Math.round((done / total) * 100) };
+    }
+
+    toggleExpand(id) {
+        const el = document.querySelector(`.milestone[data-id="${id}"]`);
+        if (el) el.classList.toggle('expanded');
+    }
+
+    render() {
+        const container = document.getElementById('milestoneList');
+        if (!container) return;
+
+        const p = this.getProgress();
+        container.innerHTML = `
+            <div class="overall-progress">
+                <div class="progress-label">Общий: ${p.done}/${p.total} (${p.percent}%)</div>
+                <div class="progress-bar-small">
+                    <div class="progress-fill" style="width:${p.percent}%"></div>
+                </div>
+            </div>
+            ${this.milestones.map(m => `
+                <div class="milestone" data-id="${m.id}">
+                    <div class="milestone-header" onclick="window.roadmapTracker?.toggleExpand('${m.id}')">
+                        <span>${m.title}</span>
+                        <span class="milestone-progress">${m.tasks.filter(t => t.done).length}/${m.tasks.length}</span>
+                    </div>
+                    <div class="milestone-tasks">
+                        ${m.tasks.map(t => `
+                            <label class="task-item" onclick="window.roadmapTracker?.toggleTask('${m.id}','${t.id}')">
+                                <input type="checkbox" ${t.done ? 'checked' : ''} style="pointer-events:none;">
+                                <span class="${t.done ? 'done' : ''}">${t.text}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    }
+}
+// ===== END: src/models/roadmap-tracker.js =====
+
+// ===== FILE: src/models/embedding-cache.js =====
+// src/models/embedding-cache.js
+
+/**
+ * Кэш эмбеддингов с использованием IndexedDB
+ */
+export class EmbeddingCache {
+    constructor(dbName = 'EmbeddingCache', storeName = 'embeddings') {
+        this.dbName = dbName;
+        this.storeName = storeName;
+        this.db = null;
+        this.init();
+    }
+
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName, { keyPath: 'hash' });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                resolve();
+            };
+
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async get(hash) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(this.storeName, 'readonly');
+            const store = tx.objectStore(this.storeName);
+            const request = store.get(hash);
+
+            request.onsuccess = () => {
+                resolve(request.result?.embedding || null);
+            };
+
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async set(hash, embedding) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(this.storeName, 'readwrite');
+            const store = tx.objectStore(this.storeName);
+            const request = store.put({ hash, embedding });
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async clear() {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(this.storeName, 'readwrite');
+            const store = tx.objectStore(this.storeName);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async delete(hash) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(this.storeName, 'readwrite');
+            const store = tx.objectStore(this.storeName);
+            const request = store.delete(hash);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async getAll() {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(this.storeName, 'readonly');
+            const store = tx.objectStore(this.storeName);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                resolve(request.result || []);
+            };
+
+            request.onerror = () => reject(request.error);
+        });
+    }
+}
+// ===== END: src/models/embedding-cache.js =====

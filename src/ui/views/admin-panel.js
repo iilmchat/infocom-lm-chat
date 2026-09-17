@@ -250,23 +250,25 @@ export class AdminPanel {
         // Показываем индикатор загрузки
         this.showLoading();        
         try {
-            // Загружаем всё параллельно
+            // 1. Параллельная загрузка всех необходимых ресурсов для панели
             const [users, rooms, stats, logs] = await Promise.all([
                 this.app.apiService.getAllUsers().catch(() => ({ success: false })),
                 this.app.apiService.getAdminRooms().catch(() => ({ success: false })),
                 this.app.apiService.getAdminStats().catch(() => ({ success: false })),
-                this.app.apiService.getModerationLogs().catch(() => ({ success: false }))
+                this.app.apiService.getModerationLogs().catch(() => ({ success: false }))                    
             ]);
+
+            // 2. Сохранение данных в состояние класса            
             if (users.success) this.users = users.users || [];
             if (rooms.success) this.rooms = rooms.rooms || [];
             if (stats.success) this.stats = stats.stats || {};
             if (logs.success) this.logs = logs.logs || [];
 
-            // Сброс кэша комнат при обновлении
+            // 3. Сброс кэша для предотвращения отображения устаревших данных в комнатах
             this.roomUsersCache.clear();
             this.expandedRooms.clear();       
 
-            // Рендерим текущую вкладку
+            // 4. Обновление интерфейса текущей вкладки
             this.renderCurrentTab();
 
         } catch (error) {
@@ -288,6 +290,7 @@ export class AdminPanel {
         if (!container) return;
         // ... рендеринг списка, используя this.users
         // добавляем кнопки пагинации
+        // 1. Инициализация данных для рендеринга        
         const currentUser = this.app.multiUserManager.localUser;
         const isAdmin = this.app.multiUserManager.isAdminUser();
 
@@ -301,6 +304,7 @@ export class AdminPanel {
             return;
         }
 
+        // 2. Фильтрация списка по поисковому запросу (Name или UserId)        
         const searchQuery = document.getElementById('adminUserSearch')?.value?.toLowerCase() || '';
         const filteredUsers = this.users.filter(u => 
             //u.name?.toLowerCase().includes(searchQuery) ||
@@ -312,6 +316,7 @@ export class AdminPanel {
                 u.UserId?.toLowerCase().includes(searchQuery.toLowerCase());
         });
                 
+        // 3. Генерация HTML для списка пользователей        
         container.innerHTML = filteredUsers.map(user => {
             if(!(user.UserId) || user.UserId == undefined)
             {
@@ -358,7 +363,7 @@ export class AdminPanel {
             </div>
         `}).join('');
 
-        // Обработчики для изменения ролей
+        // 4. Привязка обработчиков событий (сохранение ролей и поиск)
         container.querySelectorAll('.btn-role-save').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const userId = btn.dataset.userId;
@@ -422,12 +427,14 @@ export class AdminPanel {
             ]);
             if (users.success) this.users = users.users || [];
             */
+            // 1. Запрос к API для получения отфильтрованного списка           
             const result = await this.app.apiService.getUsersPaginated(
                 this.userPage,
                 this.userPageSize,
                 this.userSearch
             );    
             if (result.success) {
+                // 2. Обновление данных и UI                
                 this.users = result.data || [];
                 this.userTotal = result.pagination?.total || 0;
                 this.renderUsers();
@@ -577,9 +584,9 @@ export class AdminPanel {
 
         // Удаляем все старые обработчики кликов, чтобы избежать дублирования
         //container.removeEventListener('click', this.handleRoomAction); // Предполагаем, что метод будет привязан к экземпляру
-
+        // 1. Проверка наличия данных
         if (!this.rooms || this.rooms.length === 0) {
-container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-secondary);">💬 Комнат нет</div>`;            
+            container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-secondary);">💬 Комнат нет</div>`;
             /* //ЗАменено в 5.2
             container.innerHTML = `
                 <div style="padding:16px;text-align:center;color:var(--text-secondary);">
@@ -598,6 +605,7 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
 
 */
 
+        // 2. Генерация списка комнат с кнопками действий и списком участников (если развернуто)
         container.innerHTML = this.rooms.map(room => {
             const roomId = room.RoomId || room.id;
             const userCount = room.UserCount || room.userCount || 0;
@@ -652,15 +660,7 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         `).join('');
         */
 
-        // Обработчики кликов на количество пользователей (делегирование)
-        container.querySelectorAll('.admin-room-users').forEach(el => {
-            el.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const roomId = el.dataset.roomId;
-                this.toggleRoomUsers(roomId);
-            });
-        });
-          
+        
         // Добавляем один обработчик событий на контейнер (делегирование)
         //container.addEventListener('click', this.handleRoomAction.bind(this));   
              
@@ -698,8 +698,17 @@ container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--te
         });    
         */      
 
-        // Обработчики кнопок действий (делегирование)
+        // 3. Инициализация обработчиков событий через делегирование (для динамического контента)
         container.addEventListener('click', this.handleRoomAction);        
+
+        // 4. Привязка клика по счетчику пользователей для раскрытия списка
+        container.querySelectorAll('.admin-room-users').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const roomId = el.dataset.roomId;
+                this.toggleRoomUsers(roomId);
+            });
+        });        
     }
 
     // ===== МЕТОДЫ ДЛЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ В КОМНАТЕ =====

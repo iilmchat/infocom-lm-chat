@@ -187,7 +187,7 @@ export class MiniMetroGame {
         const scaleX = availW / this.MAP_WIDTH;
         const scaleY = availH / this.MAP_HEIGHT;
         // не более 1 (без увеличения)
-        const scale = Math.min(scaleX, /*scaleY,*/ 1); 
+        const scale = Math.min(scaleX/*, scaleY*/, 1); 
 
         // Устанавливаем размеры canvas в пикселях карты
         this.canvas.width = this.MAP_WIDTH;

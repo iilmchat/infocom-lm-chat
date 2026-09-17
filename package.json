@@ -1,0 +1,20 @@
+{
+  "name": "infocom-lm-chat-pro",
+  "version": "6.2.0-dev",
+  "description": "SPA-чат с AI-интеграцией (LM Studio), мультипользовательским режимом, RAG и i18n",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "npx serve . -l 8033",
+    "inventory": "powershell -ExecutionPolicy Bypass -File tools/inventory.ps1",
+    "test": "node tools/run-tests.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iilmchat/infocom-lm-chat.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

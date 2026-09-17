@@ -15,8 +15,8 @@ export const CONFIG = {
         DEFAULT_IP: '222.1.1.31',
         DEFAULT_PORT: 8034,
         */
-        DEFAULT_IP: '222.1.1.99',
-        DEFAULT_LM_IP: '222.1.1.31',
+        DEFAULT_IP: '127.0.0.1',
+        DEFAULT_LM_IP: '127.0.0.1',
         // API сервер
         DEFAULT_PORT: 8032,  
         // index.html            
@@ -24,7 +24,7 @@ export const CONFIG = {
         // LM Studio
         LM_PORT: 8034,                     
         DEFAULT_TIMEOUT: 60,
-        DEFAULT_MAX_TOKENS: 131072,
+        DEFAULT_MAX_TOKENS: 8192,
         DEFAULT_API_PATH: '/v1/chat/completions',
         HEALTH_ENDPOINT: '/health',
         MODELS_ENDPOINT: '/v1/models',
@@ -120,7 +120,7 @@ export const CONFIG = {
         TYPING_DELAY: 300,
         TOAST_DURATION: 3000,
         MAX_HISTORY_PREVIEW: 30,
-        DEFAULT_MODEL: 'local-model',
+        DEFAULT_MODEL: 'gemma-4-12b-coder-fable5-composer2.5-v1',
         MAX_TOASTS: 5
     },
     // Добавлено в 5.2: настройки Markdown

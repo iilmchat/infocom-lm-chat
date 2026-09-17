@@ -1,8 +1,10 @@
 // src/services/i18n.js
 /* Добавлено в 6.1: модуль интернационализации */
+/* Изменено в 6.2: убран import assertion (assert { type: 'json' }),
+   локали переведены в ES-модули (ru.js, en.js) */
 
-import ru from '../../locales/ru.json' assert { type: 'json' };
-import en from '../../locales/en.json' assert { type: 'json' };
+import ru from '../../locales/ru.js';
+import en from '../../locales/en.js';
 
 const LANG_KEY = 'app_language';
 const DEFAULT_LANG = 'ru';
@@ -10,8 +12,11 @@ const DEFAULT_LANG = 'ru';
 class I18n {
     constructor() {
         this.locales = { ru, en };
-        this.currentLang = localStorage.getItem(LANG_KEY) || navigator.language.split('-')[0] || DEFAULT_LANG;
+        this.currentLang = localStorage.getItem(LANG_KEY)
+            || (navigator.language ? navigator.language.split('-')[0] : DEFAULT_LANG)
+            || DEFAULT_LANG;
         if (!this.locales[this.currentLang]) this.currentLang = DEFAULT_LANG;
+        document.documentElement.lang = this.currentLang;
     }
 
     t(key, params = {}) {
@@ -49,7 +54,6 @@ class I18n {
     }
 
     emit(event, data) {
-        // Можно использовать EventBus, но для простоты – dispatchEvent
         document.dispatchEvent(new CustomEvent(event, { detail: data }));
     }
 }

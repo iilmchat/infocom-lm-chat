@@ -1,0 +1,71 @@
+# ============================================================
+# Infocom LM Chat Pro — .gitignore
+# ============================================================
+
+# --- Снапшоты и структуры в корне (относительно корня!) ---
+/structure*.txt
+/Infocom LM Chat.html
+/project-inventory.txt
+/*-backup-*.zip
+
+# Снапшоты кода, генерируемые tools/build-archive.mjs.
+# Если НЕ хотите хранить их в git — раскомментируйте:
+# /docs/archive/snapshots/*.txt
+
+# --- Логи ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Локальные конфиги ---
+.env
+.env.local
+config.local.js
+config.private.js
+*.local.js
+*.local.json
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- IDE ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# --- Зависимости и сборка ---
+node_modules/
+dist/
+build/
+out/
+.cache/
+.parcel-cache/
+.eslintcache
+
+# --- Legacy-страховка ---
+# Файлы ниже уже перемещены в docs/archive/legacy/.
+# Правила оставлены как страховка: если что-то восстановится
+# из бэкапа в src/ — git это не отследит.
+# ⚠️ Следите: НЕ создавайте новых файлов с такими именами в src/.
+/src/services/syntax-highlighter*
+/src/hooks/useSyntaxHighlight.js
+/src/ui/views/auth-modal.js
+/src/ui/views/user-modal.js
+/src/games/*_old*.js
+/src/utils/*_new.js
+/src/utils/*_old.js
+/src/utils/*.js.txt
+/src/utils/test-runner_Old.js
+/src/models/ses.js
+/src/locales/*.json
+/src/components/CodeEditor.jsx
