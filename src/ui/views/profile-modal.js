@@ -121,35 +121,47 @@ export class ProfileModal {
      * Установить режим: 'login' или 'profile'
      * @param {string} mode
      */
+    /* Изменено в 6.2: исправлен краш при setMode('login') — #userColorInput не существует (KI-031) */
     setMode(mode) {
         const title = document.getElementById('profileTitle');
         const actionBtn = document.getElementById('profileActionBtn');
         const logoutBtn = document.getElementById('profileLogoutBtn');
         const cancelBtn = document.getElementById('profileCancelBtn');
         const errorEl = document.getElementById('authError');
-        errorEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'none';
+
+        /* Безопасные ссылки на поля (могут отсутствовать при первой инициализации) */
+        const nameInput = document.getElementById('userNameInput');
+        const avatarInput = document.getElementById('userAvatarInput');
+        const initialsColorInput = document.getElementById('initialsColorInput');
 
         if (mode === 'login') {
-            title.textContent = '🔐 Вход / Регистрация';
-            actionBtn.textContent = '💾 Войти / Зарегистрироваться';
-            actionBtn.className = 'btn btn-primary';
-            logoutBtn.style.display = 'none';
-            cancelBtn.style.display = 'inline-block';
-            // Очищаем поля
-            document.getElementById('userNameInput').value = '';
-            document.getElementById('userAvatarInput').value = '👤';
-            document.getElementById('userColorInput').value = '#7ec8e3';
+            if (title) title.textContent = '🔐 Вход / Регистрация';
+            if (actionBtn) {
+                actionBtn.textContent = '💾 Войти / Зарегистрироваться';
+                actionBtn.className = 'btn btn-primary';
+            }
+            if (logoutBtn) logoutBtn.style.display = 'none';
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+            /* Очищаем поля (с guards — KI-031) */
+            if (nameInput) nameInput.value = '';
+            if (avatarInput) avatarInput.value = '👤';
+            if (initialsColorInput) initialsColorInput.value = '#7ec8e3';
+
             this.updatePreview();
         } else {
-            title.textContent = '👤 Ваш профиль';
-            actionBtn.textContent = '💾 Сохранить';
-            actionBtn.className = 'btn btn-primary';
-            logoutBtn.style.display = 'inline-block';
-            cancelBtn.style.display = 'inline-block';
+            if (title) title.textContent = '👤 Ваш профиль';
+            if (actionBtn) {
+                actionBtn.textContent = '💾 Сохранить';
+                actionBtn.className = 'btn btn-primary';
+            }
+            if (logoutBtn) logoutBtn.style.display = 'inline-block';
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
         }
         this.currentMode = mode;
     }
-
+    
     /**
      * Загрузить данные текущего пользователя в форму
      */
