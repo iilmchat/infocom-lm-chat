@@ -1,4 +1,5 @@
 /* src/styles/themes.css */
+
 /* Изменено в 6.1: добавлены переменные для кнопок */
 [data-theme="light"] {
     --bg-primary: #f0f0f0;
@@ -77,45 +78,3 @@
     --btn-warning-text: #1a1a2e;
 }
 
-/* Тёмная тема (по умолчанию) – добавляем переменные */
-:root {
-    --bg-primary: #1a1a2e;
-    --bg-secondary: #16213e;
-    --bg-accent: #0f3460;
-    --bg-input: #1a1a2e;
-    --bg-bubble-user: #0f3460;
-    --bg-bubble-bot: #1e2a4a;
-    --bg-reply: rgba(126, 200, 227, 0.1);
-    --text-primary: #e0e0e0;
-    --text-secondary: #888;
-    --text-accent: #7ec8e3;
-    --border-color: #1a4a7a;
-    --shadow-color: rgba(0,0,0,0.6);
-    --send-btn-bg: #e94560;
-    --send-btn-hover: #c73a54;
-    --error-color: #ff6b6b;
-    --success-color: #4caf50;
-    --warning-color: #ff9800;
-    --gold-color: #ffd700;
-    --sidebar-width: 300px;
-    --toast-bg: rgba(26, 26, 46, 0.95);
-    --drag-overlay-bg: rgba(15, 52, 96, 0.85);
-    --modal-bg: rgba(0,0,0,0.8);
-    /* Добавлено в 6.1: переменные для кнопок */
-    --btn-border-radius: 8px;
-    --btn-primary-bg: #7ec8e3;
-    --btn-primary-hover: #5fb0d0;
-    --btn-primary-text: #1a1a2e;
-    --btn-secondary-bg: rgba(255,255,255,0.08);
-    --btn-secondary-hover: rgba(255,255,255,0.15);
-    --btn-secondary-text: var(--text-primary);
-    --btn-danger-bg: #e74c3c;
-    --btn-danger-hover: #c0392b;
-    --btn-danger-text: #fff;
-    --btn-success-bg: #2ecc71;
-    --btn-success-hover: #27ae60;
-    --btn-success-text: #1a1a2e;
-    --btn-warning-bg: #f39c12;
-    --btn-warning-hover: #e67e22;
-    --btn-warning-text: #1a1a2e;
-}

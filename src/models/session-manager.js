@@ -28,7 +28,8 @@ export class SessionManager {
         this.eventBus = eventBus;
         this.sessions = [];
         this.currentId = null;
-        this.defaultModel = 'local-model';
+        /* Изменено в 6.2: defaultModel берётся из CONFIG, а не хардкод 'local-model' (KI-029) */
+        this.defaultModel = CONFIG.UI_CONFIG.DEFAULT_MODEL;
         this.load();
     }
    
@@ -462,7 +463,8 @@ export class SessionManager {
     }
 
     create(name, model = null) {
-        const modelName = model || (typeof currentModel !== 'undefined' ? currentModel : this.defaultModel);
+        /* Изменено в 6.2: убрана legacy-проверка typeof currentModel (KI-029) */
+        const modelName = model || this.defaultModel;
         const session = {
             id: Date.now(),
             name: name || 'Новый диалог',
@@ -630,8 +632,21 @@ export class SessionManager {
     }
 
     getModelForChat(id = null) {
+        /* Изменено в 6.2: валидация модели — если сохранённой нет в списке,
+           возвращаем CONFIG-дефолт (KI-029) */
         const session = id ? this.sessions.find(s => s.id === id) : this.getCurrent();
-        return session ? (session.model ? session.model : this.defaultModel) : this.defaultModel;
+        if (!session) return this.defaultModel;
+        const saved = session.model;
+        if (!saved) return this.defaultModel;
+
+        /* Проверяем, есть ли сохранённая модель в доступных.
+           Список доступных берём из window.app.api.availableModels, если он доступен. */
+        const available = (typeof window !== 'undefined' && window.app?.api?.availableModels) || [];
+        if (available.length > 0 && !available.includes(saved)) {
+            console.warn(`⚠️ Модель "${saved}" недоступна, используем дефолт`);
+            return this.defaultModel;
+        }
+        return saved;
     }
 
     setModelForChat(model, id = null) {

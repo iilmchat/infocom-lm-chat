@@ -90,20 +90,31 @@
 ## KI-004 — `NotificationManager.addNotification()` отсутствует
 
 - **Приоритет:** 🟠 High
-- **Статус:** Open
+- **Статус:** Fixed (v6.2)
 - **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-17
 - **Описание:**
   В `PrivateChatModule` вызывается
   `this.app.notificationManager.addNotification?.({...})`,
   но метод `addNotification` в классе `NotificationManager`
-  не реализован. Опциональная цепочка (`?.`) маскирует ошибку,
-  но уведомления о приватных сообщениях и упоминаниях фактически не создаются.
-- **План:** реализовать `addNotification({ type, title, body, data })`
-  с добавлением в `this.notifications`, инкрементом `unreadCount`,
-  `updateBadge()` и `eventBus.emit('notifications:updated', ...)`.
+  не реализован. Опциональная цепочка (`?.`) маскировала ошибку —
+  уведомления о приватных сообщениях и упоминаниях фактически не создавались.
+- **Решение:**
+  Реализован метод `addNotification({ type, title, body, data, silent })`:
+  - Создаёт локальное уведомление с уникальным `notificationId` (префикс `local_`)
+  - Добавляет в начало списка `this.notifications`
+  - Инкрементирует `unreadCount`, обновляет бейдж
+  - Эмитит событие `notifications:updated`
+  - Показывает toast (если `silent !== true`)
+  - Ограничивает размер списка (`MAX_LOCAL_NOTIFICATIONS = 100`)
+  
+  Заодно:
+  - `fetchNotifications()` сохраняет локальные уведомления при обновлении с сервера
+  - `markRead()` корректно обрабатывает локальные ID (без отправки их на сервер)
+  - Добавлены `clearLocal()` и `_getIconForType()`
 - **Затронутые файлы:**
   - `src/models/notification-manager.js`
-  - `src/modules/private/PrivateChatModule.js` (потребитель)
+- **Связанные:** KI-012, KI-027
 
 ---
 
@@ -245,19 +256,19 @@
 ## KI-012 — Опциональная цепочка (`?.`) скрывает отсутствующие методы
 
 - **Приоритет:** 🟡 Medium
-- **Статус:** Documented
+- **Статус:** In Progress (v6.2)
 - **Дата открытия:** 2026-09-17
 - **Описание:**
   Многократное использование `foo?.()`, `bar?.field` в критических
-  местах (например, `notificationManager.addNotification?.(...)`)
-  приводит к «тихим» отказам: код не падает, но и не работает.
-- **Решение:** для обязательных зависимостей использовать прямые вызовы
-  без `?.`; `?.` — только для действительно опциональных API
-  (например, `markdownService` при fallback).
+  местах приводит к «тихим» отказам: код не падает, но и не работает.
+- **Решение:**
+  Для обязательных зависимостей — прямые вызовы без `?.`.
+  В этом PR убран `?.` в вызовах `notificationManager.addNotification()`
+  (2 места в `PrivateChatModule`). Метод теперь обязателен.
+  Остальные места (`markdownService` как fallback) оставлены — они опциональны.
 - **Затронутые файлы:**
   - `src/modules/private/PrivateChatModule.js`
-  - `src/app.js` (множество мест)
-  - `src/models/multi-user-manager.js`
+- **Связанные:** KI-004
 
 ---
 
@@ -561,6 +572,173 @@
 - **Альтернатива:** перегенерировать README из чистого шаблона (в `docs/README_TEMPLATE.md`).
 - **Затронутые файлы:**
   - `README.md`
+
+---
+
+## KI-027 — Уведомления при загрузке истории приватных чатов
+
+- **Приоритет:** 🟠 High
+- **Статус:** Fixed (v6.2)
+- **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-17
+- **Описание:**
+  В `PrivateChatModule.loadHistory()` при `append === false`
+  (каждые 5 секунд через polling + при первом открытии чата)
+  выполнялся проход по всем сообщениям от собеседника и для каждого
+  вызывался `addNotification`. При открытии чата с историей в 50 сообщений
+  это дало бы 50 тостов и +50 к бейджу **каждые 5 секунд**.
+- **Решение:**
+  Введён трекинг `_seenMessageIds: Set` и флаг `_notificationInitialized`.
+  - При первой загрузке чата — только запоминаем ID, уведомления не шлём
+  - При последующих загрузках — уведомляем только о реально новых ID
+  - Set ограничен 500 элементами (обрезается до последних 300)
+  - Сбрасывается при смене чата (`openChat()`)
+- **Затронутые файлы:**
+  - `src/modules/private/PrivateChatModule.js`
+- **Связанные:** KI-004
+
+---
+
+## KI-028 — Опечатка `localUser.Id` вместо `localUser.id` в `sendMentionNotifications`
+
+- **Приоритет:** 🟡 Medium
+- **Статус:** Open
+- **Дата открытия:** 2026-09-17
+- **Описание:**
+  В `PrivateChatModule.sendMentionNotifications()` условие
+  `userId !== this.app.multiUserManager.localUser.Id`
+  использует `.Id` (PascalCase). В проекте исторически смешаны `.Id` и `.id`
+  (см. KI-005). Если у пользователя есть только `.id`, условие всегда истинно,
+  и пользователь получает уведомления о своих собственных упоминаниях.
+- **Решение:** Унифицировать через `||` fallback (как в других местах),
+  либо нормализовать поля на границе API (см. KI-005).
+- **Затронутые файлы:**
+  - `src/modules/private/PrivateChatModule.js`
+- **Связанные:** KI-005, KI-004
+
+---
+
+## KI-029 — Модель в UI показывает «local-model» вместо загруженной с сервера
+
+- **Приоритет:** 🟠 High
+- **Статус:** Open
+- **Дата открытия:** 2026-09-17
+- **Описание:**
+  При первом запуске (или после очистки localStorage) в шапке
+  отображается «Модель: local-model», хотя `ApiService.fetchModels()`
+  успешно загружает 14 моделей и выбирает `gemma-4-12b-coder-fable5-composer2.5-v1`
+  (видно в консоли). Это вводит пользователя в заблуждение — модель
+  для генерации фактически используется правильная, но UI показывает
+  несуществующую.
+
+  **Цепочка причин:**
+
+  1. `SessionManager.defaultModel = 'local-model'` — хардкод, не связан с `CONFIG.UI_CONFIG.DEFAULT_MODEL`.
+  2. `SessionManager.create()` использует legacy-выражение `typeof currentModel !== 'undefined'`
+     (глобальной переменной давно нет) → всегда fallback на `'local-model'`.
+  3. `App.init()` вызывает `getModelForChat()` **после** `checkServer()`,
+     но результат перезаписывает `App.currentModel`, не синхронизируясь с
+     `ApiService.currentModel` (который уже содержит правильное значение).
+
+- **Решение:**
+  1. `SessionManager`: заменить хардкод `'local-model'` на `CONFIG.UI_CONFIG.DEFAULT_MODEL`.
+  2. `SessionManager.create()`: убрать legacy-проверку `typeof currentModel`,
+     всегда использовать переданный `model` или `CONFIG.UI_CONFIG.DEFAULT_MODEL`.
+  3. `SessionManager.getModelForChat()`: добавить валидацию — если сохранённая
+     модель не входит в список доступных, вернуть `CONFIG.UI_CONFIG.DEFAULT_MODEL`.
+  4. `App.init()`: синхронизировать `this.currentModel = this.api.currentModel`
+     **после** `checkServer()`, но **до** `renderModelDropdown()`.
+  5. `App.init()`: для текущей сессии проверить, что `session.model` существует
+     в `api.availableModels`; если нет — обновить на `api.currentModel`.
+
+- **Затронутые файлы:**
+  - `src/models/session-manager.js`
+  - `src/app.js`
+- **Связанные:** KI-005 (смешение `.Id`/`.id` — та же семья проблем с legacy-полями)
+
+---
+
+## KI-030 — Внешний API ProjectManager (не наш скоуп)
+
+- **Приоритет:** 🟢 Low
+- **Статус:** Won't Fix
+- **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-17
+- **Описание:**
+  Была получена документация API ProjectManager (аутентификация,
+  проекты, владельцы, документы с версионностью) — предположительно
+  как возможная замена или дополнение к нашему бэкенду.
+- **Решение:**
+  По уточнению владельца проекта — **этот API не относится к
+  Infocom LM Chat Pro**. Проект использует собственный .NET Core 3.1 API
+  (порт 8032, см. `docs/API.md`). Документация ProjectManager
+  игнорируется, интеграция не планируется.
+- **Затронутые файлы:** —
+- **Связанные:** нет
+
+---
+
+## KI-031 — `ProfileModal.setMode('login')` падает из-за отсутствующего `#userColorInput`
+
+- **Приоритет:** 🔴 Critical
+- **Статус:** Fixed (v6.2)
+- **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-09-18
+- **Описание:**
+  ... (оставить как было)
+- **Решение:**
+  В `ProfileModal.setMode()` обращение к `#userColorInput` заменено на
+  `#initialsColorInput` (это правильный ID). Все обращения к полям
+  обёрнуты в `if (el)` — предотвращает краш при частично построенной
+  разметке модалки.
+  Дополнительно: `setMode('login')` теперь безопасен, если часть полей
+  ещё не создана — `init()` больше не падает, `setupEventListeners()`
+  вызывается, весь UI регистрирует обработчики корректно.
+
+- **Затронутые файлы:**
+  - `src/ui/views/profile-modal.js`
+- **Связанные:** KI-029 (тоже про инициализацию)
+
+---
+
+## KI-032 — Отсутствовали btn-переменные в тёмной теме (`:root`)
+
+- **Приоритет:** 🟠 High
+- **Статус:** Fixed (v6.2)
+- **Дата открытия:** 2026-09-18
+- **Дата закрытия:** 2026-09-18
+- **Описание:**
+  В `themes.css` btn-переменные (`--btn-primary-bg`, `--btn-secondary-bg`,
+  `--btn-danger-bg`, `--btn-success-bg`, `--btn-warning-bg` и их hover/text
+  вариации) были определены только для тем `[data-theme="light"]` и
+  `[data-theme="monokai"]`. Дефолтная тёмная тема (определена через `:root`
+  в `main.css`) этих переменных **не содержала**. Как следствие:
+  - Кнопки на тёмной теме не имели корректных цветов
+  - Переключение через кнопку 🎨 не давало визуального эффекта
+    для btn-классов (только для bg/text/border)
+
+- **Решение:**
+  Добавлены btn-переменные в `:root` (тёмная тема по умолчанию):
+  ```css
+  :root {
+      --btn-border-radius: 8px;
+      --btn-primary-bg: #7ec8e3;
+      --btn-primary-hover: #5fb0d0;
+      --btn-primary-text: #1a1a2e;
+      --btn-secondary-bg: rgba(255,255,255,0.08);
+      --btn-secondary-hover: rgba(255,255,255,0.15);
+      --btn-secondary-text: var(--text-primary);
+      --btn-danger-bg: #e74c3c;
+      --btn-danger-hover: #c0392b;
+      --btn-danger-text: #fff;
+      --btn-success-bg: #2ecc71;
+      --btn-success-hover: #27ae60;
+      --btn-success-text: #1a1a2e;
+      --btn-warning-bg: #f39c12;
+      --btn-warning-hover: #e67e22;
+      --btn-warning-text: #1a1a2e;
+  }
+
 
 ## Шаблон для новой записи
 

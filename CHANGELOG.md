@@ -10,13 +10,21 @@
 - `docs/KNOWN_ISSUES.md` — реестр известных проблем (правило KI)
 - `docs/CONTRIBUTING.md` — правила участия
 - `tools/inventory.ps1` — скрипт инвентаризации проекта
+- `NotificationManager.addNotification()` — создание локальных уведомлений (KI-004)
+- `NotificationManager.clearLocal()` — очистка локальных уведомлений
+- Отслеживание реально новых сообщений в приватных чатах (KI-027)
 
 ### Changed
 - **i18n:** локали переведены из `.json` в ES-модули (`locales/ru.js`, `locales/en.js`)
   из-за несовместимости `import ... assert { type: 'json' }` с браузерами (KI-001)
+- Версия в `config.js` обновлена с 6.1 до 6.2
 
 ### Fixed
 - `SyntaxError: Unexpected identifier 'assert'` в `src/services/i18n.js` (KI-001)
+- Уведомления в приватных чатах: устранён спам уведомлений при каждой загрузке истории (KI-027)
+- `NotificationManager.markRead()` корректно обрабатывает локальные ID (KI-004)
+- `NotificationManager.fetchNotifications()` больше не теряет локальные уведомления (KI-004)
+- Убран опциональный вызов `?.` для `notificationManager.addNotification()` (KI-012)
 
 ### Planned (Задачи v6.2)
 - Задача A — глобальный sidebar (KI-003, KI-013)
@@ -47,7 +55,17 @@
 - `AvatarService` внедрён в профиль и sidebar
 
 ### Fixed
-- Мелкие UI-фиксы в приватных чатах
+- Мелкие UI-фиксы в приватных чатах\
+- **KI-031:** `ProfileModal.setMode('login')` больше не падает из-за
+  отсутствующего `#userColorInput` — устранён блокирующий краш `init()`,
+  из-за которого не работали dropdown моделей, Share, Theme, Analytics,
+  Notifications и горячие клавиши
+- **KI-029:** синхронизация `App.currentModel` с `ApiService.currentModel`
+  после `fetchModels()`; модель в шапке показывает реально загруженную
+- **KI-029:** `SessionManager.defaultModel` берётся из `CONFIG.UI_CONFIG.DEFAULT_MODEL`
+  вместо хардкода `'local-model'`
+- **KI-032:** в тёмную тему (`:root`) добавлены btn-переменные — кнопки
+  теперь корректно переключаются между темами
 
 ---
 

@@ -624,15 +624,25 @@ class App {
         // Проверка доступности сервера
         await this.api.checkServer();
 
-        // Перерисовываем выпадающий список моделей
-        this.renderModelDropdown(this);
-
-        // Загрузка модели для текущего чата
-        const model = this.sessionManager.getModelForChat();
-        if (model) {
-            this.currentModel = model;
-            this.updateModelUI();            
+        /* Изменено в 6.2: синхронизируем текущую модель с ApiService ПОСЛЕ fetchModels (KI-029).
+           Если ApiService загрузил список моделей, он уже выбрал правильную currentModel. */
+        if (this.api.currentModel) {
+            this.currentModel = this.api.currentModel;
         }
+
+        // Загрузка модели для текущего чата (с валидацией — KI-029)
+        const model = this.sessionManager.getModelForChat();
+        if (model && this.api.availableModels.includes(model)) {
+            this.currentModel = model;
+        } else if (model && !this.api.availableModels.includes(model)) {
+            /* Модель из сессии больше недоступна — используем текущую из ApiService */
+            console.warn(`⚠️ Модель "${model}" недоступна, используем "${this.currentModel}"`);
+            this.sessionManager.setModelForChat(this.currentModel);
+        }
+
+        /* Перерисовываем выпадающий список моделей (с правильным currentModel) */
+        this.renderModelDropdown(this);
+        this.updateModelUI();
 
         // Рендеринг UI (часть, которая не зависит от модулей)
         this.sidebar.render();

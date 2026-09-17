@@ -37,6 +37,10 @@ export class PrivateChatModule {
         this.offset = 0;
         this.pageSize = 50;
         this.searchQuery = '';
+        
+        /* Добавлено в 6.2: отслеживание уже обработанных сообщений (KI-027) */
+        this._seenMessageIds = new Set();
+        this._notificationInitialized = false;
 
         // DOM элементы (создаются в render)
         this.messagesEl = null;
@@ -355,6 +359,10 @@ export class PrivateChatModule {
         this.searchQuery = '';
         if (this.searchInput) this.searchInput.value = '';
 
+        /* Добавлено в 6.2: сброс трекинга уведомлений при смене чата (KI-027) */
+        this._seenMessageIds.clear();
+        this._notificationInitialized = false;
+
         await this.loadHistory();
         this.startPolling();
     }
@@ -395,16 +403,49 @@ export class PrivateChatModule {
                 this.app.multiUserManager.getUnreadCount();
 
                 /* Добавлено в 6.1: отправка уведомлений о новых сообщениях */
+                /* Изменено в 6.2: показываем уведомления только для реально новых сообщений,
+                а не при каждой загрузке истории (KI-027). Также убран опциональный вызов ?. (KI-012). */
                 if (!append) {
-                    // Проверяем последние сообщения от других пользователей
-                    const newMessages = messages.filter(m => m.SenderId !== this.app.multiUserManager.localUser.Id);
-                    for (const msg of newMessages) {
-                        this.app.notificationManager.addNotification?.({
-                            type: 'private_message',
-                            title: `💬 Приватное сообщение от ${msg.SenderName}`,
-                            body: msg.content,
-                            data: { chatId: this.currentChatId, userId: msg.SenderId }
-                        });
+                    const otherMessages = messages.filter(m =>
+                        m.SenderId !== this.app.multiUserManager.localUser.Id
+                    );
+
+                    const trulyNew = [];
+                    for (const msg of otherMessages) {
+                        const mid = msg.MessageId || msg.Id || msg.id;
+                        if (mid && !this._seenMessageIds.has(mid)) {
+                            trulyNew.push(msg);
+                        }
+                    }
+
+                    /* Первая загрузка чата — только запоминаем, не уведомляем */
+                    if (this._notificationInitialized) {
+                        for (const msg of trulyNew) {
+                            const mid = msg.MessageId || msg.Id || msg.id;
+                            this.app.notificationManager.addNotification({
+                                type: 'private_message',
+                                title: `💬 Приватное сообщение от ${msg.SenderName}`,
+                                body: msg.content,
+                                data: {
+                                    chatId: this.currentChatId,
+                                    userId: msg.SenderId,
+                                    messageId: mid
+                                }
+                            });
+                        }
+                    }
+
+                    /* Запоминаем все увиденные ID */
+                    for (const msg of otherMessages) {
+                        const mid = msg.MessageId || msg.Id || msg.id;
+                        if (mid) this._seenMessageIds.add(mid);
+                    }
+                    this._notificationInitialized = true;
+
+                    /* Ограничиваем размер Set, чтобы не рос бесконечно */
+                    if (this._seenMessageIds.size > 500) {
+                        const arr = Array.from(this._seenMessageIds);
+                        this._seenMessageIds = new Set(arr.slice(-300));
                     }
                 }
             }
@@ -611,11 +652,12 @@ export class PrivateChatModule {
     }
 
     /* Добавлено в 6.1: отправка уведомлений упомянутым пользователям */
+    /* Изменено в 6.2: убран опциональный вызов ?. — метод addNotification теперь обязателен (KI-012) */
     sendMentionNotifications(userIds, content) {
         for (const userId of userIds) {
             const user = this.app.multiUserManager.peers.get(userId);
-            if (user && userId !== this.app.multiUserManager.localUser.Id) {
-                this.app.notificationManager.addNotification?.({
+            if (user && userId !== this.app.multiUserManager.localUser.id) {
+                this.app.notificationManager.addNotification({
                     type: 'mention',
                     title: `@${user.Name} упомянул вас в приватном чате`,
                     body: content.substring(0, 100),
