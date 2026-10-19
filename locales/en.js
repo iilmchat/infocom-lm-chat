@@ -1,7 +1,7 @@
 export default {
   "app": {
     "title": "Infocom LM Chat Pro",
-    "version": "v6.1"
+    "version": "v6.2"
   },
   "chat": {
     "welcome": "Добро пожаловать в Infocom LM Chat Pro",

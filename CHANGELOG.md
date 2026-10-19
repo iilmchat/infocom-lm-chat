@@ -8,7 +8,8 @@
 
 ### Added
 - `docs/KNOWN_ISSUES.md` — реестр известных проблем (правило KI)
-- `docs/CONTRIBUTING.md` — правила участия
+<!-- Изменено в 6.2: путь CONTRIBUTING.md в корне, а не в docs/ (KI-040) -->
+- `CONTRIBUTING.md` — правила участия
 - `tools/inventory.ps1` — скрипт инвентаризации проекта
 - `NotificationManager.addNotification()` — создание локальных уведомлений (KI-004)
 - `NotificationManager.clearLocal()` — очистка локальных уведомлений
@@ -23,6 +24,9 @@
 - **i18n:** локали переведены из `.json` в ES-модули (`locales/ru.js`, `locales/en.js`)
   из-за несовместимости `import ... assert { type: 'json' }` с браузерами (KI-001)
 - Версия в `config.js` обновлена с 6.1 до 6.2
+<!-- Добавлено в 6.2: синхронизация версий и документации (KI-039, KI-026, KI-042) -->
+- Версия v6.2 синхронизирована в `index.html`, `locales/ru.js`, `locales/en.js` (KI-039)
+- `README.md` переписан, добавлен хаб `docs/README.md` (KI-026, KI-042)
 - `Sidebar` перенесён из `ChatModule` в `App` (KI-013)
 - `#sidebar` вынесен из `#app-chat` в корень `#app` (KI-003)
 - `PrivateChatModule` — убран вложенный sidebar со списком чатов, используется глобальный (KI-003)
@@ -37,6 +41,21 @@
 - Sidebar больше не скрывается на страницах `/private`, `/admin`, `/games`, `/profile`, `/settings`, `/stats` (KI-003)
 - Убран риск дублирования Sidebar из-за пересоздания ChatModule (KI-013)
 - При переходе на `/settings`, `/stats` больше не остаётся видимым `#app-chat` (KI-033)
+<!-- Изменено в 6.2: записи KI-029/KI-031/KI-032 перенесены из [6.1] (KI-040) -->
+- **KI-031:** `ProfileModal.setMode('login')` больше не падает из-за
+  отсутствующего `#userColorInput` — устранён блокирующий краш `init()`,
+  из-за которого не работали dropdown моделей, Share, Theme, Analytics,
+  Notifications и горячие клавиши
+- **KI-029:** синхронизация `App.currentModel` с `ApiService.currentModel`
+  после `fetchModels()`; модель в шапке показывает реально загруженную
+- **KI-029:** `SessionManager.defaultModel` берётся из `CONFIG.UI_CONFIG.DEFAULT_MODEL`
+  вместо хардкода `'local-model'`
+- **KI-032:** в тёмную тему (`:root`) добавлены btn-переменные — кнопки
+  теперь корректно переключаются между темами
+- **KI-035:** страница `/profile` больше не падает: используется существующий
+  `#profileInitialsColor` вместо несуществующего `#initialsColorInput`
+- **KI-036:** в `:root` добавлен полный набор `--btn-*`; тёмная тема
+  больше не зависит от переменных из других тем
 
 ### Planned (Задачи v6.2)
 - Задача A — глобальный sidebar (KI-003, KI-013)
@@ -67,17 +86,8 @@
 - `AvatarService` внедрён в профиль и sidebar
 
 ### Fixed
-- Мелкие UI-фиксы в приватных чатах\
-- **KI-031:** `ProfileModal.setMode('login')` больше не падает из-за
-  отсутствующего `#userColorInput` — устранён блокирующий краш `init()`,
-  из-за которого не работали dropdown моделей, Share, Theme, Analytics,
-  Notifications и горячие клавиши
-- **KI-029:** синхронизация `App.currentModel` с `ApiService.currentModel`
-  после `fetchModels()`; модель в шапке показывает реально загруженную
-- **KI-029:** `SessionManager.defaultModel` берётся из `CONFIG.UI_CONFIG.DEFAULT_MODEL`
-  вместо хардкода `'local-model'`
-- **KI-032:** в тёмную тему (`:root`) добавлены btn-переменные — кнопки
-  теперь корректно переключаются между темами
+- Мелкие UI-фиксы в приватных чатах
+<!-- Изменено в 6.2: KI-029/KI-031/KI-032 перенесены в [Unreleased] (KI-040); лишний \ убран -->
 
 ---
 

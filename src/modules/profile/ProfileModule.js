@@ -152,11 +152,11 @@ export class ProfileModule {
         this.previewName = document.getElementById('profilePreviewName');
         this.previewStatus = document.getElementById('profilePreviewStatus');
         this.errorEl = document.getElementById('profileError');
-        this.initialsColorInput = document.getElementById('initialsColorInput');
 
         // Устанавливаем активный цвет
         const color = this.user.Color || '#7ec8e3';
-        this.initialsColorInput.value = color;
+        /* Изменено в 6.2 (KI-035): #initialsColorInput не существует; используем profileInitialsColor */
+        if (this.initialsColor) this.initialsColor.value = color;
         document.querySelectorAll('.color-preset-option').forEach(el => {
             el.classList.toggle('selected', el.dataset.color === color);
         });

@@ -22,6 +22,23 @@
     --toast-bg: rgba(26, 26, 46, 0.95);
     --drag-overlay-bg: rgba(15, 52, 96, 0.85);
     --modal-bg: rgba(0,0,0,0.8);
+    /* Добавлено в 6.2 (KI-036, KI-032): полный набор btn-переменных для тёмной темы */
+    --btn-border-radius: 8px;
+    --btn-primary-bg: #7ec8e3;
+    --btn-primary-hover: #5fb0d0;
+    --btn-primary-text: #1a1a2e;
+    --btn-secondary-bg: rgba(255,255,255,0.08);
+    --btn-secondary-hover: rgba(255,255,255,0.15);
+    --btn-secondary-text: var(--text-primary);
+    --btn-danger-bg: #e74c3c;
+    --btn-danger-hover: #c0392b;
+    --btn-danger-text: #fff;
+    --btn-success-bg: #2ecc71;
+    --btn-success-hover: #27ae60;
+    --btn-success-text: #1a1a2e;
+    --btn-warning-bg: #f39c12;
+    --btn-warning-hover: #e67e22;
+    --btn-warning-text: #1a1a2e;
 }
 
 * {
