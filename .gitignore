@@ -69,3 +69,11 @@ out/
 /src/models/ses.js
 /src/locales/*.json
 /src/components/CodeEditor.jsx
+
+# === .NET Core (Server) ===
+server/bin/
+server/obj/
+server/*.user
+server/*.suo
+server/.vs/
+server/appsettings.Development.json

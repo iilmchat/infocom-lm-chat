@@ -1,0 +1,1 @@
+dotnet publish ProjectManager.API -c Release -o ./publish

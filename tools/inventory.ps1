@@ -1,7 +1,8 @@
-﻿# tools/inventory.ps1
+# tools/inventory.ps1
 # Инвентаризация проекта Infocom LM Chat Pro
 # Совместимо с PowerShell 5.1 и 7+
-# Запуск: powershell -ExecutionPolicy Bypass -File tools/inventory.ps1
+# Запуск из корня репозитория: powershell -ExecutionPolicy Bypass -File tools/inventory.ps1
+# Монорепозиторий (KI-052): сканируются client/ и server/; server/bin и server/obj игнорируются.
 
 param(
     [string]$Root = ".",
@@ -21,7 +22,7 @@ Add-Line " Date:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Add-Line "=================================================================================="
 Add-Line ""
 
-$excludeDirs = @('node_modules', '.git', '.vscode', '.idea', 'dist', 'build', '.cache')
+$excludeDirs = @('node_modules', '.git', '.vscode', '.idea', 'dist', 'build', '.cache', 'bin', 'obj')
 
 $files = Get-ChildItem -Path $rootPath -Recurse -File -Force -ErrorAction SilentlyContinue |
     Where-Object {
@@ -47,6 +48,22 @@ foreach ($g in $byExt) {
     Add-Line ("{0,-14} {1,6} {2,16}" -f $g.Name, $g.Count, ("{0:N0} B" -f $size))
 }
 Add-Line ("{0,-14} {1,6} {2,16}" -f "TOTAL", $files.Count, ("{0:N0} B" -f $totalSize))
+Add-Line ""
+
+# --- 1b. Монорепозиторий: client/ и server/ ---
+Add-Line "--- 1b. MONOREPO PARTS (client/ + server/) ---------------------------------------"
+Add-Line ""
+foreach ($part in @('client', 'server', 'docs', 'tools')) {
+    $partPath = Join-Path $rootPath $part
+    if (Test-Path $partPath) {
+        $partFiles = @($files | Where-Object { $_.FullName.StartsWith($partPath, [System.StringComparison]::OrdinalIgnoreCase) })
+        $partSize = ($partFiles | Measure-Object -Property Length -Sum).Sum
+        if (-not $partSize) { $partSize = 0 }
+        Add-Line ("  {0,-10} {1,6} files  {2,16}" -f ($part + '/'), $partFiles.Count, ("{0:N0} B" -f $partSize))
+    } else {
+        Add-Line ("  [MISSING] {0}/" -f $part)
+    }
+}
 Add-Line ""
 
 # --- 2. Дерево файлов ---
@@ -108,8 +125,8 @@ if ($snaps) {
 } else { Add-Line "  (none)" }
 Add-Line ""
 
-# --- 6. Vendor libs в src/components ---
-Add-Line "--- 6. VENDOR LIBS under src/components/ (candidate: move to vendor/) ----------"
+# --- 6. Vendor libs в client/src/components ---
+Add-Line "--- 6. VENDOR LIBS under client/src/components/ (candidate: move to vendor/) ----"
 Add-Line ""
 $vendor = $files | Where-Object { $_.FullName -match '\\src\\components\\' }
 if ($vendor) {
@@ -123,7 +140,7 @@ Add-Line ""
 # --- 7. Стандартные файлы ---
 Add-Line "--- 7. STANDARD FILES CHECK -----------------------------------------------------"
 Add-Line ""
-$standard = @('.gitignore','README.md','LICENSE','.editorconfig','CHANGELOG.md','CONTRIBUTING.md','package.json')
+$standard = @('.gitignore','README.md','LICENSE','.editorconfig','CHANGELOG.md','CONTRIBUTING.md','client/package.json')
 foreach ($name in $standard) {
     if (Test-Path (Join-Path $rootPath $name)) {
         Add-Line ("  [OK]      {0}" -f $name)
@@ -131,7 +148,10 @@ foreach ($name in $standard) {
         Add-Line ("  [MISSING] {0}" -f $name)
     }
 }
-foreach ($d in @('docs','tests','tools','vendor','locales','src')) {
+$standardDirs = @('client','client/src','client/tests','client/vendor','client/locales',
+                  'server','server/Controllers','server/Services','server/Data','server/Migrations',
+                  'docs','tools')
+foreach ($d in $standardDirs) {
     if (Test-Path (Join-Path $rootPath $d)) { Add-Line ("  [OK dir]  {0}/" -f $d) }
     else { Add-Line ("  [MISSING] {0}/" -f $d) }
 }
@@ -148,20 +168,21 @@ if (Test-Path (Join-Path $rootPath 'docs')) {
 } else { Add-Line "  (no docs/)" }
 Add-Line ""
 
-# --- 9. locales/ ---
-Add-Line "--- 9. locales/ CONTENTS --------------------------------------------------------"
+# --- 9. client/locales/ ---
+Add-Line "--- 9. client/locales/ CONTENTS --------------------------------------------------"
 Add-Line ""
-if (Test-Path (Join-Path $rootPath 'locales')) {
-    Get-ChildItem (Join-Path $rootPath 'locales') -File | ForEach-Object {
+if (Test-Path (Join-Path $rootPath 'client/locales')) {
+    Get-ChildItem (Join-Path $rootPath 'client/locales') -File | ForEach-Object {
         Add-Line ("  {0,10:N0} B  {1}" -f $_.Length, $_.Name)
     }
-} else { Add-Line "  (no locales/)" }
+} else { Add-Line "  (no client/locales/)" }
 Add-Line ""
 
-# --- 10. Импорты из index.html ---
-Add-Line "--- 10. <script src> / <link href> in index.html --------------------------------"
+# --- 10. Импорты из client/index.html ---
+Add-Line "--- 10. <script src> / <link href> in client/index.html -------------------------"
 Add-Line ""
-$idx = Join-Path $rootPath 'index.html'
+$clientPath = Join-Path $rootPath 'client'
+$idx = Join-Path $clientPath 'index.html'
 if (Test-Path $idx) {
     $html = Get-Content $idx -Raw
     $matches = [regex]::Matches($html, '(src|href)\s*=\s*"([^"]+)"')
@@ -172,7 +193,7 @@ if (Test-Path $idx) {
         $seen[$url] = $true
         $exists = $false
         if ($url -notmatch '^(https?:|//|data:|#)') {
-            $probe = Join-Path $rootPath ($url.TrimStart('/'))
+            $probe = Join-Path $clientPath ($url.TrimStart('/'))
             $exists = Test-Path $probe
         }
         $status = '???'
@@ -180,7 +201,7 @@ if (Test-Path $idx) {
         elseif ($exists) { $status = 'OK' }
         Add-Line ("  [{0}] {1}" -f $status, $url)
     }
-} else { Add-Line "  (no index.html)" }
+} else { Add-Line "  (no client/index.html)" }
 Add-Line ""
 
 # --- Конец ---

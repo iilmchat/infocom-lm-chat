@@ -23,6 +23,7 @@
 - Сохранение ширины sidebar в `localStorage` (KI-034)
 
 ### Changed
+- Переход на монорепозиторий: клиент в client/, сервер в server/ (KI-052)
 - **i18n:** локали переведены из `.json` в ES-модули (`locales/ru.js`, `locales/en.js`)
   из-за несовместимости `import ... assert { type: 'json' }` с браузерами (KI-001)
 - Версия в `config.js` обновлена с 6.1 до 6.2
