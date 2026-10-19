@@ -1279,6 +1279,23 @@
 
 ---
 
+## KI-053 — Страницы /admin, /stats, /settings в офлайн-режиме всё ещё делают запросы
+
+- **Приоритет:** 🟢 Low
+- **Статус:** Open
+- **Дата открытия:** 2026-10-20
+- **Описание:**
+  После внедрения `offlineMode` (KI-025) главный экран и sidebar перестали спамить `ERR_CONNECTION_REFUSED`. Однако при переходе на страницы `/admin`, `/stats`, `/settings` модули пытаются загрузить данные с бэкенда, что вызывает ошибки в консоли.
+- **План:**
+  Добавить проверку `if (this.app.offlineMode)` в методы инициализации модулей `AdminModule`, `StatsModule`, `SettingsModule`. Выводить заглушку «Сервер недоступен» вместо запросов.
+- **Затронутые файлы:**
+  - `client/src/modules/admin/AdminModule.js`
+  - `client/src/modules/stats/StatsModule.js`
+  - `client/src/modules/settings/SettingsModule.js`
+- **Связанные:** KI-025
+
+---
+
 ## Шаблон для новой записи
 
 ```markdown
