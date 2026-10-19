@@ -11,6 +11,8 @@
 <!-- Изменено в 6.2: путь CONTRIBUTING.md в корне, а не в docs/ (KI-040) -->
 - `CONTRIBUTING.md` — правила участия
 - `tools/inventory.ps1` — скрипт инвентаризации проекта
+<!-- Добавлено в 6.2: фундамент документации (Фаза 4) -->
+- Добавлен фундамент документации (RULES, ARCHITECTURE, PROMPT_CURRENT, USER_GUIDE, QA_GUIDE)
 - `NotificationManager.addNotification()` — создание локальных уведомлений (KI-004)
 - `NotificationManager.clearLocal()` — очистка локальных уведомлений
 - Отслеживание реально новых сообщений в приватных чатах (KI-027)
