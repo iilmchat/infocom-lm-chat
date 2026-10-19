@@ -1,4 +1,5 @@
 <!-- Изменено в 6.2: README переписан (KI-026, KI-042) -->
+<!-- Изменено в 6.2: монорепозиторий client/ + server/ (KI-052) -->
 # Infocom LM Chat Pro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,12 +16,13 @@
 1. [Требования](#требования)
 2. [Быстрый старт](#быстрый-старт)
 3. [Развёртывание на IIS](#развёртывание-на-iis)
-4. [Структура проекта](#структура-проекта)
-5. [Основные функции](#основные-функции)
-6. [Горячие клавиши](#горячие-клавиши)
-7. [Известные проблемы](#известные-проблемы)
-8. [Участие в разработке](#участие-в-разработке)
-9. [Документация](#документация)
+4. [Серверная часть (.NET)](#серверная-часть-net)
+5. [Структура проекта](#структура-проекта)
+6. [Основные функции](#основные-функции)
+7. [Горячие клавиши](#горячие-клавиши)
+8. [Известные проблемы](#известные-проблемы)
+9. [Участие в разработке](#участие-в-разработке)
+10. [Документация](#документация)
 
 ---
 
@@ -61,18 +63,20 @@ cd infocom-lm-chat
 
 ### 3. Запуск статического сервера
 
+Клиент лежит в `client/`, поэтому статика раздаётся из этой папки:
+
 ```bash
 # Python
-python -m http.server 8033
+cd client && python -m http.server 8033
 
 # Node.js (serve)
-npx.cmd serve . -l 8033
+cd client && npx.cmd serve . -l 8033
 
 # Node.js (live-server, с автоперезагрузкой)
-npx.cmd live-server --port=8033
+cd client && npx.cmd live-server --port=8033
 ```
 
-Готовые скрипты лежат в `tools/scripts/`.
+Готовые скрипты лежат в `tools/scripts/` — они сами переходят в `client/`.
 
 ### 4. Открыть в браузере
 
@@ -84,7 +88,8 @@ http://localhost:8033/
 
 ## Развёртывание на IIS
 
-Проект содержит `web.config` в корне — конфигурацию для IIS (порт `8033`).
+Проект содержит `web.config` в папке клиента (`client/web.config`) —
+конфигурацию для IIS (порт `8033`). Корнем сайта должна быть папка `client/`.
 
 **Что нужно:**
 
@@ -104,17 +109,83 @@ fallback через `httpErrors` — SPA будет работать, но с HT
 
 ---
 
+## Серверная часть (.NET)
+
+Бэкенд — ASP.NET Core Web API (`netcoreapp3.1`, проект
+`ProjectManager.API`), доступ к данным — EF Core + MS SQL Server.
+Код лежит в `server/`, точка входа — `Program.cs` / `Startup.cs`.
+
+**Требования:** .NET Core 3.1 SDK, MS SQL Server.
+
+### Сборка
+
+```bash
+dotnet build server/ProjectManager.API.sln
+```
+
+### Запуск
+
+```bash
+dotnet run --project server/ProjectManager.API.csproj
+```
+
+Профиль запуска (`server/Properties/launchSettings.json`) по умолчанию
+поднимает API на `http://localhost:5000`, а клиент ожидает его на `8032`
+(`client/src/config.js`). Чтобы порты совпадали, задайте адрес явно:
+
+```bash
+dotnet run --project server/ProjectManager.API.csproj --urls http://localhost:8032
+```
+
+### Конфигурация и база данных
+
+- строка подключения — `server/appsettings.json`
+  (`ConnectionStrings:DefaultConnection`);
+- миграции EF Core:
+  `dotnet ef database update --project server/ProjectManager.API.csproj`;
+- JWT-настройки — там же, в секции `Jwt`.
+
+> ⚠️ В `server/appsettings.json` лежат строка подключения и JWT-ключ.
+> Не коммитьте реальные секреты — используйте `dotnet user-secrets`
+> или переменные окружения.
+
+---
+
 ## Структура проекта
 
 ```text
 infocom-lm-chat/
-├── index.html              # SPA-оболочка
-├── web.config              # Конфигурация IIS (порт 8033)
-├── package.json            # Метаданные и npm-скрипты
-├── CHANGELOG.md            # История версий
-├── CONTRIBUTING.md         # Правила участия
-├── LICENSE                 # MIT
-├── README.md               # Этот файл
+├── client/                 # Клиент — SPA (vanilla JS, ES-модули)
+│   ├── index.html          # SPA-оболочка
+│   ├── web.config          # Конфигурация IIS (порт 8033)
+│   ├── package.json        # Метаданные и npm-скрипты
+│   ├── locales/            # Переводы (ru.js, en.js)
+│   ├── tests/              # Unit-тесты
+│   ├── vendor/             # Сторонние библиотеки
+│   └── src/                # Исходный код
+│       ├── app.js          # Точка входа
+│       ├── config.js       # Глобальная конфигурация
+│       ├── core/           # EventBus, Router, ErrorBoundary
+│       ├── games/          # Движки игр
+│       ├── models/         # Менеджеры (Session, RAG, MultiUser)
+│       ├── modules/        # SPA-модули (Chat, Admin, Games, …)
+│       ├── services/       # Сервисы (API, i18n, Auth, Markdown)
+│       ├── styles/         # CSS
+│       ├── ui/             # Компоненты и рендереры
+│       └── utils/          # Хелперы
+│
+├── server/                 # Сервер — .NET Core Web API (MS SQL Server)
+│   ├── ProjectManager.API.sln
+│   ├── ProjectManager.API.csproj
+│   ├── Program.cs          # Точка входа
+│   ├── Startup.cs          # Конфигурация приложения
+│   ├── Controllers/        # REST-контроллеры
+│   ├── Services/           # Бизнес-логика
+│   ├── Data/               # DbContext, EF Core
+│   ├── Migrations/         # Миграции EF Core
+│   ├── Models/             # Сущности
+│   ├── DTOs/               # Модели запросов/ответов
+│   └── appsettings.json    # Строка подключения, JWT, LM Studio
 │
 ├── docs/                   # Документация
 │   ├── README.md           # Хаб документации
@@ -125,22 +196,11 @@ infocom-lm-chat/
 │   ├── planning/           # Roadmap и спецификации
 │   └── archive/            # Исторические материалы
 │
-├── src/                    # Исходный код (ES-модули)
-│   ├── app.js              # Точка входа
-│   ├── config.js           # Глобальная конфигурация
-│   ├── core/               # EventBus, Router, ErrorBoundary
-│   ├── games/              # Движки игр
-│   ├── models/             # Менеджеры (Session, RAG, MultiUser)
-│   ├── modules/            # SPA-модули (Chat, Admin, Games, …)
-│   ├── services/           # Сервисы (API, i18n, Auth, Markdown)
-│   ├── styles/             # CSS
-│   ├── ui/                 # Компоненты и рендереры
-│   └── utils/              # Хелперы
-│
-├── locales/                # Переводы (ru.js, en.js)
-├── tests/                  # Unit-тесты
 ├── tools/                  # Скрипты разработчика
-└── vendor/                 # Сторонние библиотеки
+├── CHANGELOG.md            # История версий
+├── CONTRIBUTING.md         # Правила участия
+├── LICENSE                 # MIT
+└── README.md               # Этот файл
 ```
 
 ---

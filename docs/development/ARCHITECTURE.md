@@ -1,39 +1,48 @@
 <!-- Добавлено в 6.2: ARCHITECTURE.md (Фаза 4) -->
+<!-- Изменено в 6.2: монорепозиторий client/ + server/, добавлен бэкенд (KI-052) -->
 # Архитектура Infocom LM Chat Pro
 
-> Краткий обзор клиентской архитектуры v6.2. Детали — в коде `src/` и
-> `docs/KNOWN_ISSUES.md`. Документ не дублирует PROMPT_CURRENT.
+> Краткий обзор клиентской и серверной архитектуры v6.2. Детали — в коде
+> `client/src/` и `server/`, а также в `docs/KNOWN_ISSUES.md`. Документ
+> не дублирует PROMPT_CURRENT.
 
 ## 1. Обзор
-Клиент — SPA на vanilla JS и ES-модулях, без сборщика. Точка входа —
-`index.html`, который загружает `src/app.js` (`class App`). Приложение
-работает с тремя внешними сервисами:
+
+Репозиторий — монорепозиторий из двух частей:
+
+- `client/` — SPA на vanilla JS и ES-модулях, без сборщика. Точка входа —
+  `client/index.html`, который загружает `client/src/app.js` (`class App`).
+- `server/` — ASP.NET Core Web API (`.NET Core`), MS SQL Server.
+
+Клиент работает с тремя внешними сервисами:
 
 - LM Studio — `http://127.0.0.1:8034` (генерация, модели, embeddings);
 - .NET Core API — `http://127.0.0.1:8032` (комнаты, приватные чаты, админка);
 - статика/IIS — `http://localhost:8033` (раздача SPA).
 
 ## 2. Ядро
-**EventBus** (`src/core/event-bus.js`) — pub/sub для слабосвязанной
+
+**EventBus** (`client/src/core/event-bus.js`) — pub/sub для слабосвязанной
 коммуникации. Модули не вызывают друг друга напрямую, а публикуют события:
 `session:switched`, `rag:updated`, `notifications:updated`, `users:updated`
 и т.п.
 
-**Router** (`src/core/router.js`) — SPA-роутер на History API. Маршруты:
+**Router** (`client/src/core/router.js`) — SPA-роутер на History API. Маршруты:
 `/`, `/private`, `/admin`, `/games`, `/profile`, `/settings`, `/stats`.
 Перехватывает клики по `[data-link]`, поддерживает `beforeNavigate`/
 `afterNavigate` и параметры `:id`.
 
-**ErrorBoundary** и **Storage** (`src/core/`) — глобальный перехват ошибок
-и обёртка над `localStorage`.
+**ErrorBoundary** и **Storage** (`client/src/core/`) — глобальный перехват
+ошибок и обёртка над `localStorage`.
 
 ## 3. Паттерн: App → Modules
 
-`App` (`src/app.js`) — координатор. В конструкторе создаёт EventBus,
+`App` (`client/src/app.js`) — координатор. В конструкторе создаёт EventBus,
 сервисы, менеджеры, глобальный `Sidebar` и роутер. `App._showView(viewId)`
-(`src/app.js:1869`) — единая точка переключения семи контейнеров `#app-*`.
+(`client/src/app.js:1869`) — единая точка переключения семи контейнеров
+`#app-*`.
 
-Модули (`src/modules/`):
+Модули (`client/src/modules/`):
 
 | Модуль | Файл | Ответственность |
 |---|---|---|
@@ -49,7 +58,8 @@
 `App`. `Sidebar` создаётся только в `App`; `ChatModule` не создаёт его.
 
 ## 4. Данные
-Менеджеры (`src/models/`) хранят состояние в памяти и синхронизируют
+
+Менеджеры (`client/src/models/`) хранят состояние в памяти и синхронизируют
 нужное в `localStorage`:
 
 - `SessionManager` — сессии чата, `chat_sessions_v5`;
@@ -64,7 +74,8 @@
 `sidebar_width`, `server_config`, `user_profile`.
 
 ## 5. Сеть
-- `ApiService` (`src/services/api-service.js`) — LM Studio:
+
+- `ApiService` (`client/src/services/api-service.js`) — LM Studio:
   `/v1/models`, `/v1/chat/completions`, `/v1/embeddings`, health-check,
   стриминг и отмена запросов.
 - `ChatApiClient` / `http-client.js` — .NET Core API: комнаты, приватные
@@ -74,11 +85,11 @@
 
 ## 6. UI
 
-- `Sidebar` (`src/ui/views/sidebar.js`) — глобальная навигация, список
+- `Sidebar` (`client/src/ui/views/sidebar.js`) — глобальная навигация, список
   чатов/комнат, ресайз ширины.
-- `ChatView` (`src/ui/views/chat-view.js`) — сообщения, ввод, стриминг.
+- `ChatView` (`client/src/ui/views/chat-view.js`) — сообщения, ввод, стриминг.
 - `Modal`, `Toast`, `DropZone`, `FileUploader` — компоненты
-  (`src/ui/components/`).
+  (`client/src/ui/components/`).
 - `MessageRenderer`, `MarkdownService` — рендеринг Markdown и кода.
 - Темы: `dark` (`:root` в `main.css`), `light` и `monokai` (`themes.css`).
 
@@ -90,10 +101,45 @@
 4. `SessionManager` сохраняет сессию; `EventBus` уведомляет подписчиков.
 5. Для RAG `RAGManager` ищет чанки и добавляет контекст в запрос.
 
-## 8. Ограничения
+## 8. Бэкенд (`server/`)
+
+`server/` — ASP.NET Core Web API (`netcoreapp3.1`), проект
+`ProjectManager.API`. Хранилище — MS SQL Server через EF Core
+(`Microsoft.EntityFrameworkCore.SqlServer`), точка входа — `Program.cs`
+(`UseStartup<Startup>`).
+
+Слоистая архитектура:
+
+| Слой | Папка | Ответственность |
+|---|---|---|
+| API / Controllers | `server/Controllers/` | REST-эндпоинты, маршрутизация, коды ответов |
+| Services | `server/Services/` | бизнес-логика, интеграция с LM Studio |
+| Data | `server/Data/` | `DbContext`, конфигурация EF Core |
+| Migrations | `server/Migrations/` | миграции схемы БД |
+| Models / DTOs | `server/Models/`, `server/DTOs/` | доменные сущности и контракты API |
+
+Дополнительно: `server/Auth/` (JWT), `server/Middleware/` (обработка
+ошибок, rate limiting), `server/Exceptions/`, `server/Helpers/`,
+`server/Extensions/`.
+
+Поток запроса на сервере:
+
+1. Контроллер принимает HTTP-запрос и валидирует DTO.
+2. `Service` выполняет бизнес-логику (в т.ч. вызовы LM Studio на `8034`).
+3. `Data`/`DbContext` читает и пишет данные в MS SQL Server.
+4. Контроллер возвращает DTO или ошибку через middleware.
+
+Конфигурация — `server/appsettings.json`: строка подключения
+(`ConnectionStrings:DefaultConnection`), `Jwt`, `LmStudio`,
+`ProjectStorage`, `RateLimiting`. Миграции применяются через
+`dotnet ef database update --project server/ProjectManager.API.csproj`.
+
+## 9. Ограничения
 
 - Нет сборщика и типизации; контракты держатся на договорённостях.
 - Часть менеджеров использует PascalCase/camelCase поля API без единой
   нормализации (KI-005).
 - `StatsModule` пока рисует заглушки (KI-006).
 - Нет graceful degradation без бэкенда `8032` (KI-025).
+- `server/` — отдельный .NET-проект со своей версией (`2.4`), не связанный
+  с версией клиента (`6.2`) общей сборкой (KI-052).

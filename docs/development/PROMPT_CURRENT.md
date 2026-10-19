@@ -1,33 +1,36 @@
 <!-- Добавлено в 6.2: PROMPT_CURRENT.md на основе audit-01-docs.md (Фаза 4) -->
+<!-- Изменено в 6.2: монорепозиторий client/ + server/ (KI-052) -->
 # PROMPT_CURRENT.md — Infocom LM Chat Pro
 
 > Актуальный контекст для нового чата/агента. Обновлять при каждом релизе.
-> Версия: v6.2 (`src/config.js`). Пакет: `6.2.0-dev`.
-> HEAD: `d0d389c` (`main`, после PR #4).
-> Обновлено: 2026-10-19.
+> Версия: v6.2 (`client/src/config.js`). Пакет: `6.2.0-dev`.
+> HEAD: `chore/monorepo-migration` (коммит KI-052, поверх `73202dc`).
+> Обновлено: 2026-10-20.
 
 ## 1. Что это
 
 SPA-чат с AI-интеграцией (LM Studio), мультипользовательским режимом,
 RAG, админ-панелью, играми и i18n.
 
-- Клиент: vanilla JS, ES-модули, без сборщика.
+- Клиент: `client/` — vanilla JS, ES-модули, без сборщика.
+- Сервер: `server/` — ASP.NET Core Web API (`netcoreapp3.1`),
+  EF Core + MS SQL Server.
 - Серверы: LM Studio — `8034`; .NET Core API — `8032` (опционально);
   статика/IIS — `8033`.
 - Репозиторий: https://github.com/iilmchat/infocom-lm-chat
 
 ## 2. Метрики
 
-- KI всего: **50** (ID 001–051, `KI-024` отсутствует).
-- **Fixed: 24**; **Open: 18**; In Progress: 2; Documented: 4;
-  Deferred: 1; Won't Fix: 1. Сумма: 50.
-- Приоритеты: Critical — 3; High — 12; Medium — 18; Low — 17.
+- KI всего: **51** (ID 001–052, `KI-024` отсутствует).
+- **Fixed: 25**; **Open: 18**; In Progress: 2; Documented: 4;
+  Deferred: 1; Won't Fix: 1. Сумма: 51.
+- Приоритеты: Critical — 3; High — 12; Medium — 19; Low — 17.
 - SPA-модулей: 7 (Chat, Private, Admin, Games, Profile, Settings, Stats).
-- ES-модулей в `src/`: 67 `.js`.
+- ES-модулей в `client/src/`: 67 `.js`.
 - Тестов: 2 файла (RAGManager, SessionManager). `npm test` сломан:
   нет `tools/run-tests.js` (KI-041).
-- Версия: `src/config.js` — 6.2; `index.html` и локали — 6.2;
-  `package.json` — 6.2.0-dev.
+- Версия: `client/src/config.js` — 6.2; `client/index.html` и локали — 6.2;
+  `client/package.json` — 6.2.0-dev.
 
 ## 3. Следующая задача
 
@@ -39,9 +42,9 @@ RAG, админ-панелью, играми и i18n.
 - План: флаг `offlineMode`; `apiService.pingBackend()` с timeout 2s;
   early return в менеджерах; индикатор «⚪ Бэкенд отключён»; кнопка
   «Повторить подключение».
-- Файлы: `src/app.js`, `src/services/http-client.js`,
-  `src/models/multi-user-manager.js`, `src/ui/views/room-list.js`,
-  `src/services/auth-service.js`, `src/ui/views/chat-view.js`.
+- Файлы: `client/src/app.js`, `client/src/services/http-client.js`,
+  `client/src/models/multi-user-manager.js`, `client/src/ui/views/room-list.js`,
+  `client/src/services/auth-service.js`, `client/src/ui/views/chat-view.js`.
 
 ## 4. Открытые High/Critical
 
@@ -59,7 +62,7 @@ High Open:
 
 ## 5. Архитектура (кратко)
 
-- Точка входа: `index.html` → `src/app.js` (`class App`).
+- Точка входа: `client/index.html` → `client/src/app.js` (`class App`).
 - Ядро: `EventBus` (pub/sub), `Router` (History API), `ErrorBoundary`,
   `Storage`.
 - `App` создаёт глобальный `Sidebar`; `ChatModule` создаёт только
@@ -80,6 +83,10 @@ High Open:
 - Темы: dark (`:root`), light, monokai.
 - localStorage: `chat_sessions_v5`, `chat_theme`, `app_language`,
   `sidebar_width`, `server_config`, `user_profile`.
+- Бэкенд (`server/`) — слоистая архитектура: `Controllers` → `Services`
+  → `Data` (`DbContext`) → `Migrations`; MS SQL Server, JWT (`server/Auth/`),
+  middleware (ошибки, rate limiting). Конфигурация —
+  `server/appsettings.json`.
 
 ## 6. Текущие задачи v6.2
 
@@ -105,6 +112,12 @@ High Open:
 
 ## 8. Известные ловушки
 
+- Клиент теперь в `client/`: пути `src/...` и `index.html` в корне
+  не работают — только `client/...`.
+- Статика раздаётся из `client/`, а не из корня (KI-052).
+- `server/bin` и `server/obj` — в `.gitignore`, не коммитить.
+- `server/appsettings.json` содержит строку подключения и JWT-ключ:
+  перед коммитом `server/` проверить секреты.
 - Без API `8032` — поток `ERR_CONNECTION_REFUSED` (KI-025).
 - `locales/en.js` всё ещё на русском (KI-002).
 - Смешение `Id`/`id` в API-моделях (KI-005).
@@ -117,7 +130,9 @@ High Open:
 
 ## 9. Как проверить
 
-1. Запустить статику на `8033`, LM Studio на `8034`; API `8032` — опционально.
+1. Запустить статику из `client/` на `8033` (или `tools/scripts/start-python.sh`),
+   LM Studio на `8034`; API `8032` — опционально
+   (`dotnet run --project server/ProjectManager.API.csproj --urls http://localhost:8032`).
 2. Открыть `/`, `/private`, `/admin`, `/games`, `/profile`, `/settings`, `/stats`.
 3. Проверить консоль, переключение тем, профиль (модалку и страницу),
    уведомления, ресайз sidebar.
