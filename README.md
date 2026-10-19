@@ -1,32 +1,32 @@
+<!-- Изменено в 6.2: README переписан (KI-026, KI-042) -->
 # Infocom LM Chat Pro
-
-> SPA-чат с AI-интеграцией (LM Studio), мультипользовательским режимом,
-> RAG, админ-панелью, играми и i18n.
-
-**Текущая версия:** 6.1 → в работе 6.2 (см. `CHANGELOG.md`)
-**Стек:** Vanilla JS (ES-модули) · HTML5 · CSS3 · .NET Core 3.1 API · MS SQL Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+> SPA-чат с AI-интеграцией (LM Studio), RAG, приватными чатами, админ-панелью, играми и i18n.
 
-## 📋 Содержание
-
-1. [Требования](#-требования)
-2. [Быстрый старт](#-быстрый-старт)
-3. [Развёртывание на IIS](#-развёртывание-на-iis)
-4. [Структура проекта](#-структура-проекта)
-5. [Основные функции](#-основные-функции)
-6. [Горячие клавиши](#-горячие-клавиши)
-7. [Известные проблемы](#-известные-проблемы)
-8. [Участие в разработке](#-участие-в-разработке)
-9. [Лицензия](#-лицензия)
+**Текущая версия:** v6.2 · **Стек:** Vanilla JS (ES-модули) · HTML5 · CSS3 · .NET Core API · MS SQL Server<br>
+**Репозиторий:** [github.com/iilmchat/infocom-lm-chat](https://github.com/iilmchat/infocom-lm-chat)
 
 ---
 
-## 🖥️ Требования
+## Содержание
 
-### Для полного функционала нужны три сервера
+1. [Требования](#требования)
+2. [Быстрый старт](#быстрый-старт)
+3. [Развёртывание на IIS](#развёртывание-на-iis)
+4. [Структура проекта](#структура-проекта)
+5. [Основные функции](#основные-функции)
+6. [Горячие клавиши](#горячие-клавиши)
+7. [Известные проблемы](#известные-проблемы)
+8. [Участие в разработке](#участие-в-разработке)
+9. [Документация](#документация)
+
+---
+
+## Требования
+
+Для полного функционала нужны три сервера:
 
 | Сервис | Порт | Обязателен | Назначение |
 |---|---|---|---|
@@ -34,17 +34,16 @@
 | **.NET Core API** | `8032` | ⚠️ Опционально | Комнаты, приватные чаты, пользователи, админка |
 | **Статический сервер** | `8033` | ✅ Да | Раздача SPA |
 
-> ⚠️ **Без бэкенда на 8032** приложение работает в режиме одиночного чата
-> с LM Studio, но консоль покажет `ERR_CONNECTION_REFUSED` для комнат
-> и приватных чатов. Это ожидаемо (см. [KI-025](docs/KNOWN_ISSUES.md)).
+> Без бэкенда на `8032` приложение работает в режиме одиночного чата
+> с LM Studio, но в консоли будут `ERR_CONNECTION_REFUSED` для комнат
+> и приватных чатов. Это известно и описано в
+> [KI-025](docs/KNOWN_ISSUES.md).
 
-### Браузеры
-
-Chrome 90+, Firefox 88+, Edge 90+, Safari 15+ (нужна поддержка ES-модулей).
+**Браузеры:** Chrome 90+, Firefox 88+, Edge 90+, Safari 15+ (нужна поддержка ES-модулей).
 
 ---
 
-## 🚀 Быстрый старт
+## Быстрый старт
 
 ### 1. Клонирование
 
@@ -53,15 +52,16 @@ git clone https://github.com/iilmchat/infocom-lm-chat.git
 cd infocom-lm-chat
 ```
 
-2. Запуск LM Studio
-Скачать: https://lmstudio.ai/
-Загрузить модель, перейти в раздел Local Server, нажать Start Server.
-По умолчанию поднимется на http://127.0.0.1:8034.
+### 2. Запуск LM Studio
 
-3. Запуск статического сервера
-Выберите один из вариантов:
+1. Скачайте [LM Studio](https://lmstudio.ai/).
+2. Загрузите модель.
+3. Откройте **Local Server** и нажмите **Start Server**.
+4. По умолчанию сервер поднимется на `http://127.0.0.1:8034`.
 
-bash
+### 3. Запуск статического сервера
+
+```bash
 # Python
 python -m http.server 8033
 
@@ -70,72 +70,60 @@ npx.cmd serve . -l 8033
 
 # Node.js (live-server, с автоперезагрузкой)
 npx.cmd live-server --port=8033
-Готовые скрипты — в tools/scripts/:
+```
 
-start-python.sh
+Готовые скрипты лежат в `tools/scripts/`.
 
-start-live-server.sh
+### 4. Открыть в браузере
 
-4. Открыть в браузере
-text
+```text
 http://localhost:8033/
-Развёртывание на IIS
-Проект содержит web.config в корне с настройками для IIS (порт 8033).
+```
 
-Что нужно
-IIS 10+ с установленными ролями:
+---
 
-Static Content
+## Развёртывание на IIS
 
-URL Rewrite Module 2.0 (скачать)
+Проект содержит `web.config` в корне — конфигурацию для IIS (порт `8033`).
 
-Настройка сайта в IIS Manager:
+**Что нужно:**
 
-Physical path: путь к папке проекта
+- IIS 10+ с ролью **Static Content**;
+- [URL Rewrite Module 2.0](https://www.iis.net/downloads/microsoft/url-rewrite);
+- Application Pool с **No Managed Code** (это статика).
 
-Binding: http://<host>:8033
+**Что настраивает `web.config`:**
 
-Application Pool: .NET CLR version — «No Managed Code» (это статика)
+- SPA-роутинг: не-файловые запросы перенаправляются на `index.html`;
+- MIME-типы для `.mjs`, `.json`, `.webmanifest`;
+- кеширование статики и сжатие;
+- заголовки безопасности (`X-Content-Type-Options`, `X-Frame-Options`).
 
-Что настраивает web.config
-SPA-роутинг: все не-файловые запросы перенаправляются на index.html
+Если URL Rewrite не установлен, в `web.config` есть закомментированный
+fallback через `httpErrors` — SPA будет работать, но с HTTP-статусом `404`.
 
-MIME-типы для .mjs, .json, .webmanifest
+---
 
-Кеширование статики на 7 дней
+## Структура проекта
 
-Сжатие (gzip/deflate)
-
-Заголовки безопасности: X-Content-Type-Options, X-Frame-Options
-
-Если URL Rewrite не установлен
-В web.config есть закомментированный fallback через httpErrors.
-Раскомментируйте его — SPA будет работать, но с HTTP-статусом 404
-(см. KI-023 в docs/KNOWN_ISSUES.md).
-
-Структура проекта
-text
+```text
 infocom-lm-chat/
 ├── index.html              # SPA-оболочка
-├── web.config              # Конфиг IIS (порт 8033)
+├── web.config              # Конфигурация IIS (порт 8033)
 ├── package.json            # Метаданные и npm-скрипты
-├── LICENSE                 # MIT
-├── README.md               # Этот файл
 ├── CHANGELOG.md            # История версий
 ├── CONTRIBUTING.md         # Правила участия
-├── .gitignore
-├── .editorconfig
+├── LICENSE                 # MIT
+├── README.md               # Этот файл
 │
 ├── docs/                   # Документация
+│   ├── README.md           # Хаб документации
 │   ├── API.md              # Справочник REST API
-│   ├── PROJECT_OVERVIEW.md # Обзор проекта
 │   ├── KNOWN_ISSUES.md     # Реестр проблем (KI-XXX)
-│   ├── PROMPT_FOR_NEW_CHAT.md  # Контекст для нового чата
+│   ├── PROJECT_OVERVIEW.md # Обзор проекта
+│   ├── development/        # Отчёты и процессы разработки
+│   ├── planning/           # Roadmap и спецификации
 │   └── archive/            # Исторические материалы
-│       ├── snapshots/      # Снапшоты кода
-│       ├── mini-metro/     # Итерации разработки Mini Metro
-│       ├── legacy/         # Legacy-код (syntax-highlighter, modals)
-│       └── v5.2/, v5.3/, v6.x/  # Заметки по версиям
 │
 ├── src/                    # Исходный код (ES-модули)
 │   ├── app.js              # Точка входа
@@ -143,7 +131,7 @@ infocom-lm-chat/
 │   ├── core/               # EventBus, Router, ErrorBoundary
 │   ├── games/              # Движки игр
 │   ├── models/             # Менеджеры (Session, RAG, MultiUser)
-│   ├── modules/            # SPA-модули (Chat, Admin, Games)
+│   ├── modules/            # SPA-модули (Chat, Admin, Games, …)
 │   ├── services/           # Сервисы (API, i18n, Auth, Markdown)
 │   ├── styles/             # CSS
 │   ├── ui/                 # Компоненты и рендереры
@@ -151,110 +139,115 @@ infocom-lm-chat/
 │
 ├── locales/                # Переводы (ru.js, en.js)
 ├── tests/                  # Unit-тесты
-├── tools/                  # Утилиты разработчика
-│   ├── inventory.ps1       # Инвентаризация проекта
-│   ├── cleanup.ps1         # Уборка legacy
-│   ├── organize-docs.ps1   # Раскладка docs/
-│   ├── build-archive.mjs   # Генератор снапшотов кода
-│   ├── archive/
-│   └── scripts/            # Скрипты запуска
-│
-└── vendor/                 # Сторонние библиотеки (highlight, marked, purify)
-Основные функции
-Чат с ИИ
-Потоковая генерация ответов через LM Studio
+├── tools/                  # Скрипты разработчика
+└── vendor/                 # Сторонние библиотеки
+```
 
-Markdown + подсветка кода (marked + highlight.js)
+---
 
-Ответы на сообщения, редактирование, перегенерация
+## Основные функции
 
-Экспорт диалога: TXT / JSON / Markdown / PDF
+**Чат с ИИ**
 
-RAG
-Загрузка документов (TXT, MD, PDF, DOCX)
+- потоковая генерация ответов через LM Studio;
+- Markdown и подсветка кода (`marked` + `highlight.js`);
+- ответы на сообщения, редактирование, перегенерация;
+- экспорт диалога в TXT, JSON, Markdown и PDF.
 
-Векторный поиск по чанкам (text-embedding-nomic-embed-text-v1.5)
+**RAG**
 
-Отображение источников с релевантностью
+- загрузка документов TXT, MD, PDF, DOCX;
+- векторный поиск по чанкам;
+- отображение источников с релевантностью.
 
-Мультипользовательский режим
-Общие комнаты (Long Polling)
+**Приватные чаты и мультипользовательский режим**
 
-Приватные чаты (сообщения, реакции, упоминания, жалобы)
+- общие комнаты через Long Polling;
+- приватные сообщения, реакции, упоминания, жалобы;
+- уведомления и бейджи непрочитанных;
+- роли Admin / Manager / User / Guest.
 
-Уведомления, бейджи непрочитанных
+**Админ-панель**
 
-Роли: Admin / Manager / User / Guest
+- управление пользователями (бан, мут, кик, роли);
+- управление комнатами (очистка, удаление, закрытие, экспорт);
+- расширенный поиск по сообщениям;
+- логи модерации.
 
-Админ-панель
-Управление пользователями (бан, мут, кик, роли)
+**Игры**
 
-Управление комнатами (очистка, удаление, закрытие, экспорт)
+- 2048, Змейка, Тетрис, Block Blast, Mini Metro.
 
-Расширенный поиск по сообщениям с фильтрами
+**Персонализация**
 
-Логи модерации
+- три темы: dark, light, monokai;
+- аватары: emoji / инициалы / изображение;
+- i18n (частично): ru, en;
+- 20 достижений.
 
-Игры
-2048, Змейка, Тетрис, Block Blast, Mini Metro
+**SPA-страницы**
 
-Персонализация
-3 темы: dark, light, monokai
+`/` — чат, `/private` — приватные, `/admin` — админка, `/games` — игры,
+`/profile` — профиль, `/settings` — настройки, `/stats` — статистика.
 
-Аватары: emoji / инициалы / изображение
+---
 
-i18n (частично): ru, en
+## Горячие клавиши
 
-20 достижений
+| Клавиши | Действие |
+|---|---|
+| `Ctrl+Enter` | Отправить сообщение |
+| `Shift+Enter` | Перенос строки |
+| `Ctrl+Up` / `Ctrl+Down` | История ввода |
+| `Escape` | Закрыть модальное окно / отменить ответ |
+| `/` | Фокус на поле ввода |
+| `Ctrl+W` | Открыть/закрыть Вики |
+| `Ctrl+E` | Экспорт диалога |
+| `Ctrl+S` | Открыть окно «Поделиться» |
 
-SPA-страницы
-/ — чат с ИИ
+---
 
-/private — приватные чаты
+## Известные проблемы
 
-/admin — админ-панель
+Полный реестр — в [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
-/games — игры
+| ID | Описание | Приоритет |
+|---|---|---|
+| KI-002 | `locales/en.js` содержит русские строки | High |
+| KI-005 | Дублирование полей `Id`/`id` в моделях | High |
+| KI-025 | Нет graceful degradation без бэкенда | High |
+| KI-006 | `StatsModule` использует заглушки вместо графиков | Medium |
+| KI-011 | Нет тестов на i18n, NotificationManager, WorkspaceManager | Medium |
 
-/profile — профиль
+---
 
-/settings — настройки сервера
+## Участие в разработке
 
-/stats — статистика
+Правила участия — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Горячие клавиши
-Клавиши	Действие
-Ctrl+Enter	Отправить сообщение
-Shift+Enter	Перенос строки
-Ctrl+Up / Ctrl+Down	История ввода
-Escape	Закрыть модальное окно / отменить ответ
-/	Фокус на поле ввода
-Ctrl+W	Открыть/закрыть Вики
-Ctrl+E	Экспорт диалога
-Ctrl+S	Открыть окно «Поделиться»
-Известные проблемы
-Полный реестр — в docs/KNOWN_ISSUES.md.
+Кратко:
 
-Ключевые открытые проблемы:
+- любая проблема фиксируется в `docs/KNOWN_ISSUES.md`;
+- ветки: `feature/<name>`, `fix/<name>`, `docs/<name>`;
+- коммиты — Conventional Commits: `feat(sidebar): ...`, `fix(i18n): ...`;
+- в коммите — ссылка на KI: `Closes KI-003`.
 
-ID	Описание	Приоритет
-KI-003	Sidebar не глобальный (внутри #app-chat)	Critical
-KI-004	NotificationManager.addNotification() не реализован	High
-KI-025	Нет graceful degradation без бэкенда	High
-KI-007	i18n покрывает менее 5% строк	Medium
-KI-006	StatsModule использует заглушки вместо графиков	Medium
-Участие в разработке
-Правила — в CONTRIBUTING.md. Кратко:
+Процессные документы и правила разработки будут в `docs/development/`.
 
-Любая проблема — запись в docs/KNOWN_ISSUES.md с номером KI-XXX
+---
 
-Ветки: feature/<name>, fix/<name>, chore/<name>
+## Документация
 
-Коммиты — Conventional Commits: feat(sidebar): ..., fix(i18n): ...
+- [Хаб документации](docs/README.md)
+- [REST API](docs/API.md)
+- [Реестр проблем](docs/KNOWN_ISSUES.md)
+- [Обзор проекта](docs/PROJECT_OVERVIEW.md)
+- [История версий](CHANGELOG.md)
 
-В конце коммита — ссылка на KI: Closes KI-003
+---
 
-Лицензия
-MIT — см. LICENSE.
+## Лицензия
 
-© 2026 RuChating (iilmchat) · Infocom LM Chat Pro
+MIT — см. [LICENSE](LICENSE).
+
+**© 2026 RuChating (iilmchat) · Infocom LM Chat Pro v6.2**
