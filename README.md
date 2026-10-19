@@ -51,6 +51,7 @@ Chrome 90+, Firefox 88+, Edge 90+, Safari 15+ (нужна поддержка ES-
 ```bash
 git clone https://github.com/iilmchat/infocom-lm-chat.git
 cd infocom-lm-chat
+```
 
 2. Запуск LM Studio
 Скачать: https://lmstudio.ai/
