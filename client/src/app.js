@@ -142,7 +142,8 @@ class App {
         this.api = new ApiService(this.eventBus);
 
         // Добавлено в 5.1: Сервис аутентификации и управления сессиями
-        this.authService = new AuthService(this.eventBus);
+        /* Изменено в 6.2 (KI-025): передаём App, чтобы restoreSession знал про offlineMode */
+        this.authService = new AuthService(this.eventBus, this);
         // Добавлено в 5.2: сервис Markdown
         this.markdownService = markdownService;
 
@@ -181,6 +182,9 @@ class App {
         
         // Флаг обработки запроса (блокировка повторных отправок)
         this.isProcessing = false;
+
+        /* Изменено в 6.2 (KI-025): офлайн-режим, если .NET-бэкенд (8032) недоступен */
+        this.offlineMode = false;
         
         // Контроллер для отмены потоковых запросов
         this.streamAbortController = null;
@@ -620,6 +624,25 @@ class App {
         // Проверка доступности сервера
         await this.api.checkServer();
 
+        /* Добавлено в 6.2 (KI-025): быстрая проверка .NET-бэкенда (8032).
+           Если он недоступен — включаем офлайн-режим (одиночный чат с LM Studio). */
+        const isBackendAlive = await this.apiService.pingBackend();
+        this.offlineMode = !isBackendAlive;
+
+        const statusDisplay = document.getElementById('statusDisplay');
+        if (this.offlineMode) {
+            /* Изменено в 6.2 (KI-025): индикатор и уведомление об офлайн-режиме */
+            this.toast.warning('Бэкенд недоступен. Включен офлайн-режим.');
+            if (statusDisplay) {
+                statusDisplay.textContent = '⚪ Офлайн (Сервер выключен)';
+                statusDisplay.style.color = 'var(--warning-color)';
+            }
+        } else if (statusDisplay && this.api.isConnected) {
+            /* Изменено в 6.2 (KI-025): бэкенд доступен, LM Studio тоже */
+            statusDisplay.textContent = '● Сервер доступен';
+            statusDisplay.style.color = 'var(--text-accent)';
+        }
+
         /* Изменено в 6.2: синхронизируем текущую модель с ApiService ПОСЛЕ fetchModels (KI-029).
            Если ApiService загрузил список моделей, он уже выбрал правильную currentModel. */
         if (this.api.currentModel) {
@@ -652,8 +675,10 @@ class App {
         //this.multiUserManager.startSimulation();
 
         // Добавлено в 5.1: Проверка сессии при загрузке
-        // Восстановление сессии     
-        const user = await this.authService.restoreSession();
+        // Восстановление сессии
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме не восстанавливаем сессию
+           и не открываем форму входа — работаем как одиночный чат. */
+        const user = this.offlineMode ? null : await this.authService.restoreSession();
         if (user) {
             // Пользователь уже авторизован
             this.multiUserManager.localUser = user;
@@ -668,7 +693,7 @@ class App {
             this.updateAuthUI();
             // Загружаем уведомления
             this.notificationManager.fetchNotifications(true);
-        } else {
+        } else if (!this.offlineMode) {
             // Показываем форму входа
             //this.authModal.open(); // Удалено 5.3
             this.profileModal.open();  // Показываем вход 5.4
@@ -1601,6 +1626,11 @@ class App {
         const connectBtn = document.getElementById('connectBtn');
         if (connectBtn) {
             connectBtn.addEventListener('click', async () => {
+                /* Изменено в 6.2 (KI-025): в офлайн-режиме не пытаемся подключиться */
+                if (this.offlineMode) {
+                    this.toast.warning('Мультиплеер недоступен в офлайн-режиме');
+                    return;
+                }
                 if (this.multiUserManager.isConnected) {
                     // Отключение
                     await this.multiUserManager.leaveRoom();

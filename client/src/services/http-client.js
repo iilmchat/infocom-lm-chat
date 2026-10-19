@@ -113,6 +113,40 @@ export class ChatApiClient {
         }
     }
 
+    /**
+     * Быстрая проверка доступности .NET-бэкенда (offline-mode).
+     * Не выбрасывает исключение: любая ошибка или таймаут означают `false`.
+     * @returns {Promise<boolean>}
+     */
+    async pingBackend() {
+        /* Изменено в 6.2 (KI-025): добавлен ping бэкенда с таймаутом 2000 мс */
+        let timeoutId = null;
+        let signal;
+
+        if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+            signal = AbortSignal.timeout(2000);
+        } else {
+            /* Фолбэк для браузеров без AbortSignal.timeout (Chrome < 103) */
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), 2000);
+            signal = controller.signal;
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}/sync/ping`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                signal
+            });
+            return response.ok;
+        } catch (error) {
+            /* Бэкенд выключен или не ответил за 2 с — это штатный офлайн-режим */
+            return false;
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+        }
+    }
+
     // === Методы API ===
 
     /**

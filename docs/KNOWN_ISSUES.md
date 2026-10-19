@@ -568,8 +568,11 @@
 ## KI-025 — Нет graceful degradation при отсутствии бэкенда (порт 8032)
 
 - **Приоритет:** 🟠 High (UX)
-- **Статус:** Open
+<!-- Изменено в 6.2: KI-025 исправлен — реализован offline-mode -->
+- **Статус:** Fixed (v6.2)
+- **Исправлено в:** v6.2
 - **Дата открытия:** 2026-09-17
+- **Дата закрытия:** 2026-10-20
 - **Описание:**
   При запуске приложения без бэкенд-сервера на `127.0.0.1:8032` консоль
   заполняется `ERR_CONNECTION_REFUSED` (5+ источников):
@@ -578,33 +581,41 @@
   - `MultiUserManager.fetchUserInfo` — инфо о пользователе
   - `AuthService.getUser` / `restoreSession` — сессия
   Каждый падает с `TypeError: Failed to fetch`, ErrorBoundary логирует.
-  
+
   Приложение **продолжает работать** (чат с LM Studio на 8034 доступен),
   но UX плохой: непонятно, что бэкенд — опциональная часть.
-
-- **План:**
-  1. Добавить флаг `offlineMode` в `App` и/или `CONFIG`.
-  2. На старте — проверка `apiService.pingBackend()` (быстрый HEAD/POST
-     на `http://127.0.0.1:8032/api/sync/ping` с timeout 2s).
-  3. Если недоступен — выставить `offlineMode = true`, показать
-     уведомление: «Бэкенд недоступен. Работаем в режиме одиночного чата».
-  4. В `MultiUserManager`, `RoomList`, `AuthService` — early return,
-     если `offlineMode`.
-  5. В UI — индикатор «⚪ Бэкенд отключён» в шапке.
-  6. Опционально: кнопка «Повторить подключение».
-  
+- **Решение:**
+  1. `ChatApiClient.pingBackend()` — `GET ${baseUrl}/sync/ping` с
+     `AbortSignal.timeout(2000)`; возвращает `true` только при
+     `response.ok`, при любой ошибке/таймауте — `false`.
+  2. `App.init()` после `api.checkServer()` вычисляет
+     `this.offlineMode = !(await this.apiService.pingBackend())`.
+     При офлайне: toast «Бэкенд недоступен. Включен офлайн-режим.»,
+     `#statusDisplay` → «⚪ Офлайн (Сервер выключен)»,
+     цвет `var(--warning-color)`. При доступном бэкенде (и LM Studio) —
+     «● Сервер доступен».
+  3. Early return при `offlineMode`:
+     `NotificationManager.fetchNotifications` / `startPolling`,
+     `MultiUserManager.connectToServer` / `loadPrivateChats` /
+     `getUnreadCount`, `RoomList.loadRooms` / `createRoom` /
+     `searchRooms`, `AuthService.restoreSession` (возвращает `null`).
+     Сетевые запросы не выполняются.
+  4. `App.init()` при офлайне не вызывает `restoreSession`,
+     `fetchNotifications`, `connectToServer` и не открывает форму входа.
+  5. `Sidebar.render()` показывает в списке комнат «Мультиплеер
+     недоступен в офлайн-режиме» и не вызывает `loadRooms()`.
+  6. Кнопка `#connectBtn` при офлайне показывает warning и не делает
+     запрос.
 - **Затронутые файлы:**
-  - `src/app.js`
-  - `src/services/http-client.js` (метод `pingBackend`)
-  - `src/models/multi-user-manager.js`
-  - `src/ui/views/room-list.js`
-  - `src/services/auth-service.js`
-  - `src/ui/views/chat-view.js` (индикатор)
-  - `README.md` (раздел «Требования»)
-
-- **Связанные:** нет
-- **Примечание:** решено делать **после первого публичного коммита**,
-  отдельной веткой `feature/offline-mode`.
+  - `client/src/services/http-client.js` (`pingBackend`)
+  - `client/src/app.js` (`offlineMode`, `init`)
+  - `client/src/models/notification-manager.js`
+  - `client/src/models/multi-user-manager.js`
+  - `client/src/ui/views/room-list.js`
+  - `client/src/services/auth-service.js`
+  - `client/src/ui/views/sidebar.js`
+- **Проверка:** [smoke-02-offline.md](development/reports/v6.2/smoke-02-offline.md)
+- **Связанные:** KI-030 (внешний API ProjectManager — не наш бэкенд)
 
 ---
 
@@ -1291,19 +1302,20 @@
 <!-- Добавлено в 6.2: сводка на 2026-10-19 -->
 <!-- Изменено в 6.2: сводка обновлена после закрытия KI-026/032/035/036/039/040/042 -->
 <!-- Изменено в 6.2: добавлен KI-052 (монорепозиторий), всего 51 -->
+<!-- Изменено в 6.2: KI-025 исправлен (offline-mode) -->
 ## Сводка
 
 - Всего KI: 51
-- Fixed: 25 (включая KI-031 Fixed (Partial))
-- Open: 18
+- Fixed: 26 (включая KI-031 Fixed (Partial))
+- Open: 17
 - In Progress: 2
 - Documented: 4
 - Deferred: 1
 - Won't Fix: 1
 - Пропущенные: KI-024 (Documented — KI-047)
 
-Сумма статусов: 25 + 18 + 2 + 4 + 1 + 1 = 51. Совпадает с числом заголовков.
+Сумма статусов: 26 + 17 + 2 + 4 + 1 + 1 = 51. Совпадает с числом заголовков.
 
 Примечание: `KI-024` — пропуск в нумерации, а не отдельный заголовок;
 он задокументирован в KI-047. KI-052 добавлен при переходе на
-монорепозиторий (`client/` + `server/`).
+монорепозиторий (`client/` + `server/`); KI-025 закрыт офлайн-режимом.
