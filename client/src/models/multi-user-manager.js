@@ -455,6 +455,11 @@ export class MultiUserManager {
      * Подключение к серверу через HTTP API + Polling
      */
     async connectToServer(roomId = null, connectionMode = 'polling') {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме к бэкенду не подключаемся */
+        if (this.app?.offlineMode) {
+            this.isConnected = false;
+            return false;
+        }
         try {
             this.connectionMode = connectionMode;
             
@@ -1035,6 +1040,8 @@ export class MultiUserManager {
      */
     // 5.3 В loadPrivateChats можно загружать чаты, сохранённые в workspace    
     async loadPrivateChats() {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме приватные чаты недоступны */
+        if (this.app?.offlineMode) return [];
         try {
             const result = await this.api.getUserChats(this.localUser.Id);
             if (result.success) {
@@ -1133,6 +1140,8 @@ export class MultiUserManager {
      * {Promise<number>} Количество непрочитанных
      */
     async getUnreadCount() {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме счётчик не запрашиваем */
+        if (this.app?.offlineMode) return 0;
         try {
             const result = await this.api.getUnreadCount(this.localUser.Id);
             if (result.success) {

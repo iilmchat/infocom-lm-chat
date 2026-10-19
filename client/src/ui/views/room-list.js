@@ -14,6 +14,8 @@ export class RoomList {
     }
 
     async loadRooms() {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме комнаты не загружаем */
+        if (this.app.offlineMode) return;
         try {
             const result = await this.app.apiService.getRooms();
             if (result.success) {
@@ -83,6 +85,11 @@ export class RoomList {
     }
 
     async createRoom(name) {
+        /* Изменено в 6.2 (KI-025): создание комнат недоступно в офлайн-режиме */
+        if (this.app.offlineMode) {
+            this.app.toast.warning('Мультиплеер недоступен в офлайн-режиме');
+            return;
+        }
         try {
             const result = await this.app.apiService.createRoom({
                 name: name,
@@ -98,6 +105,8 @@ export class RoomList {
     }
 
     async searchRooms(query) {
+        /* Изменено в 6.2 (KI-025): поиск комнат недоступен в офлайн-режиме */
+        if (this.app.offlineMode) return;
         if (!query || query.length < 2) {
             await this.loadRooms();
             return;

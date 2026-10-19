@@ -26,6 +26,8 @@ export class NotificationManager {
      * @param {boolean} onlyUnread - Только непрочитанные
      */
     async fetchNotifications(onlyUnread = true) {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме бэкенд не опрашиваем */
+        if (this.app.offlineMode) return;
         try {
             const result = await this.app.apiService.getNotifications({
                 userId: this.app.multiUserManager.localUser.Id,
@@ -159,7 +161,12 @@ export class NotificationManager {
     }
 
     startPolling() {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме не запускаем опрос уведомлений */
+        if (this.app.offlineMode) return;
         this.pollInterval = setInterval(() => {
+            /* Изменено в 6.2 (KI-025): polling создаётся в конструкторе до init(),
+               поэтому флаг проверяем и в колбэке */
+            if (this.app.offlineMode) return;
             if (this.app.multiUserManager.isConnected) {
                 this.fetchNotifications(true);
             }

@@ -6,8 +6,10 @@ import { ChatApiClient } from './http-client.js';
  * Сервис аутентификации и управления сессиями
  */
 export class AuthService {
-    constructor(eventBus) {
+    constructor(eventBus, app = null) {
         this.eventBus = eventBus;
+        /* Изменено в 6.2 (KI-025): ссылка на App для проверки offlineMode */
+        this.app = app;
         //this.api = new ApiService(eventBus);
         this.api = new ChatApiClient(eventBus);
         this.currentUserId = null;
@@ -73,6 +75,8 @@ export class AuthService {
      * @returns {Promise<Object|null>} - данные пользователя или null
      */
     async restoreSession() {
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме не делаем fetch — сессии нет */
+        if (this.app?.offlineMode) return null;
         let userId = localStorage.getItem('userId');
         const stored = localStorage.getItem('user_profile');
         if (stored) {

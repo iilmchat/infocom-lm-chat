@@ -29,8 +29,16 @@ export class Sidebar {
         this.updateStats();
         this.renderPrivateChats();
         this.renderUnreadBadge();
-        // Добавлено в 5.1: загрузка комнат
-        this.roomList.loadRooms();
+        /* Изменено в 6.2 (KI-025): в офлайн-режиме комнаты не загружаем,
+           а в списке показываем причину */
+        if (this.app.offlineMode) {
+            if (this.roomList.container) {
+                this.roomList.container.innerHTML = '<div style="padding:8px;color:var(--text-secondary);font-size:12px;">Мультиплеер недоступен в офлайн-режиме</div>';
+            }
+        } else {
+            // Добавлено в 5.1: загрузка комнат
+            this.roomList.loadRooms();
+        }
         this.renderWorkspaces();   /* Добавлено в 5.3 */        
         // Обновляем состояния секций после рендеринга
         this.updateSectionStates();        

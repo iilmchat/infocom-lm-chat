@@ -4,7 +4,7 @@
 
 > Актуальный контекст для нового чата/агента. Обновлять при каждом релизе.
 > Версия: v6.2 (`client/src/config.js`). Пакет: `6.2.0-dev`.
-> HEAD: `chore/monorepo-migration` (коммит KI-052, поверх `73202dc`).
+> HEAD: `feature/offline-mode` (коммит KI-025, поверх `059c97a`).
 > Обновлено: 2026-10-20.
 
 ## 1. Что это
@@ -22,7 +22,7 @@ RAG, админ-панелью, играми и i18n.
 ## 2. Метрики
 
 - KI всего: **51** (ID 001–052, `KI-024` отсутствует).
-- **Fixed: 25**; **Open: 18**; In Progress: 2; Documented: 4;
+- **Fixed: 26**; **Open: 17**; In Progress: 2; Documented: 4;
   Deferred: 1; Won't Fix: 1. Сумма: 51.
 - Приоритеты: Critical — 3; High — 12; Medium — 19; Low — 17.
 - SPA-модулей: 7 (Chat, Private, Admin, Games, Profile, Settings, Stats).
@@ -34,17 +34,12 @@ RAG, админ-панелью, играми и i18n.
 
 ## 3. Следующая задача
 
-**KI-025 — Offline-mode / graceful degradation без бэкенда.**
+**KI-025 — Offline-mode / graceful degradation — сделано** (ветка
+`feature/offline-mode`, отчёт
+[smoke-02-offline.md](reports/v6.2/smoke-02-offline.md)).
 
-- Приоритет: 🟠 High.
-- Проблема: без API на `8032` консоль заполняется `ERR_CONNECTION_REFUSED`
-  из `RoomList`, `MultiUserManager`, `AuthService`.
-- План: флаг `offlineMode`; `apiService.pingBackend()` с timeout 2s;
-  early return в менеджерах; индикатор «⚪ Бэкенд отключён»; кнопка
-  «Повторить подключение».
-- Файлы: `client/src/app.js`, `client/src/services/http-client.js`,
-  `client/src/models/multi-user-manager.js`, `client/src/ui/views/room-list.js`,
-  `client/src/services/auth-service.js`, `client/src/ui/views/chat-view.js`.
+Дальше — High-задачи: **KI-002** (`locales/en.js` на английском) и
+**KI-005** (`Id`/`id` в моделях).
 
 ## 4. Открытые High/Critical
 
@@ -53,8 +48,7 @@ Critical Open: нет.
 High Open:
 
 - KI-002 — `locales/en.js` содержит русские строки;
-- KI-005 — дублирование `Id`/`id`, `Name`/`name`, `Avatar`/`avatar`;
-- KI-025 — нет offline-mode (следующая задача).
+- KI-005 — дублирование `Id`/`id`, `Name`/`name`, `Avatar`/`avatar`.
 
 `KI-032`, `KI-035`, `KI-036`, `KI-031` уже закрыты/частично закрыты;
 `KI-029` исправлен в коде. Не доверять статусам без проверки:
@@ -96,7 +90,7 @@ High Open:
 - D. Уведомления в приватных чатах — сделано (KI-004, KI-027).
 - E. Реальные графики StatsModule — не начато (KI-006).
 - F. Фиксы после рефакторинга — KI-035, KI-036, KI-032 закрыты.
-- G. **Следующая задача — KI-025 (Offline-mode).**
+- G. KI-025 (Offline-mode) — сделано (2026-10-20).
 
 ## 7. Правила и ссылки
 
@@ -107,6 +101,7 @@ High Open:
 - [GUIDE.md](../user-guide/GUIDE.md) — руководство пользователя.
 - [MANUAL_TESTING_GUIDE.md](../qa/MANUAL_TESTING_GUIDE.md) — ручное тестирование.
 - [Smoke v6.2](reports/v6.2/smoke-01-static.md) — static smoke.
+- [Offline smoke v6.2](reports/v6.2/smoke-02-offline.md) — KI-025.
 - [../../README.md](../../README.md) — витрина.
 - [../../CHANGELOG.md](../../CHANGELOG.md) — история версий.
 
@@ -118,7 +113,9 @@ High Open:
 - `server/bin` и `server/obj` — в `.gitignore`, не коммитить.
 - `server/appsettings.json` содержит строку подключения и JWT-ключ:
   перед коммитом `server/` проверить секреты.
-- Без API `8032` — поток `ERR_CONNECTION_REFUSED` (KI-025).
+- Офлайн-режим (KI-025): при выключенном `8032` клиент работает как
+  одиночный чат; ровно один `ERR_CONNECTION_REFUSED` в консоли — это
+  штатный `pingBackend()`.
 - `locales/en.js` всё ещё на русском (KI-002).
 - Смешение `Id`/`id` в API-моделях (KI-005).
 - `npm test` падает: нет `tools/run-tests.js` (KI-041).
@@ -141,3 +138,7 @@ High Open:
 5. Проверить Markdown: все fence закрыты, таблицы с `|`, ссылки живые.
 6. `pwsh -ExecutionPolicy Bypass -File tools/check-ki.ps1` — сумма
    статусов должна совпадать с числом KI.
+7. Офлайн: выключить `8032`, перезагрузить страницу. Ожидается статус
+   «⚪ Офлайн (Сервер выключен)», сообщение в списке комнат, работающий
+   чат с LM Studio и не более одного `ERR_CONNECTION_REFUSED` в консоли
+   (детали — [smoke-02-offline.md](reports/v6.2/smoke-02-offline.md)).

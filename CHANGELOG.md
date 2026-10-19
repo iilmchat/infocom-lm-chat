@@ -7,6 +7,7 @@
 ## [Unreleased] — v6.2 (в разработке)
 
 ### Added
+- Офлайн-режим (graceful degradation) при недоступности .NET бэкенда (KI-025)
 - `docs/KNOWN_ISSUES.md` — реестр известных проблем (правило KI)
 <!-- Изменено в 6.2: путь CONTRIBUTING.md в корне, а не в docs/ (KI-040) -->
 - `CONTRIBUTING.md` — правила участия
