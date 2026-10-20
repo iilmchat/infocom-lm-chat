@@ -1,15 +1,14 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+// Middleware/ErrorHandlingMiddleware.cs
 using System;
-using System.Collections.Generic;
-using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
-namespace ProjectManager.API.Middleware
+namespace InfocomChat.Server.Middleware
 {
     /// <summary>
-    /// Глобальный middleware для перехвата и обработки исключений
+    /// Промежуточное ПО для глобальной обработки исключений
     /// </summary>
     public class ErrorHandlingMiddleware
     {
@@ -30,7 +29,7 @@ namespace ProjectManager.API.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Произошла необработанная ошибка");
+                _logger.LogError(ex, "Необработанное исключение в приложении");
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -38,59 +37,15 @@ namespace ProjectManager.API.Middleware
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-            // Определяем статус-код в зависимости от типа исключения
-            //int statusCode;
-            /*
-            switch (exception)
+            var response = new
             {
-                case UnauthorizedAccessException:
-                    statusCode = (int) HttpStatusCode.Unauthorized;
-                    break;
-                case InvalidOperationException:
-                case ArgumentException:
-                    statusCode = (int) HttpStatusCode.BadRequest;
-                    break;
-                case KeyNotFoundException:
-                    statusCode = (int) HttpStatusCode.NotFound;
-                    break;
-                default:
-                    statusCode = (int) HttpStatusCode.InternalServerError;
-                    break;
-            }
-            */
-            int statusCode;
-            //Проверить
-            if (exception is UnauthorizedAccessException)
-            {
-                statusCode = (int)HttpStatusCode.Unauthorized;
-            }
-            else if (exception is InvalidOperationException || exception is ArgumentException)
-            {
-                statusCode = (int)HttpStatusCode.BadRequest;
-            }
-            else if (exception is KeyNotFoundException)
-            {
-                statusCode = (int) HttpStatusCode.NotFound;
-            }
-            else
-            {
-                statusCode = (int) HttpStatusCode.InternalServerError;
-            }
+                error = "Внутренняя ошибка сервера",
+                detail = exception.Message // в разработке можно включить, в production убрать
+            };
 
-
-            context.Response.StatusCode = statusCode;
-
-            var result = JsonSerializer.Serialize(new
-            {
-                success = false,
-                statusCode = statusCode,
-                message = exception.Message,
-                // в разработке можно добавить stackTrace, но в продакшене лучше убрать
-                // details = exception.StackTrace
-            });
-
-            return context.Response.WriteAsync(result);
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
     }
 }

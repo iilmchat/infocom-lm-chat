@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infocom Chat API Tester v5.1</title>
+    <style>
+        /* —————————— Общие стили —————————— */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* —————————— Шапка —————————— */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff, #1f6feb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #21262d;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.online {
+            background: #2ea043;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.offline {
+            background: #da3633;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* —————————— Панель статистики —————————— */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 15px 20px;
+            background: #161b22;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .stat-item .label {
+            color: #8b949e;
+        }
+
+        .stat-item .value {
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .stat-item .value.success { color: #2ea043; }
+        .stat-item .value.failed { color: #da3633; }
+        .stat-item .value.pending { color: #d29922; }
+
+        /* —————————— Фильтры —————————— */
+        .filters {
+            display: flex;
+            gap: 12px;
+            padding: 15px 20px;
+            background: #161b22;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filters select, .filters input {
+            padding: 8px 14px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 13px;
+            min-width: 150px;
+        }
+
+        .filters input::placeholder {
+            color: #484f58;
+        }
+
+        .filters select:focus, .filters input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        /* —————————— Список API —————————— */
+        .api-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .api-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .api-item:hover {
+            border-color: #484f58;
+        }
+
+        .api-item .api-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            gap: 12px;
+            cursor: pointer;
+            background: #0d1117;
+            border-bottom: 1px solid #21262d;
+            flex-wrap: wrap;
+        }
+
+        .api-item .api-header:hover {
+            background: #161b22;
+        }
+
+        .api-method {
+            font-weight: 700;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            min-width: 50px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .api-method.GET { background: #0d8b3e; color: #fff; }
+        .api-method.POST { background: #1a6fb5; color: #fff; }
+        .api-method.PUT { background: #9a6700; color: #fff; }
+        .api-method.DELETE { background: #b62324; color: #fff; }
+
+        .api-url {
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #8b949e;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .api-description {
+            font-size: 13px;
+            color: #e6edf3;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .api-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: #21262d;
+            color: #8b949e;
+            white-space: nowrap;
+        }
+
+        .api-status.pending { background: #1e2a3a; color: #d29922; }
+        .api-status.success { background: #0d3d1e; color: #2ea043; }
+        .api-status.failed { background: #3d0d0d; color: #da3633; }
+        .api-status.manual { background: #1e2a3a; color: #58a6ff; }
+
+        .api-body {
+            padding: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .api-body.open {
+            display: flex;
+        }
+
+        .api-body .params-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .api-body textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .api-body textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .api-body .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #238636;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            background: #1a4a2a;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #e6edf3;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
+        .btn-danger {
+            background: #da3633;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #f85149;
+        }
+
+        .btn-success {
+            background: #1f6feb;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #388bfd;
+        }
+
+        .btn-warning {
+            background: #9a6700;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background: #bb8009;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        .response-area {
+            margin-top: 10px;
+            padding: 12px;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            max-height: 300px;
+            overflow: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+
+        .response-area.open {
+            display: block;
+        }
+
+        .response-area .resp-time {
+            color: #8b949e;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .response-area .resp-status {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .response-area .resp-status.ok { color: #2ea043; }
+        .response-area .resp-status.err { color: #da3633; }
+
+        .response-area .resp-body {
+            color: #e6edf3;
+        }
+
+        /* —————————— Прогресс-бар —————————— */
+        .progress-bar {
+            height: 4px;
+            background: #21262d;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1f6feb, #58a6ff);
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* —————————— Toast-уведомления —————————— */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .toast.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast.success { border-color: #2ea043; }
+        .toast.error { border-color: #da3633; }
+        .toast.info { border-color: #58a6ff; }
+
+        /* —————————— Скроллбары —————————— */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+
+        /* —————————— Адаптивность —————————— */
+        @media (max-width: 768px) {
+            .api-item .api-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+
+            .api-status {
+                align-self: flex-start;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filters select, .filters input {
+                width: 100%;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #21262d;
+            color: #8b949e;
+        }
+
+        .api-count {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        /* —————————— Чекбокс авто-теста —————————— */
+        .auto-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #8b949e;
+        }
+
+        .auto-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #238636;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <div>
+                <h1>🔄 Infocom Chat API Tester</h1>
+                <div style="font-size: 14px; color: #8b949e; margin-top: 4px;">v5.1 — Полная проверка всех эндпоинтов (70+ методов)</div>
+            </div>
+            <div class="header-controls">
+                <div class="server-status">
+                    <span class="status-dot online" id="serverDot"></span>
+                    <span id="serverStatusText">Сервер: проверка...</span>
+                </div>
+                <button class="btn btn-secondary" onclick="runAllTests()" id="runAllBtn">
+                    🚀 Запустить все тесты
+                </button>
+                <button class="btn btn-warning" onclick="resetAll()">
+                    🔄 Сбросить
+                </button>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="label">Всего API:</span>
+                <span class="value" id="totalCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">✅ Успешно:</span>
+                <span class="value success" id="successCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">❌ Ошибок:</span>
+                <span class="value failed" id="failedCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">⏳ Ожидают:</span>
+                <span class="value pending" id="pendingCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">👆 Ручные:</span>
+                <span class="value" id="manualCount">0</span>
+            </div>
+            <div class="stat-item" style="margin-left: auto;">
+                <span class="label">Прогресс:</span>
+                <span class="value" id="progressText">0%</span>
+            </div>
+        </div>
+
+        <!-- Прогресс-бар -->
+        <div class="progress-bar">
+            <div class="fill" id="progressFill"></div>
+        </div>
+
+        <!-- Фильтры -->
+        <div class="filters">
+            <select id="methodFilter" onchange="applyFilters()">
+                <option value="all">Все методы</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+            </select>
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="all">Все статусы</option>
+                <option value="pending">⏳ Ожидают</option>
+                <option value="success">✅ Успешно</option>
+                <option value="failed">❌ Ошибка</option>
+                <option value="manual">👆 Ручная</option>
+            </select>
+            <input type="text" id="searchFilter" placeholder="🔍 Поиск по URL или описанию..." oninput="applyFilters()">
+            <span style="margin-left: auto; font-size: 13px; color: #8b949e;" id="filteredCount">Показано: 0</span>
+        </div>
+
+        <!-- Список API -->
+        <div class="api-list" id="apiList"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ================================================================
+        // 1. ОПРЕДЕЛЕНИЕ ВСЕХ API (полный список на основе контроллеров)
+        // ================================================================
+
+        const API_DEFINITIONS = [
+
+            // ——— БАЗОВЫЕ ———
+            {
+                id: 'ping',
+                method: 'GET',
+                url: '/api/sync/ping',
+                description: 'Проверка доступности сервера',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'health',
+                method: 'GET',
+                url: '/api/admin/health',
+                description: 'Health check сервера',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+
+            // ——— ПОЛЬЗОВАТЕЛИ (PrivateChatController + AdminController) ———
+            {
+                id: 'user_create',
+                method: 'POST',
+                url: '/api/private/user',
+                description: 'Создание/получение пользователя (тест_1)',
+                bodyTemplate: { userId: 'test_user_1', name: 'Тестовый Пользователь', avatar: '🧪', color: '#7ec8e3' },
+                autoTest: true,
+                testData: { userId: 'test_user_1', name: 'Тестовый Пользователь', avatar: '🧪', color: '#7ec8e3' }
+            },
+            {
+                id: 'user_create_2',
+                method: 'POST',
+                url: '/api/private/user',
+                description: 'Создание второго пользователя (тест_2)',
+                bodyTemplate: { userId: 'test_user_2', name: 'Второй Пользователь', avatar: '🤖', color: '#ff6b6b' },
+                autoTest: true,
+                testData: { userId: 'test_user_2', name: 'Второй Пользователь', avatar: '🤖', color: '#ff6b6b' }
+            },
+            {
+                id: 'user_get',
+                method: 'GET',
+                url: '/api/private/user/test_user_1',
+                description: 'Получение информации о пользователе',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'users_list',
+                method: 'GET',
+                url: '/api/private/users',
+                description: 'Получение всех пользователей',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'users_online',
+                method: 'GET',
+                url: '/api/private/users/online',
+                description: 'Получение онлайн-пользователей',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'user_unread',
+                method: 'GET',
+                url: '/api/private/user/test_user_1/unread',
+                description: 'Количество непрочитанных сообщений',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            
+            // Блокировка (PrivateChat)
+            {
+                id: 'private_block',
+                method: 'POST',
+                url: '/api/private/user/block',
+                description: 'Блокировка пользователя (test_1 блокирует test_2)',
+                bodyTemplate: { userId: 'test_user_1', blockUserId: 'test_user_2' },
+                autoTest: true,
+                testData: { userId: 'test_user_1', blockUserId: 'test_user_2' }
+            },
+            {
+                id: 'private_unblock',
+                method: 'POST',
+                url: '/api/private/user/unblock',
+                description: 'Разблокировка пользователя',
+                bodyTemplate: { userId: 'test_user_1', blockUserId: 'test_user_2' },
+                autoTest: true,
+                testData: { userId: 'test_user_1', blockUserId: 'test_user_2' }
+            },
+            {
+                id: 'private_blocked_list',
+                method: 'GET',
+                url: '/api/private/user/test_user_1/blocked',
+                description: 'Список заблокированных пользователей',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+
+            // ——— ПРИВАТНЫЕ ЧАТЫ ———
+            {
+                id: 'chat_create',
+                method: 'POST',
+                url: '/api/private/chat/create',
+                description: 'Создание приватного чата между test_1 и test_2',
+                bodyTemplate: { user1Id: 'test_user_1', user2Id: 'test_user_2' },
+                autoTest: true,
+                testData: { user1Id: 'test_user_1', user2Id: 'test_user_2' }
+            },
+            {
+                id: 'chat_list',
+                method: 'GET',
+                url: '/api/private/user/test_user_1/chats',
+                description: 'Список чатов пользователя test_1',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'private_send',
+                method: 'POST',
+                url: '/api/private/message/send',
+                description: 'Отправка приватного сообщения (требуется chatId)',
+                bodyTemplate: { chatId: '', senderId: 'test_user_1', receiverId: 'test_user_2', content: 'Привет! Это тестовое сообщение.' },
+                autoTest: false,
+                testData: { chatId: '{chatId}', senderId: 'test_user_1', receiverId: 'test_user_2', content: 'Привет! Это тестовое сообщение.' }
+            },
+            {
+                id: 'private_history',
+                method: 'GET',
+                url: '/api/private/chat/{chatId}/history?limit=20&offset=0',
+                description: 'История приватного чата (требуется chatId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'private_mark_read',
+                method: 'POST',
+                url: '/api/private/chat/mark-read',
+                description: 'Отметить сообщения как прочитанные (требуется chatId)',
+                bodyTemplate: { chatId: '', userId: 'test_user_2' },
+                autoTest: false,
+                testData: { chatId: '{chatId}', userId: 'test_user_2' }
+            },
+            {
+                id: 'private_edit_msg',
+                method: 'POST',
+                url: '/api/private/message/{messageId}',
+                description: 'Редактировать приватное сообщение (требуется messageId)',
+                bodyTemplate: { userId: 'test_user_1', newContent: 'Отредактированное приватное сообщение' },
+                autoTest: false,
+                testData: { userId: 'test_user_1', newContent: 'Отредактированное приватное сообщение' }
+            },
+            {
+                id: 'private_delete_msg',
+                method: 'DELETE',
+                url: '/api/private/message/{messageId}?userId=test_user_1',
+                description: 'Удалить приватное сообщение (требуется messageId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+
+            // ——— КОМНАТЫ ———
+            {
+                id: 'room_create',
+                method: 'POST',
+                url: '/api/room/create',
+                description: 'Создание общей комнаты',
+                bodyTemplate: { name: 'Тестовая комната', createdBy: 'test_user_1' },
+                autoTest: true,
+                testData: { name: 'Тестовая комната', createdBy: 'test_user_1' }
+            },
+            {
+                id: 'room_list',
+                method: 'GET',
+                url: '/api/room/list',
+                description: 'Список активных комнат',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'room_join',
+                method: 'POST',
+                url: '/api/room/join',
+                description: 'Вход в комнату (требуется roomId)',
+                bodyTemplate: { roomId: '', user: { id: 'test_user_1', name: 'Тестовый Пользователь', avatar: '🧪', color: '#7ec8e3' } },
+                autoTest: false,
+                testData: { roomId: '{roomId}', user: { id: 'test_user_1', name: 'Тестовый Пользователь', avatar: '🧪', color: '#7ec8e3' } }
+            },
+            {
+                id: 'room_info',
+                method: 'GET',
+                url: '/api/room/info/{roomId}',
+                description: 'Информация о комнате (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'room_search',
+                method: 'GET',
+                url: '/api/room/search?query=тест&limit=10',
+                description: 'Поиск комнат по названию/описанию',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+
+            // ——— СООБЩЕНИЯ (ChatController) ———
+            {
+                id: 'msg_send',
+                method: 'POST',
+                url: '/api/chat/send',
+                description: 'Отправка сообщения в комнату (требуется roomId)',
+                bodyTemplate: { roomId: '', userId: 'test_user_1', userName: 'Тестовый Пользователь', userAvatar: '🧪', content: 'Тестовое сообщение в комнату', role: 'user' },
+                autoTest: false,
+                testData: { roomId: '{roomId}', userId: 'test_user_1', userName: 'Тестовый Пользователь', userAvatar: '🧪', content: 'Тестовое сообщение в комнату', role: 'user' }
+            },
+            {
+                id: 'msg_history',
+                method: 'GET',
+                url: '/api/chat/history/{roomId}?limit=50&offset=0',
+                description: 'История сообщений комнаты (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_edit',
+                method: 'POST',
+                url: '/api/chat/edit',
+                description: 'Редактирование сообщения (требуется roomId, messageId)',
+                bodyTemplate: { roomId: '', messageId: '', userId: 'test_user_1', newContent: 'Отредактированное сообщение' },
+                autoTest: false,
+                testData: { roomId: '{roomId}', messageId: '', userId: 'test_user_1', newContent: 'Отредактированное сообщение' }
+            },
+            {
+                id: 'msg_delete',
+                method: 'DELETE',
+                url: '/api/chat/delete/{roomId}/{messageId}/test_user_1',
+                description: 'Удаление сообщения (требуется roomId, messageId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_last',
+                method: 'GET',
+                url: '/api/chat/last/{roomId}',
+                description: 'Последнее сообщение в комнате (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_after',
+                method: 'GET',
+                url: '/api/chat/after/{roomId}/{messageId}',
+                description: 'Сообщения после указанного ID (требуется roomId, messageId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_search',
+                method: 'GET',
+                url: '/api/chat/search/{roomId}?query=тест&limit=50',
+                description: 'Поиск сообщений в комнате (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_stats',
+                method: 'GET',
+                url: '/api/chat/stats/{roomId}',
+                description: 'Статистика сообщений в комнате (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_range',
+                method: 'GET',
+                url: '/api/chat/range/{roomId}?from=2024-01-01T00:00:00Z&to=2024-12-31T23:59:59Z&limit=100',
+                description: 'Сообщения по диапазону дат (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'msg_clear',
+                method: 'DELETE',
+                url: '/api/chat/clear/{roomId}',
+                description: 'Очистка истории комнаты (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+
+            // ——— РЕАКЦИИ (ReactionController) ———
+            {
+                id: 'reaction_add',
+                method: 'POST',
+                url: '/api/Reaction/add',
+                description: 'Добавить/изменить реакцию на сообщение (toggle)',
+                bodyTemplate: { messageId: '', userId: 'test_user_1', reaction: '👍' },
+                autoTest: false,
+                testData: { messageId: '', userId: 'test_user_1', reaction: '👍' }
+            },
+            {
+                id: 'reaction_remove',
+                method: 'DELETE',
+                url: '/api/Reaction/remove?messageId={messageId}&userId=test_user_1',
+                description: 'Удалить реакцию (требуется messageId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'reaction_get',
+                method: 'GET',
+                url: '/api/Reaction/message/{messageId}',
+                description: 'Получить все реакции на сообщение',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'reaction_user',
+                method: 'GET',
+                url: '/api/Reaction/message/{messageId}/user/test_user_1',
+                description: 'Реакция пользователя на сообщение',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+
+            // ——— УПОМИНАНИЯ (MentionController) ———
+            {
+                id: 'mention_unread',
+                method: 'GET',
+                url: '/api/Mention/unread/test_user_1',
+                description: 'Непрочитанные упоминания пользователя',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'mention_count',
+                method: 'GET',
+                url: '/api/Mention/count/test_user_1',
+                description: 'Количество непрочитанных упоминаний',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'mention_mark_read',
+                method: 'POST',
+                url: '/api/Mention/mark-read',
+                description: 'Отметить упоминания как прочитанные',
+                bodyTemplate: { userId: 'test_user_1', mentionIds: [] },
+                autoTest: true,
+                testData: { userId: 'test_user_1', mentionIds: [] }
+            },
+            {
+                id: 'mention_extract',
+                method: 'POST',
+                url: '/api/Mention/extract',
+                description: 'Извлечь упоминания из текста (@username)',
+                bodyTemplate: { text: 'Привет @test_user_1 и @test_user_2!' },
+                autoTest: true,
+                testData: { text: 'Привет @test_user_1 и @test_user_2!' }
+            },
+
+            // ——— СИНХРОНИЗАЦИЯ (SyncController) ———
+            {
+                id: 'sync_state',
+                method: 'POST',
+                url: '/api/sync/state',
+                description: 'Текущее состояние комнаты (требуется roomId)',
+                bodyTemplate: { roomId: '', userId: 'test_user_1', lastSyncTime: null },
+                autoTest: false,
+                testData: { roomId: '{roomId}', userId: 'test_user_1', lastSyncTime: null }
+            },
+            {
+                id: 'sync_users',
+                method: 'POST',
+                url: '/api/sync/users',
+                description: 'Синхронизация статусов пользователей',
+                bodyTemplate: { roomId: '', userId: 'test_user_1', isTyping: false },
+                autoTest: false,
+                testData: { roomId: '{roomId}', userId: 'test_user_1', isTyping: false }
+            },
+            {
+                id: 'sync_status',
+                method: 'GET',
+                url: '/api/sync/status/{roomId}',
+                description: 'Статус комнаты (требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'sync_typing',
+                method: 'POST',
+                url: '/api/sync/typing',
+                description: 'Обновление статуса печатания',
+                bodyTemplate: { roomId: '', userId: 'test_user_1', isTyping: true },
+                autoTest: false,
+                testData: { roomId: '{roomId}', userId: 'test_user_1', isTyping: true }
+            },
+
+            // ——— АДМИНИСТРИРОВАНИЕ (AdminController) ———
+            // Роли и настройки
+            {
+                id: 'admin_default_role_get',
+                method: 'GET',
+                url: '/api/admin/default-role',
+                description: 'Получить роль по умолчанию',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_default_role_set',
+                method: 'POST',
+                url: '/api/admin/default-role',
+                description: 'Установить роль по умолчанию (Admin, Manager, User, Guest)',
+                bodyTemplate: { role: 'User' },
+                autoTest: true,
+                testData: { role: 'User' }
+            },
+            {
+                id: 'admin_role_stats',
+                method: 'GET',
+                url: '/api/admin/role-stats',
+                description: 'Статистика по ролям',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+
+            // Пользователи (админ)
+            {
+                id: 'admin_users',
+                method: 'GET',
+                url: '/api/admin/users',
+                description: 'Список всех пользователей с ролями',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_users_paginated',
+                method: 'GET',
+                url: '/api/admin/users/paginated?page=1&pageSize=10&sortBy=name&sortDescending=false',
+                description: 'Пользователи с пагинацией',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_user_get',
+                method: 'GET',
+                url: '/api/admin/user/test_user_1',
+                description: 'Получение пользователя (админ)',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_is_admin',
+                method: 'GET',
+                url: '/api/admin/user/test_user_1/isAdmin',
+                description: 'Проверка, является ли пользователь админом',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_is_moderator',
+                method: 'GET',
+                url: '/api/admin/user/test_user_1/isModerator',
+                description: 'Проверка, является ли пользователь модератором',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_user_stats',
+                method: 'GET',
+                url: '/api/admin/user/test_user_1/stats',
+                description: 'Статистика пользователя (админ)',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_user_blocks',
+                method: 'GET',
+                url: '/api/admin/user/test_user_1/blocks',
+                description: 'Список блокировок пользователя',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            // Модерация
+            {
+                id: 'admin_set_role',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/role',
+                description: 'Изменить роль пользователя (test_2 -> Manager)',
+                bodyTemplate: { role: 'Manager', moderatorId: 'test_user_1' },
+                autoTest: true,
+                testData: { role: 'Manager', moderatorId: 'test_user_1' }
+            },
+            {
+                id: 'admin_mute',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/mute',
+                description: 'Заглушить пользователя test_2 на 10 минут',
+                bodyTemplate: { minutes: 10, moderatorId: 'test_user_1', reason: 'Тестовый мут' },
+                autoTest: true,
+                testData: { minutes: 10, moderatorId: 'test_user_1', reason: 'Тестовый мут' }
+            },
+            {
+                id: 'admin_kick',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/kick',
+                description: 'Кикнуть пользователя из комнаты (требуется roomId)',
+                bodyTemplate: { roomId: '', moderatorId: 'test_user_1' },
+                autoTest: false,
+                testData: { roomId: '{roomId}', moderatorId: 'test_user_1' }
+            },
+            {
+                id: 'admin_ban',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/ban',
+                description: 'Забанить пользователя test_2',
+                bodyTemplate: { moderatorId: 'test_user_1', reason: 'Тестовый бан' },
+                autoTest: true,
+                testData: { moderatorId: 'test_user_1', reason: 'Тестовый бан' }
+            },
+            {
+                id: 'admin_unban',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/unban',
+                description: 'Разбанить пользователя test_2',
+                bodyTemplate: { moderatorId: 'test_user_1' },
+                autoTest: true,
+                testData: { moderatorId: 'test_user_1' }
+            },
+            {
+                id: 'admin_clear_user_history',
+                method: 'DELETE',
+                url: '/api/admin/user/test_user_2/history',
+                description: 'Очистить историю пользователя test_2',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_reset_unread',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/reset-unread',
+                description: 'Сбросить счётчик непрочитанных test_2',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+
+            // Комнаты (админ)
+            {
+                id: 'admin_rooms',
+                method: 'GET',
+                url: '/api/admin/rooms',
+                description: 'Список всех комнат (админ)',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_room_info',
+                method: 'GET',
+                url: '/api/admin/room/{roomId}',
+                description: 'Информация о комнате (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_room_stats',
+                method: 'GET',
+                url: '/api/admin/room/{roomId}/stats',
+                description: 'Статистика комнаты (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_delete_room',
+                method: 'DELETE',
+                url: '/api/admin/room/{roomId}',
+                description: 'Удалить комнату (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_clear_room_history',
+                method: 'DELETE',
+                url: '/api/admin/room/{roomId}/history',
+                description: 'Очистить историю комнаты (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_close_room',
+                method: 'POST',
+                url: '/api/admin/room/{roomId}/close',
+                description: 'Закрыть комнату (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_export_room',
+                method: 'GET',
+                url: '/api/admin/room/{roomId}/export?format=json',
+                description: 'Экспорт комнаты в JSON (админ, требуется roomId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            // Сообщения (админ)
+            {
+                id: 'admin_delete_message',
+                method: 'DELETE',
+                url: '/api/admin/message/{messageId}',
+                description: 'Удалить сообщение (админ, требуется messageId)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_edit_message',
+                method: 'POST',
+                url: '/api/admin/message/{messageId}',
+                description: 'Редактировать сообщение (админ, требуется messageId)',
+                bodyTemplate: { moderatorId: 'test_user_1', newContent: 'Отредактировано администратором' },
+                autoTest: false,
+                testData: { moderatorId: 'test_user_1', newContent: 'Отредактировано администратором' }
+            },
+            {
+                id: 'admin_search_messages',
+                method: 'POST',
+                url: '/api/admin/messages/search',
+                description: 'Поиск сообщений по всем комнатам (админ)',
+                bodyTemplate: { query: 'тест', limit: 50 },
+                autoTest: true,
+                testData: { query: 'тест', limit: 50 }
+            },
+            // Логи и общая статистика
+            {
+                id: 'admin_logs',
+                method: 'GET',
+                url: '/api/admin/logs',
+                description: 'Логи модерации',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_stats',
+                method: 'GET',
+                url: '/api/admin/stats',
+                description: 'Общая статистика сервера',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_online',
+                method: 'GET',
+                url: '/api/admin/users/online',
+                description: 'Онлайн-пользователи',
+                bodyTemplate: null,
+                autoTest: true,
+                testData: null
+            },
+            {
+                id: 'admin_clear_all',
+                method: 'DELETE',
+                url: '/api/admin/clear-all',
+                description: 'Очистить все данные (ОПАСНО!)',
+                bodyTemplate: null,
+                autoTest: false,
+                testData: null
+            },
+            {
+                id: 'admin_user_set_role',
+                method: 'POST',
+                url: '/api/admin/user/test_user_2/role',
+                description: 'Установка роли второму пользователю',
+                bodyTemplate: { Role: 'Manager', userId: 'test_user_2', ModeratorId: 'user_dp140o' },
+                autoTest: false,
+                testData: { Role: 'Manager', userId: 'test_user_2', ModeratorId: 'user_dp140o'}
+            },
+        ];
+
+        // ================================================================
+        // 2. УПРАВЛЕНИЕ СОСТОЯНИЕМ
+        // ================================================================
+
+        const state = {
+            apis: [],                 // массив объектов API с текущим статусом
+            results: {},
+            isRunning: false,
+            serverBase: 'http://localhost:8032',
+            roomId: null,            // автоматически подставляется в {roomId}
+            chatId: null,            // автоматически подставляется в {chatId}
+            messageId: null          // автоматически подставляется в {messageId}
+        };
+
+        // ================================================================
+        // 3. ИНИЦИАЛИЗАЦИЯ
+        // ================================================================
+
+        function init() {
+            // Инициализируем каждый API с начальным статусом
+            state.apis = API_DEFINITIONS.map(api => ({
+                ...api,
+                status: 'pending',
+                response: null,
+                error: null,
+                duration: null,
+                manualBody: null,
+                expanded: false
+            }));
+
+            renderApiList();
+            updateStats();
+            checkServer();
+            loadFromStorage();
+
+            // Автоматический запуск базовых тестов после загрузки
+            setTimeout(() => {
+                runAutoTests();
+            }, 1000);
+        }
+
+        // ================================================================
+        // 4. ОТРИСОВКА
+        // ================================================================
+
+        function renderApiList() {
+            const container = document.getElementById('apiList');
+            const filterMethod = document.getElementById('methodFilter').value;
+            const filterStatus = document.getElementById('statusFilter').value;
+            const searchQuery = document.getElementById('searchFilter').value.toLowerCase();
+
+            let filtered = state.apis.filter(api => {
+                if (filterMethod !== 'all' && api.method !== filterMethod) return false;
+                if (filterStatus !== 'all' && api.status !== filterStatus) return false;
+                if (searchQuery && !api.url.toLowerCase().includes(searchQuery) && !api.description.toLowerCase().includes(searchQuery)) return false;
+                return true;
+            });
+
+            document.getElementById('filteredCount').textContent = `Показано: ${filtered.length}`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: #8b949e;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                        <div>Нет API, соответствующих фильтрам</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map((api, index) => {
+                const realIndex = state.apis.indexOf(api);
+                const statusClass = api.status;
+                const statusLabel = getStatusLabel(api.status);
+                const isExpanded = api.expanded;
+
+                return `
+                    <div class="api-item" id="api-${api.id}">
+                        <div class="api-header" onclick="toggleApi(${realIndex})">
+                            <span class="api-method ${api.method}">${api.method}</span>
+                            <span class="api-url">${api.url}</span>
+                            <span class="api-description">${api.description}</span>
+                            <span class="api-status ${statusClass}">${statusLabel}</span>
+                            ${api.duration ? `<span style="font-size:11px;color:#8b949e;">${api.duration}ms</span>` : ''}
+                        </div>
+                        <div class="api-body ${isExpanded ? 'open' : ''}">
+                            ${renderBodyContent(api, realIndex)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderBodyContent(api, index) {
+            const hasBody = api.bodyTemplate !== null;
+            const bodyValue = api.manualBody !== null ? JSON.stringify(api.manualBody, null, 2) : (api.bodyTemplate ? JSON.stringify(api.bodyTemplate, null, 2) : '');
+
+            let html = '';
+
+            if (hasBody) {
+                html += `
+                    <div class="params-row">
+                        <textarea id="body-${api.id}" placeholder="Тело запроса (JSON)" rows="4">${bodyValue}</textarea>
+                    </div>
+                `;
+            } else {
+                html += `<div style="color:#8b949e;font-size:13px;">ℹ️ Этот метод не требует тела запроса</div>`;
+            }
+
+            html += `
+                <div class="buttons">
+                    <button class="btn btn-primary btn-sm" onclick="manualTest(${index})">
+                        ▶️ Проверить вручную
+                    </button>
+                    ${api.autoTest ? `<button class="btn btn-success btn-sm" onclick="autoTest(${index})">🤖 Авто-тест</button>` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="clearResponse(${index})">🗑️ Очистить</button>
+                    <span style="font-size:12px;color:#8b949e;margin-left:auto;">
+                        ${api.status === 'success' ? '✅ Успешно' : api.status === 'failed' ? '❌ Ошибка' : api.status === 'manual' ? '👆 Ручная' : '⏳ Ожидает'}
+                    </span>
+                </div>
+                <div class="response-area ${api.response || api.error ? 'open' : ''}" id="response-${api.id}">
+                    ${renderResponse(api)}
+                </div>
+            `;
+
+            return html;
+        }
+
+        function renderResponse(api) {
+            if (api.error) {
+                return `
+                    <div class="resp-status err">❌ Ошибка</div>
+                    <div class="resp-body">${escapeHtml(api.error)}</div>
+                `;
+            }
+            if (api.response) {
+                return `
+                    <div class="resp-time">⏱️ ${api.duration || 0}ms</div>
+                    <div class="resp-status ok">✅ Успешно (${api.response.status || 200})</div>
+                    <div class="resp-body">${escapeHtml(api.response.data ? JSON.stringify(api.response.data, null, 2) : 'OK')}</div>
+                `;
+            }
+            return `<div style="color:#8b949e;">Нет данных</div>`;
+        }
+
+        function getStatusLabel(status) {
+            const map = {
+                'pending': '⏳ Ожидает',
+                'success': '✅ Успешно',
+                'failed': '❌ Ошибка',
+                'manual': '👆 Ручная'
+            };
+            return map[status] || status;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // ================================================================
+        // 5. УПРАВЛЕНИЕ РАСКРЫТИЕМ И ФИЛЬТРАМИ
+        // ================================================================
+
+        function toggleApi(index) {
+            state.apis[index].expanded = !state.apis[index].expanded;
+            renderApiList();
+        }
+
+        function applyFilters() {
+            renderApiList();
+        }
+
+        // ================================================================
+        // 6. ВЫПОЛНЕНИЕ ЗАПРОСОВ
+        // ================================================================
+
+        async function callApi(api, body) {
+            const url = state.serverBase + api.url;
+            const options = {
+                method: api.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+            };
+
+            if (body && (api.method === 'POST' || api.method === 'PUT')) {
+                options.body = JSON.stringify(body);
+            }
+
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch(url, options);
+                const duration = Math.round(performance.now() - startTime);
+
+                let data = null;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    data = await response.text();
+                }
+
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data,
+                    duration: duration,
+                };
+            } catch (error) {
+                const duration = Math.round(performance.now() - startTime);
+                return {
+                    ok: false,
+                    status: 0,
+                    statusText: 'Network Error',
+                    error: error.message || 'Ошибка соединения',
+                    duration: duration,
+                };
+            }
+        }
+
+        // ================================================================
+        // 7. ЗАПУСК ТЕСТОВ (ручной, авто, выполнение)
+        // ================================================================
+
+        async function manualTest(index) {
+            const api = state.apis[index];
+            const bodyTextarea = document.getElementById(`body-${api.id}`);
+            let body = null;
+
+            if (bodyTextarea) {
+                try {
+                    const raw = bodyTextarea.value.trim();
+                    if (raw) {
+                        body = JSON.parse(raw);
+                        api.manualBody = body;
+                    }
+                } catch (e) {
+                    showToast('Ошибка: неверный JSON в теле запроса', 'error');
+                    return;
+                }
+            }
+
+            await executeTest(index, body, 'manual');
+        }
+
+        async function autoTest(index) {
+            const api = state.apis[index];
+            if (!api.autoTest) {
+                showToast('Этот метод не поддерживает авто-тестирование', 'info');
+                return;
+            }
+
+            let body = null;
+            if (api.testData) {
+                body = JSON.parse(JSON.stringify(api.testData)); // копия
+                // Подстановка динамических параметров
+                if (state.roomId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{roomId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{roomId\}/g, state.roomId));
+                    }
+                }
+                if (state.chatId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{chatId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{chatId\}/g, state.chatId));
+                    }
+                }
+                if (state.messageId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{messageId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{messageId\}/g, state.messageId));
+                    }
+                }
+            }
+
+            await executeTest(index, body, 'success');
+        }
+
+        async function executeTest(index, body, statusType) {
+            const api = state.apis[index];
+            if (state.isRunning) return;
+
+            // Обработка URL с переменными
+            let url = api.url;
+            if (state.roomId) url = url.replace(/\{roomId\}/g, state.roomId);
+            if (state.chatId) url = url.replace(/\{chatId\}/g, state.chatId);
+            if (state.messageId) url = url.replace(/\{messageId\}/g, state.messageId);
+
+            // Если в URL остались переменные, пытаемся подставить из тела
+            const urlMatches = url.match(/\{([^}]+)\}/g);
+            if (urlMatches) {
+                for (const match of urlMatches) {
+                    const key = match.slice(1, -1);
+                    if (body && body[key]) {
+                        url = url.replace(match, body[key]);
+                    }
+                }
+            }
+
+            const testApi = { ...api, url };
+
+            // Обновляем статус на ожидание
+            api.status = 'pending';
+            api.response = null;
+            api.error = null;
+            renderApiList();
+
+            try {
+                const result = await callApi(testApi, body);
+
+                api.response = {
+                    status: result.status,
+                    data: result.data,
+                };
+                api.duration = result.duration;
+                api.error = result.error || null;
+
+                if (result.ok) {
+                    api.status = statusType || 'success';
+                    // Автоматически сохраняем ID для последующих вызовов
+                    if (result.data) {
+                        if (result.data.chatId) state.chatId = result.data.chatId;
+                        if (result.data.roomId) state.roomId = result.data.roomId;
+                        if (result.data.messageId) state.messageId = result.data.messageId;
+                        if (result.data.data) {
+                            if (result.data.data.chatId) state.chatId = result.data.data.chatId;
+                            if (result.data.data.roomId) state.roomId = result.data.data.roomId;
+                            if (result.data.data.messageId) state.messageId = result.data.data.messageId;
+                            if (result.data.data.id) state.messageId = result.data.data.id; // для сообщений
+                        }
+                    }
+                } else {
+                    api.status = 'failed';
+                }
+            } catch (e) {
+                api.error = e.message || 'Ошибка выполнения';
+                api.status = 'failed';
+            }
+
+            updateStats();
+            renderApiList();
+            saveToStorage();
+        }
+
+        // ================================================================
+        // 8. ЗАПУСК ВСЕХ ТЕСТОВ (авто + ручные с данными)
+        // ================================================================
+
+        async function runAllTests() {
+            if (state.isRunning) return;
+            state.isRunning = true;
+
+            const btn = document.getElementById('runAllBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Выполняется...';
+
+            showToast('🚀 Запуск всех авто-тестов...', 'info');
+
+            // 1. Сначала выполняем все авто-тесты (с флагом autoTest)
+            const autoApis = state.apis.filter(a => a.autoTest);
+
+            // Выполняем последовательно с задержкой
+            for (let i = 0; i < autoApis.length; i++) {
+                const api = autoApis[i];
+                if (api.status === 'success') continue; // пропускаем уже успешные
+                await autoTest(state.apis.indexOf(api));
+                await sleep(300); // Задержка между запросами
+            }
+
+            // 2. Пытаемся выполнить ручные тесты, у которых есть testData
+            const manualApis = state.apis.filter(a => !a.autoTest && a.testData);
+            for (let i = 0; i < manualApis.length; i++) {
+                const api = manualApis[i];
+                let body = JSON.parse(JSON.stringify(api.testData));
+                // подстановка параметров
+                if (state.roomId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{roomId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{roomId\}/g, state.roomId));
+                    }
+                }
+                if (state.chatId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{chatId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{chatId\}/g, state.chatId));
+                    }
+                }
+                if (state.messageId) {
+                    const bodyStr = JSON.stringify(body);
+                    if (bodyStr.includes('{messageId}')) {
+                        body = JSON.parse(bodyStr.replace(/\{messageId\}/g, state.messageId));
+                    }
+                }
+                await executeTest(state.apis.indexOf(api), body, 'manual');
+                await sleep(300);
+            }
+
+            state.isRunning = false;
+            btn.disabled = false;
+            btn.textContent = '🚀 Запустить все тесты';
+
+            const stats = getStats();
+            showToast(`✅ Завершено! Успешно: ${stats.success}, Ошибок: ${stats.failed}`, stats.failed > 0 ? 'error' : 'success');
+            updateStats();
+            renderApiList();
+        }
+
+        async function runAutoTests() {
+            // Быстрый запуск только базовых (ping, health)
+            const basic = state.apis.filter(a => a.autoTest && (a.id === 'ping' || a.id === 'health'));
+            for (const api of basic) {
+                await autoTest(state.apis.indexOf(api));
+                await sleep(200);
+            }
+        }
+
+        // ================================================================
+        // 9. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ================================================================
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function getStats() {
+            const total = state.apis.length;
+            const success = state.apis.filter(a => a.status === 'success').length;
+            const failed = state.apis.filter(a => a.status === 'failed').length;
+            const pending = state.apis.filter(a => a.status === 'pending').length;
+            const manual = state.apis.filter(a => a.status === 'manual').length;
+            return { total, success, failed, pending, manual };
+        }
+
+        function updateStats() {
+            const stats = getStats();
+            document.getElementById('totalCount').textContent = stats.total;
+            document.getElementById('successCount').textContent = stats.success;
+            document.getElementById('failedCount').textContent = stats.failed;
+            document.getElementById('pendingCount').textContent = stats.pending;
+            document.getElementById('manualCount').textContent = stats.manual;
+
+            const done = stats.success + stats.failed + stats.manual;
+            const pct = stats.total > 0 ? Math.round((done / stats.total) * 100) : 0;
+            document.getElementById('progressText').textContent = pct + '%';
+            document.getElementById('progressFill').style.width = pct + '%';
+        }
+
+        function clearResponse(index) {
+            const api = state.apis[index];
+            api.response = null;
+            api.error = null;
+            api.status = 'pending';
+            renderApiList();
+            updateStats();
+            saveToStorage();
+        }
+
+        function resetAll() {
+            if (state.isRunning) return;
+            if (!confirm('Сбросить все результаты тестов?')) return;
+
+            state.apis.forEach(api => {
+                api.status = 'pending';
+                api.response = null;
+                api.error = null;
+                api.duration = null;
+                api.expanded = false;
+                api.manualBody = null;
+            });
+            state.roomId = null;
+            state.chatId = null;
+            state.messageId = null;
+            renderApiList();
+            updateStats();
+            saveToStorage();
+            showToast('🔄 Все результаты сброшены', 'info');
+        }
+
+        // ================================================================
+        // 10. ПРОВЕРКА СЕРВЕРА (с ручным таймаутом для совместимости)
+        // ================================================================
+
+        async function checkServer() {
+            const dot = document.getElementById('serverDot');
+            const text = document.getElementById('serverStatusText');
+
+            // Создаём AbortController для возможности отмены запроса
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // таймаут 3 секунды
+
+            try {
+                const response = await fetch(state.serverBase + '/api/sync/ping', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal, // передаём сигнал для отмены
+                });
+
+                clearTimeout(timeoutId); // очищаем таймаут, если запрос успел завершиться
+
+                if (response.ok) {
+                    dot.className = 'status-dot online';
+                    text.textContent = 'Сервер: онлайн ✅';
+                    text.style.color = '#2ea043';
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.textContent = `Сервер: ошибка ${response.status}`;
+                    text.style.color = '#da3633';
+                }
+            } catch (error) {
+                clearTimeout(timeoutId);
+                // Если ошибка вызвана прерыванием по таймауту, показываем недоступность
+                if (error.name === 'AbortError') {
+                    dot.className = 'status-dot offline';
+                    text.textContent = 'Сервер: не отвечает (таймаут) ⏰';
+                    text.style.color = '#da3633';
+                    showToast('⚠️ Сервер не отвечает. Проверьте, что он запущен на порту 8032', 'error');
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.textContent = 'Сервер: недоступен ❌';
+                    text.style.color = '#da3633';
+                    showToast('⚠️ Сервер недоступен. Проверьте соединение.', 'error');
+                }
+            }
+        }
+        /*
+        async function checkServer() {
+            const dot = document.getElementById('serverDot');
+            const text = document.getElementById('serverStatusText');
+
+            try {
+                const response = await fetch(state.serverBase + '/api/sync/ping', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(3000),
+                });
+
+                if (response.ok) {
+                    dot.className = 'status-dot online';
+                    text.textContent = 'Сервер: онлайн ✅';
+                    text.style.color = '#2ea043';
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.textContent = `Сервер: ошибка ${response.status}`;
+                    text.style.color = '#da3633';
+                }
+            } catch (e) {
+                dot.className = 'status-dot offline';
+                text.textContent = 'Сервер: недоступен ❌';
+                text.style.color = '#da3633';
+                showToast('⚠️ Сервер недоступен. Проверьте, что сервер запущен на порту 8032', 'error');
+            }
+        }
+        */
+
+        // ================================================================
+        // 11. TOAST
+        // ================================================================
+
+        let toastTimeout = null;
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.className = 'toast';
+            }, 4000);
+        }
+
+        // ================================================================
+        // 12. СОХРАНЕНИЕ СОСТОЯНИЯ В LOCALSTORAGE
+        // ================================================================
+
+        function saveToStorage() {
+            try {
+                const data = {
+                    results: state.apis.map(api => ({
+                        id: api.id,
+                        status: api.status,
+                        response: api.response,
+                        error: api.error,
+                        duration: api.duration,
+                        manualBody: api.manualBody,
+                    })),
+                    roomId: state.roomId,
+                    chatId: state.chatId,
+                    messageId: state.messageId
+                };
+                localStorage.setItem('api_tester_state', JSON.stringify(data));
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const raw = localStorage.getItem('api_tester_state');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+
+                data.results.forEach(saved => {
+                    const api = state.apis.find(a => a.id === saved.id);
+                    if (api) {
+                        api.status = saved.status || 'pending';
+                        api.response = saved.response || null;
+                        api.error = saved.error || null;
+                        api.duration = saved.duration || null;
+                        api.manualBody = saved.manualBody || null;
+                    }
+                });
+
+                if (data.roomId) state.roomId = data.roomId;
+                if (data.chatId) state.chatId = data.chatId;
+                if (data.messageId) state.messageId = data.messageId;
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // ================================================================
+        // 13. ГОРЯЧИЕ КЛАВИШИ
+        // ================================================================
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                runAllTests();
+            }
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.api-body.open').forEach(el => {
+                    el.classList.remove('open');
+                });
+                renderApiList();
+            }
+        });
+
+        // ================================================================
+        // 14. СТАРТ
+        // ================================================================
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        console.log('🔄 Infocom Chat API Tester v5.1 загружен');
+        console.log(`📡 Сервер: ${state.serverBase}`);
+        console.log(`📊 Всего API: ${API_DEFINITIONS.length}`);
+        console.log('🔧 Используйте Ctrl+Enter для запуска всех тестов');
+    </script>
+</body>
+</html>

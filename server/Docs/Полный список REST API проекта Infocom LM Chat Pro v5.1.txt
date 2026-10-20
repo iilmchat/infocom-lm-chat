@@ -1,0 +1,108 @@
+Полный список REST API проекта Infocom LM Chat Pro v5.1
+📋 Список существующих API-эндпоинтов
+1. Базовые / служебные
+Метод	Путь	Описание
+GET	/api/sync/ping	Проверка доступности сервера
+GET	/api/admin/health	Health check сервера
+2. Пользователи (PrivateChatController + AdminController)
+Метод	Путь	Описание
+POST	/api/private/user	Создание или получение пользователя
+GET	/api/private/user/{userId}	Получение информации о пользователе
+GET	/api/private/users	Получение всех пользователей
+GET	/api/private/users/online	Получение списка онлайн-пользователей
+GET	/api/private/user/{userId}/unread	Количество непрочитанных приватных сообщений
+POST	/api/private/heartbeat	Обновление активности пользователя
+GET	/api/admin/users	Список всех пользователей с ролями (админ)
+GET	/api/admin/users/paginated	Пользователи с пагинацией и фильтрацией (админ)
+GET	/api/admin/user/{userId}	Получение пользователя (админ)
+GET	/api/admin/user/{userId}/isAdmin	Проверка, является ли пользователь администратором
+GET	/api/admin/user/{userId}/isModerator	Проверка, является ли пользователь модератором
+GET	/api/admin/user/{userId}/stats	Статистика пользователя (админ)
+GET	/api/admin/user/{userId}/blocks	Список блокировок пользователя
+POST	/api/admin/user/{userId}/role	Изменение роли пользователя
+POST	/api/admin/user/{userId}/mute	Заглушить пользователя
+POST	/api/admin/user/{userId}/kick	Кикнуть пользователя из комнаты
+POST	/api/admin/user/{userId}/ban	Забанить пользователя
+POST	/api/admin/user/{userId}/unban	Разбанить пользователя
+DELETE	/api/admin/user/{userId}/history	Очистить историю пользователя
+POST	/api/admin/user/{userId}/reset-unread	Сбросить счетчик непрочитанных
+POST	/api/private/user/block	Блокировка пользователя (приватный чат)
+POST	/api/private/user/unblock	Разблокировка пользователя
+GET	/api/private/user/{userId}/blocked	Список заблокированных пользователей
+3. Роли и настройки
+Метод	Путь	Описание
+GET	/api/admin/default-role	Получить роль по умолчанию
+POST	/api/admin/default-role	Установить роль по умолчанию
+GET	/api/admin/role-stats	Статистика по ролям
+4. Приватные чаты
+Метод	Путь	Описание
+POST	/api/private/chat/create	Создать приватный чат между двумя пользователями
+GET	/api/private/user/{userId}/chats	Получить все приватные чаты пользователя
+POST	/api/private/message/send	Отправить приватное сообщение
+GET	/api/private/chat/{chatId}/history	Получить историю приватного чата
+POST	/api/private/chat/mark-read	Отметить сообщения как прочитанные
+POST	/api/private/message/{messageId}	Редактировать приватное сообщение
+DELETE	/api/private/message/{messageId}	Удалить приватное сообщение
+5. Комнаты (общий чат)
+Метод	Путь	Описание
+POST	/api/room/create	Создать комнату
+POST	/api/room/join	Войти в комнату
+POST	/api/room/leave	Выйти из комнаты
+GET	/api/room/list	Получить список активных комнат
+GET	/api/room/info/{roomId}	Информация о комнате
+GET	/api/admin/rooms	Список всех комнат (админ)
+GET	/api/admin/room/{roomId}	Информация о комнате (админ)
+GET	/api/admin/room/{roomId}/stats	Статистика комнаты (админ)
+DELETE	/api/admin/room/{roomId}	Удалить комнату
+DELETE	/api/admin/room/{roomId}/history	Очистить историю комнаты
+POST	/api/admin/room/{roomId}/close	Закрыть комнату
+GET	/api/admin/room/{roomId}/export	Экспорт комнаты (JSON)
+6. Сообщения (общий чат)
+Метод	Путь	Описание
+POST	/api/chat/send	Отправить сообщение в комнату
+GET	/api/chat/history/{roomId}	Получить историю комнаты (пагинация)
+POST	/api/chat/edit	Редактировать сообщение
+DELETE	/api/chat/delete/{roomId}/{messageId}/{userId}	Удалить сообщение
+GET	/api/chat/search/{roomId}	Поиск сообщений по тексту
+GET	/api/chat/last/{roomId}	Последнее сообщение в комнате
+GET	/api/chat/range/{roomId}	Сообщения по диапазону дат
+GET	/api/chat/stats/{roomId}	Статистика сообщений в комнате
+GET	/api/chat/after/{roomId}/{lastMessageId}	Сообщения после указанного ID
+DELETE	/api/chat/clear/{roomId}	Очистить историю комнаты
+DELETE	/api/admin/message/{messageId}	Удалить сообщение (админ)
+POST	/api/admin/message/{messageId}	Редактировать сообщение (админ)
+POST	/api/admin/messages/search	Поиск сообщений по всем комнатам (админ)
+7. Реакции
+Метод	Путь	Описание
+POST	/api/Reaction/add	Добавить или изменить реакцию на сообщение (toggle)
+DELETE	/api/Reaction/remove	Удалить реакцию
+GET	/api/Reaction/message/{messageId}	Получить все реакции на сообщение
+GET	/api/Reaction/message/{messageId}/user/{userId}	Получить реакцию пользователя на сообщение
+8. Упоминания
+Метод	Путь	Описание
+GET	/api/Mention/unread/{userId}	Получить непрочитанные упоминания пользователя
+POST	/api/Mention/mark-read	Отметить упоминания как прочитанные
+GET	/api/Mention/count/{userId}	Количество непрочитанных упоминаний
+POST	/api/Mention/extract	Извлечь упоминания из текста (@username)
+9. Синхронизация (Long Polling)
+Метод	Путь	Описание
+POST	/api/sync/state	Получить текущее состояние комнаты
+POST	/api/sync/poll	Долгий опрос (Long Polling) для получения новых сообщений
+POST	/api/sync/users	Синхронизация статусов пользователей
+GET	/api/sync/status/{roomId}	Получить статус комнаты (список пользователей + количество сообщений)
+POST	/api/sync/typing	Обновить статус печатания
+10. Администрирование (общее)
+Метод	Путь	Описание
+GET	/api/admin/stats	Общая статистика сервера
+GET	/api/admin/logs	Получить логи модерации
+DELETE	/api/admin/clear-all	Очистить все данные (ОПАСНО!)
+11. Вложения (файлы) – реализованы через AttachmentService, но отдельных эндпоинтов для загрузки/скачивания нет в контроллерах. Они интегрированы в отправку сообщений через Attachments поле. Тем не менее, можно добавить отдельные API.
+12. SignalR Hub (/chatHub) – для реального времени (WebSocket)
+Событие (клиент→сервер)	Описание
+JoinRoom	Вход в комнату
+LeaveRoom	Выход из комнаты
+SendMessage	Отправка сообщения
+EditMessage	Редактирование сообщения
+DeleteMessage	Удаление сообщения
+Typing	Статус печатания
+AddReaction	Добавление реакции

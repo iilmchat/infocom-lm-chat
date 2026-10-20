@@ -3,8 +3,8 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:59270/",
-      "sslPort": 44394
+      "applicationUrl": "http://localhost:8032/",
+      "sslPort": 44354
     }
   },
   "profiles": {
@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "ProjectManager.API": {
+    "InfocomChat.Server": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

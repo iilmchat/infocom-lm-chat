@@ -1,88 +1,71 @@
-# ProjectManager.API
+<!-- Добавлено в 6.2: README для InfocomChat.Server (заменил ProjectManager.API) -->
+# InfocomChat.Server
 
-Серверная часть веб-приложения «Менеджер ИТ-проектов» с поддержкой ИИ-ассистентов на базе LM Studio.
+Серверная часть Infocom LM Chat Pro: ASP.NET Core Web API и SignalR для
+real-time обмена. Пришёл на смену `ProjectManager.API`.
 
-## Версия
-Текущая версия: **2.4**
+## Стек
 
-## Возможности
-- Аутентификация и управление сессиями пользователей.
-- Управление проектами, владельцами и документами с версионностью.
-- Аудит действий пользователей.
-- Rate limiting для защиты от перебора паролей.
-- ИИ-ассистенты:
-  - **Аналитик** — генерация ТТ, АТ, РИСК, ПИ.
-  - **Архитектор** — генерация ИТ, СП, СФС, ЭР.
-  - **Разработчик** — декомпозиция архитектурных артефактов на задачи и поэтапное выполнение.
-  - **Тестировщик** — генерация ТП, ТК, ОТ.
-- Событийная модель: ассистенты запускаются автоматически при принятии входных документов.
-- Административные эндпоинты для управления настройками LM Studio и системными промтами.
-- Поддержка индивидуальных моделей LM Studio для каждого ассистента.
+- ASP.NET Core Web API, `netcoreapp3.1` (`InfocomChat.Server.csproj`),
+  точка входа — `Program.cs` + `Startup.cs`.
+- Entity Framework Core 3.1, MS SQL Server — `ChatDbContext`
+  (`server/Database/`).
+- SignalR — хаб `ChatHub` (`server/Hubs/ChatHub.cs`), endpoint `/chatHub`.
+- Логирование — консоль и файл `logs/app-<дата>.log`.
 
 ## Требования
-- .NET Core 3.1 SDK
-- SQL Server
-- LM Studio (OpenAI-совместимый API) на порту 8034
-- Git (для операций с репозиториями проектов)
+
+- .NET Core 3.1 SDK (версия закреплена в `server/global.json`: `3.1.201`);
+- MS SQL Server;
+- свободный порт `8032` для HTTP API.
 
 ## Конфигурация
-Основные настройки в `appsettings.json`:
-- `ConnectionStrings:DefaultConnection` — строка подключения к SQL Server.
-- `LmStudio` — базовые настройки LM Studio (URL, модель по умолчанию, интервал проверки).
-- `ProjectStorage` — путь к корневой папке проектов, скрипт, путь к Git.
-- `RateLimiting` — параметры ограничения частоты запросов.
 
-Настройки LM Studio также хранятся в БД и могут быть изменены через API администратором.
+`server/appsettings.json` — секреты в репозиторий не коммитятся, значения
+уточняются на стенде:
+
+| Ключ | Назначение |
+|---|---|
+| `ConnectionStrings:DefaultConnection` | строка подключения к MS SQL Server |
+| `ChatSettings` | лимиты сообщений, истории, комнат |
+| `Server` | порт, роль по умолчанию, флаги гостей/регистрации |
+| `CorsSettings` | разрешённые origins, методы и заголовки |
+| `Database` | тип БД и параметры EF Core |
+| `LM` | параметры LM Studio для интеграций |
+
+`server/appsettings.Development.json` переопределяет настройки для
+локальной разработки.
 
 ## Запуск
-1. Восстановить зависимости: `dotnet restore`
-2. Применить миграции: `dotnet ef database update`
-3. Запустить сервер: `dotnet run --project ProjectManager.API`
 
-Сервер запустится на порту **8035** (по умолчанию).
+```bash
+dotnet restore server/InfocomChat.Server.csproj
+dotnet build server/InfocomChat.Server.csproj
+dotnet run --project server/InfocomChat.Server.csproj
+```
 
-## Тестовый клиент
-Для ручного тестирования API используйте файл `test-client.html` — откройте его в браузере и укажите адрес сервера.
+Сервер слушает `http://127.0.0.1:8032` (см. `Program.cs`). Схема БД
+создаётся автоматически при старте — `Database.EnsureCreated()` в
+`Startup.Configure`; отдельный `dotnet ef database update` не требуется.
 
-## API
-Полное описание эндпоинтов см. в `docs/API.md` (или через Swagger, если настроен).
+## API и real-time
 
-### Основные группы эндпоинтов
-- `/api/version` — версия API
-- `/api/auth/*` — аутентификация и сессии
-- `/api/projects/*` — проекты, владельцы, документы
-- `/api/projects/{id}/assistant/analyst/*` — аналитик
-- `/api/projects/{id}/assistant/architect` — архитектор
-- `/api/projects/{id}/assistant/developer/*` — разработчик
-- `/api/projects/{id}/assistant/tester` — тестировщик
-- `/api/admin/lmstudio-settings` — настройки LM Studio
-- `/api/admin/assistant-prompts` — системные промты
+- REST — `server/Controllers/`: `/api/chat`, `/api/room`, `/api/sync`,
+  `/api/private`, `/api/auth`, `/api/admin`, `/api/analytics`,
+  `/api/notifications`, `/api/reaction`, `/api/attachment`.
+- SignalR — `/chatHub` (`server/Hubs/ChatHub.cs`).
+- Ручной тестер API — `docs/qa/manual-api-check/index.html`.
 
-## Типы документов
-- **ИД** — исходные данные
-- **Проект** — описание проекта
-- **ТТ** — технические требования
-- **ПиМ ПСИ** — программа и методика испытаний
-- **ЦБИ** — целевая бизнес-идея
-- **АТ** — анализ требований
-- **РИСК** — риски
-- **ПИ** — пользовательские истории
-- **ИТ** — используемые технологии
-- **СП** — структура проекта
-- **СФС** — структура файловой системы
-- **ЭР** — этапы разработки
-- **КОД** — исходный код
-- **КОНФ** — конфигурации
-- **ДР** — документация разработчика
-- **ТП** — тест-план
-- **ТК** — тест-кейсы
-- **ОТ** — отчёт о тестировании
-- **ERR_*** — документы ошибок
+## Структура
 
-## Правила разработки
-- Все XML-комментарии — на русском языке.
-- Использовать интерфейсы и внедрение зависимостей через конструктор.
-- Асинхронные методы с суффиксом `Async`, поддержка `CancellationToken`.
-- Логирование через `ILogger` и `IAuditService`.
-- Проверка путей через `PathHelper.TryGetSafeFullPath`.
-- Все изменения фиксировать в CHANGELOG.
+| Папка | Назначение |
+|---|---|
+| `Controllers/` | REST-контроллеры и маршрутизация |
+| `Services/` | бизнес-логика (`RoomManager`, `PrivateChatService`, ...) |
+| `Database/` | `ChatDbContext`, конфигурация БД |
+| `Migrations/` | `ChatDbContextModelSnapshot.cs`, `XXXXXXXXXXXXXX_AddDatabaseIndexes.cs` |
+| `Models/`, `DTOs/`, `Mappers/` | сущности и контракты API |
+| `Hubs/` | SignalR |
+| `Middleware/` | глобальная обработка ошибок |
+
+Дополнительные материалы — `server/Docs/`.

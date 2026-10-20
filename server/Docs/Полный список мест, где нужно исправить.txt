@@ -1,0 +1,7 @@
+Полный список мест, где нужно исправить:
+Файл	Строка	Было	Стало
+AdminController.cs	GetAllUsers()	_privateChatService.GetAllUsers()	_userService.GetAllUsersAsync() +
+AdminController.cs	SearchUsers()	_privateChatService.SearchUsersAsync()	_userService.SearchUsersAsync()+
+AdminController.cs	GetUser()	_privateChatService.GetUserAsync()	_userService.GetUserAsync()+
+AdminController.cs	GetUserStats()	_privateChatService.GetUserAsync()	_userService.GetUserAsync()+
+AdminController.cs	GetUserBlocks()	_privateChatService.GetUserWithBlocksAsync()	_userService.GetUserWithBlocksAsync()+

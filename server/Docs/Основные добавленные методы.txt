@@ -1,0 +1,24 @@
+Основные добавленные методы:
+GetMessagesSinceAsync - получает сообщения с указанного времени (используется в SyncController)
+
+GetMessagesAfterIdAsync - получает сообщения после указанного ID
+
+GetLastMessageAsync - получает последнее сообщение в комнате
+
+GetMessagesByDateRangeAsync - получает сообщения по диапазону дат
+
+SearchMessagesAsync - поиск сообщений по тексту
+
+GetMessageStatsAsync - получение статистики сообщений
+
+UpdateRoomModelAsync - обновление модели комнаты
+
+UpdateRoomSettingsAsync - обновление настроек комнаты
+
+GetMessageCountAsync - получение количества сообщений
+
+ClearRoomHistoryAsync - очистка истории
+
+DeleteRoomAsync - удаление комнаты
+
+Теперь все методы, используемые в контроллерах, присутствуют в RoomManager.

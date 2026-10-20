@@ -1,0 +1,58 @@
+Реализация новых API-эндпоинтов для проекта Infocom LM Chat Pro v5.1
+Внедряем все предложенные новые эндпоинты с сохранением обратной совместимости и полным набором комментариев на русском языке.
+
+📌 Список новых API-эндпоинтов
+1. Аналитика и статистика (AnalyticsController)
+Метод	Путь	Описание
+GET	/api/analytics/user/{userId}/activity	Активность пользователя за период
+GET	/api/analytics/room/{roomId}/engagement	Вовлечённость в комнате
+GET	/api/analytics/global	Глобальная аналитика (DAU, MAU, сообщения в день)
+2. Расширенное управление пользователями (AdminController дополнен)
+Метод	Путь	Описание
+PUT	/api/admin/user/{userId}/profile	Обновление профиля пользователя
+GET	/api/admin/users/export	Экспорт всех пользователей в CSV
+POST	/api/admin/users/import	Импорт пользователей из CSV
+3. Управление комнатами (дополнительно)
+Метод	Путь	Описание
+PUT	/api/admin/room/{roomId}/settings	Обновление настроек комнаты (админ)
+POST	/api/admin/room/{roomId}/transfer	Передать владение комнатой
+GET	/api/room/search?query=...	Поиск комнат по названию/описанию
+4. Расширенная работа с сообщениями
+Метод	Путь	Описание
+POST	/api/chat/pin/{messageId}	Закрепить сообщение в комнате
+DELETE	/api/chat/pin/{messageId}	Открепить сообщение
+GET	/api/chat/pinned/{roomId}	Получить закреплённые сообщения комнаты
+POST	/api/chat/report/{messageId}	Пожаловаться на сообщение
+GET	/api/admin/reports	Список жалоб (админ)
+POST	/api/admin/reports/{reportId}/resolve	Разрешить жалобу
+5. Работа с вложениями (отдельный контроллер)
+Метод	Путь	Описание
+POST	/api/attachment/upload	Загрузить файл (возвращает ID вложения)
+GET	/api/attachment/{attachmentId}	Скачать файл
+DELETE	/api/attachment/{attachmentId}	Удалить файл
+GET	/api/attachment/message/{messageId}	Получить все вложения сообщения
+6. Управление системными настройками
+Метод	Путь	Описание
+GET	/api/admin/settings	Получить все системные настройки
+PUT	/api/admin/settings/{key}	Обновить системную настройку
+POST	/api/admin/settings	Добавить новую настройку
+7. Уведомления
+Метод	Путь	Описание
+GET	/api/notifications/user/{userId}	Получить уведомления пользователя
+POST	/api/notifications/mark-read	Отметить уведомления как прочитанные
+GET	/api/notifications/count/{userId}	Количество непрочитанных уведомлений
+8. Экспорт и импорт данных
+Метод	Путь	Описание
+GET	/api/export/room/{roomId}/pdf	Экспорт комнаты в PDF (заглушка)
+GET	/api/export/user/{userId}/data	Экспорт всех данных пользователя (GDPR)
+POST	/api/import/room	Импорт комнаты из JSON (админ)
+9. API для ботов (интеграция)
+Метод	Путь	Описание
+POST	/api/bot/message	Отправка сообщения от имени бота (с API-ключом)
+GET	/api/bot/rooms	Получить комнаты, где есть бот
+POST	/api/bot/join	Бот входит в комнату
+10. Управление сессиями и устройствами
+Метод	Путь	Описание
+GET	/api/auth/sessions	Получить активные сессии текущего пользователя
+DELETE	/api/auth/sessions/{sessionId}	Завершить сессию
+POST	/api/auth/logout-all	Выйти из всех устройств

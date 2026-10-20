@@ -1,0 +1,80 @@
+Часть 1: Обновление Index.html (Добавление недостающих API)
+Я проанализировал ваши контроллеры и сравнил их с текущим списком в Index.html. Вот какие эндпоинты были пропущены и должны быть добавлены в раздел API_DEFINITIONS:
+
+AdminController:
+
+GET /api/admin/users/paginated - Получение пользователей с пагинацией (отличный метод, который вы добавили).
+
+GET /api/admin/room/{roomId} - Получение информации о комнате (админ).
+
+GET /api/admin/room/{roomId}/stats - Статистика комнаты (админ).
+
+POST /api/admin/default-role - Установка роли по умолчанию (важно для администрирования).
+
+POST /api/admin/user/{userId}/role - Изменение роли пользователя.
+
+POST /api/admin/user/{userId}/mute - Заглушить пользователя.
+
+POST /api/admin/user/{userId}/kick - Кикнуть пользователя.
+
+POST /api/admin/user/{userId}/ban - Забанить пользователя.
+
+POST /api/admin/user/{userId}/unban - Разбанить пользователя.
+
+DELETE /api/admin/room/{roomId} - Удалить комнату.
+
+DELETE /api/admin/room/{roomId}/history - Очистить историю комнаты.
+
+POST /api/admin/room/{roomId}/close - Закрыть комнату.
+
+DELETE /api/admin/user/{userId}/history - Очистить историю пользователя.
+
+GET /api/admin/logs - Получить логи модерации.
+
+DELETE /api/admin/clear-all - Очистить все данные (осторожно!).
+
+ChatController:
+
+GET /api/chat/last/{roomId} - Получить последнее сообщение в комнате.
+
+GET /api/chat/range/{roomId} - Сообщения по диапазону дат.
+
+GET /api/chat/stats/{roomId} - Статистика сообщений в комнате.
+
+GET /api/chat/after/{roomId}/{lastMessageId} - Сообщения после указанного ID.
+
+DELETE /api/chat/clear/{roomId} - Очистить историю комнаты (админ).
+
+POST /api/chat/edit - Редактирование сообщения (вы пропустили EditMessage в тестах).
+
+DELETE /api/chat/delete/{roomId}/{messageId}/{userId} - Удаление сообщения.
+
+GET /api/chat/search/{roomId} - Поиск сообщений.
+
+ReactionController & MentionController:
+
+Вы уже добавили эти контроллеры, но в Index.html я не вижу для них тестов. Нужно добавить:
+
+POST /api/Reaction/add
+
+DELETE /api/Reaction/remove
+
+GET /api/Reaction/message/{messageId}
+
+GET /api/Reaction/message/{messageId}/user/{userId}
+
+GET /api/Mention/unread/{userId}
+
+POST /api/Mention/mark-read
+
+GET /api/Mention/count/{userId}
+
+POST /api/Mention/extract
+
+PrivateChatController:
+
+POST /api/private/user/block - Блокировка пользователя.
+
+POST /api/private/user/unblock - Разблокировка.
+
+GET /api/private/user/{userId}/blocked - Список заблокированных.
