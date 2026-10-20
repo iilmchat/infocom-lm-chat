@@ -271,14 +271,7 @@ export class ChatApiClient {
     async getRoomInfo(roomId) {
         return this.request(`/room/info/${roomId}`);
     }
-
-    /**
-     * Получение статуса комнаты (polling)
-     */
-    async getRoomStatus(roomId) {
-        return this.request(`/room/status/${roomId}`);
-    }
-    
+  
     // === Private Chat API ===
 
     async createPrivateChat(data) {
@@ -315,15 +308,11 @@ export class ChatApiClient {
     }
 
     async deletePrivateMessage(messageId, userId) {
-        // Проверяем, является ли userId объектом        
-        const actualUserId = typeof userId === 'object' && userId !== null 
-            ? userId.userId  // Если объект - используем свойство userId
-            : userId;        // Если значение - используем его напрямую            
-        return this.request(`/private/message/${messageId}`, {
-            method: 'POST',
-            body: JSON.stringify({ actualUserId }) // Передаем userId в теле запроса
+        const actualUserId = typeof userId === 'object' && userId !== null ? userId.userId : userId;
+        return this.request(`/private/message/${messageId}?userId=${actualUserId}`, {
+            method: 'DELETE'
         });
-    }   
+    }
     
     async editPrivateMessage(messageId, data) {
         return this.request(`/private/message/${messageId}`, {
@@ -515,7 +504,7 @@ export class ChatApiClient {
     }
 
     async getAdminRoomInfo(roomId) {
-        return this.request('GET', `/api/admin/room/${roomId}`);
+        return this.request(`/admin/room/${roomId}`);
     }
 
     async getAdminStats() {
@@ -669,10 +658,13 @@ export class ChatApiClient {
     // === Добавлено в 5.1: Файлы ===
 
     async uploadAttachment(formData) {
-        return this.request('/attachment/upload', {
+        // При загрузке файлов fetch должен сам установить Content-Type (multipart/form-data)
+        return fetch(`${this.baseUrl}/attachment/upload`, {
             method: 'POST',
-            body: formData,
-            headers: {}
+            body: formData
+        }).then(async res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
         });
     }
 
