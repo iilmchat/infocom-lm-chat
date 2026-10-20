@@ -1,0 +1,29 @@
+InfocomChat.Server/
+├── Controllers/
+│   ├── AnalyticsController.cs          (НОВЫЙ)
+│   ├── NotificationsController.cs      (НОВЫЙ)
+│   ├── AttachmentsController.cs        (НОВЫЙ)
+│   ├── SettingsController.cs           (НОВЫЙ)
+│   ├── ExportController.cs             (НОВЫЙ)
+│   ├── BotController.cs                (НОВЫЙ)
+│   └── AuthController.cs               (НОВЫЙ)
+├── Services/
+│   ├── AnalyticsService.cs             (НОВЫЙ)
+│   ├── NotificationService.cs          (НОВЫЙ)
+│   ├── SettingsService.cs              (НОВЫЙ)
+│   ├── BotService.cs                   (НОВЫЙ)
+│   └── SessionService.cs               (НОВЫЙ)
+├── Models/Entities/
+│   ├── PinnedMessage.cs                (НОВЫЙ)
+│   ├── Report.cs                       (НОВЫЙ)
+│   ├── Notification.cs                 (НОВЫЙ)
+│   ├── UserSession.cs                  (НОВЫЙ)
+│   └── BotAccount.cs                   (НОВЫЙ)
+├── DTOs/
+│   ├── AnalyticsDtos.cs                (НОВЫЙ)
+│   ├── NotificationDtos.cs             (НОВЫЙ)
+│   ├── SettingsDtos.cs                 (НОВЫЙ)
+│   ├── BotDtos.cs                      (НОВЫЙ)
+│   └── SessionDtos.cs                  (НОВЫЙ)
+└── Database/
+    └── ChatDbContext.cs                (ИЗМЕНЁН: добавлены DbSet новых сущностей)

@@ -1,0 +1,1047 @@
+Детальное описание модулей
+1. Controllers/ - Контроллеры (Слой представления)
+AdminController.cs (/api/admin/*)
+Назначение: Административное управление системой.
+
+csharp
+// Основные функции:
+// - Управление ролями пользователей (Admin, Manager, User, Guest)
+// - Модерация: бан, мут, кик пользователей
+// - Управление комнатами: создание, удаление, очистка истории
+// - Получение статистики и логов модерации
+// - Пагинированный список пользователей (новый метод)
+
+[ApiController]
+[Route("api/admin")]
+public class AdminController : ControllerBase
+{
+    // GET /api/admin/users - Получение всех пользователей
+    // GET /api/admin/users/paginated - Пагинированный список (НОВЫЙ)
+    // GET /api/admin/user/{userId} - Получение пользователя
+    // POST /api/admin/user/{userId}/role - Изменение роли
+    // POST /api/admin/user/{userId}/mute - Заглушить
+    // POST /api/admin/user/{userId}/kick - Кикнуть
+    // POST /api/admin/user/{userId}/ban - Забанить
+    // POST /api/admin/user/{userId}/unban - Разбанить
+    // GET /api/admin/rooms - Список комнат
+    // DELETE /api/admin/room/{roomId} - Удалить комнату
+    // DELETE /api/admin/room/{roomId}/history - Очистить историю
+    // GET /api/admin/stats - Общая статистика
+    // GET /api/admin/logs - Логи модерации
+}
+ChatController.cs (/api/chat/*)
+Назначение: Основной функционал чата в комнатах.
+
+csharp
+// Основные функции:
+// - Отправка сообщений с валидацией (XSS защита)
+// - Обработка упоминаний (@username) через MentionService
+// - История сообщений с пагинацией
+// - Редактирование и удаление сообщений
+// - Поиск сообщений по тексту
+// - Получение статистики сообщений
+
+[ApiController]
+[Route("api/[controller]")]
+public class ChatController : ControllerBase
+{
+    // POST /api/chat/send - Отправка сообщения (с упоминаниями)
+    // GET /api/chat/history/{roomId} - История с пагинацией
+    // POST /api/chat/edit - Редактирование сообщения
+    // DELETE /api/chat/delete/{roomId}/{messageId}/{userId} - Удаление
+    // GET /api/chat/search/{roomId} - Поиск сообщений
+    // GET /api/chat/last/{roomId} - Последнее сообщение
+    // GET /api/chat/range/{roomId} - По диапазону дат
+    // GET /api/chat/stats/{roomId} - Статистика
+    // GET /api/chat/after/{roomId}/{lastMessageId} - После указанного ID
+    // DELETE /api/chat/clear/{roomId} - Очистить историю (админ)
+}
+PrivateChatController.cs (/api/private/*)
+Назначение: Приватные чаты (личные сообщения).
+
+csharp
+// Основные функции:
+// - Создание/получение профиля пользователя
+// - Создание приватных чатов (уникальная пара пользователей)
+// - Отправка приватных сообщений с проверкой блокировок
+// - Отметка сообщений как прочитанных
+// - Блокировка/разблокировка пользователей
+// - Heartbeat для обновления статуса онлайн
+
+[ApiController]
+[Route("api/private")]
+public class PrivateChatController : ControllerBase
+{
+    // POST /api/private/user - Создание/получение пользователя
+    // GET /api/private/user/{userId} - Получение пользователя
+    // GET /api/private/users - Все пользователи
+    // GET /api/private/users/online - Онлайн пользователи
+    // POST /api/private/chat/create - Создать чат
+    // GET /api/private/user/{userId}/chats - Чаты пользователя
+    // POST /api/private/message/send - Отправить сообщение
+    // GET /api/private/chat/{chatId}/history - История
+    // POST /api/private/chat/mark-read - Отметить прочитанными
+    // POST /api/private/user/block - Блокировка
+    // POST /api/private/user/unblock - Разблокировка
+    // GET /api/private/user/{userId}/blocked - Список заблокированных
+    // POST /api/private/heartbeat - Обновление активности
+}
+ReactionController.cs (/api/reaction/*)
+Назначение: Управление реакциями на сообщения.
+
+csharp
+// Поддерживаемые реакции: 👍❤️😄😮😢😡🚀🔥⭐
+// Toggle-механизм: повторное нажатие удаляет реакцию
+
+[ApiController]
+[Route("api/[controller]")]
+public class ReactionController : ControllerBase
+{
+    // POST /api/reaction/add - Добавить/изменить реакцию
+    // DELETE /api/reaction/remove - Удалить реакцию
+    // GET /api/reaction/message/{messageId} - Все реакции на сообщение
+    // GET /api/reaction/message/{messageId}/user/{userId} - Реакция пользователя
+}
+MentionController.cs (/api/mention/*)
+Назначение: Обработка упоминаний пользователей.
+
+csharp
+// Механизм: @username в тексте сообщения создаёт упоминание
+// Упоминания сохраняются в таблице Mentions с флагом IsRead
+
+[ApiController]
+[Route("api/[controller]")]
+public class MentionController : ControllerBase
+{
+    // GET /api/mention/unread/{userId} - Непрочитанные упоминания
+    // POST /api/mention/mark-read - Отметить как прочитанные
+    // GET /api/mention/count/{userId} - Количество непрочитанных
+    // POST /api/mention/extract - Извлечь упоминания из текста
+}
+RoomController.cs (/api/room/*)
+Назначение: Управление комнатами.
+
+csharp
+[ApiController]
+[Route("api/[controller]")]
+public class RoomController : ControllerBase
+{
+    // POST /api/room/create - Создание комнаты
+    // POST /api/room/join - Вход в комнату
+    // POST /api/room/leave - Выход из комнаты
+    // GET /api/room/list - Список комнат
+    // GET /api/room/info/{roomId} - Информация о комнате
+}
+SyncController.cs (/api/sync/*)
+Назначение: Синхронизация через Long Polling.
+
+csharp
+// Механизм: клиент отправляет запрос и ждёт новые сообщения
+// При появлении нового сообщения запрос завершается
+
+[ApiController]
+[Route("api/[controller]")]
+public class SyncController : ControllerBase
+{
+    // POST /api/sync/state - Текущее состояние комнаты
+    // POST /api/sync/poll - Long Polling (ожидание сообщений)
+    // POST /api/sync/users - Синхронизация статусов
+    // GET /api/sync/ping - Проверка доступности
+    // GET /api/sync/status/{roomId} - Статус комнаты
+    // POST /api/sync/typing - Статус печатания
+}
+2. Services/ - Бизнес-логика
+UserService.cs
+Назначение: Центральный сервис управления пользователями и ролями.
+
+csharp
+// Ключевые функции:
+// - CRUD операции с пользователями
+// - Управление ролями (Admin, Manager, User, Guest)
+// - Бан/мут/кик пользователей (с транзакциями)
+// - Логирование действий модерации
+// - Поиск и пагинация пользователей (НОВЫЙ метод GetUsersPaginatedAsync)
+
+public class UserService
+{
+    // Роли системы
+    public static class Roles
+    {
+        public const string Admin = "Admin";
+        public const string Manager = "Manager";
+        public const string User = "User";
+        public const string Guest = "Guest";
+        public static bool IsValidRole(string role);
+        public static int GetPriority(string role);
+    }
+    
+    // Основные методы
+    public async Task<UserInfoDto> GetOrCreateUserAsync(...);
+    public async Task<UserInfoDto> GetUserAsync(string userId);
+    public async Task<bool> SetUserRoleAsync(...);
+    public async Task<bool> BanUserAsync(...);
+    public async Task<bool> MuteUserAsync(...);
+    public async Task<bool> KickUserAsync(...);
+    public async Task<bool> IsUserMutedAsync(string userId);
+    public async Task<PaginatedResponse<User>> GetUsersPaginatedAsync(...);
+}
+RoomManager.cs
+Назначение: Основная логика управления комнатами и сообщениями.
+
+csharp
+// Ключевые функции:
+// - Создание/удаление комнат (с транзакциями)
+// - Добавление/удаление пользователей из комнат
+// - Отправка, редактирование, удаление сообщений
+// - Получение истории и статистики
+// - События для SignalR (OnNewMessage, OnUserJoined, etc.)
+// - Кэширование активных комнат в памяти
+
+public class RoomManager
+{
+    // События для SignalR
+    public Func<string, ChatMessage, Task> OnNewMessage { get; set; }
+    public Func<string, UserInfo, Task> OnUserJoined { get; set; }
+    public Func<string, string, Task> OnUserLeft { get; set; }
+    public Func<string, string, string, Task> OnMessageEdited { get; set; }
+    public Func<string, string, Task> OnMessageDeleted { get; set; }
+    public Func<string, ChatMessage, string, Task> OnUserMentioned { get; set; }
+    
+    // Основные методы
+    public async Task<string> CreateRoomAsync(string name, string createdBy);
+    public async Task<bool> AddUserToRoomAsync(string roomId, UserInfo user);
+    public async Task<bool> RemoveUserFromRoomAsync(string roomId, string userId);
+    public async Task<bool> AddMessageAsync(string roomId, ChatMessage message);
+    public async Task<bool> EditMessageAsync(...);
+    public async Task<bool> DeleteMessageAsync(...);
+    public async Task<List<UserInfo>> GetRoomUsersAsync(string roomId);
+    public async Task<RoomInfo> GetRoomInfoAsync(string roomId);
+    public async Task<List<ChatMessage>> GetMessagesSinceAsync(string roomId, DateTime since);
+    public async Task<MessageStats> GetMessageStatsAsync(string roomId);
+    public async Task<bool> ClearRoomHistoryAsync(string roomId);
+    public async Task<bool> DeleteRoomAsync(string roomId);
+}
+MessageHistoryService.cs
+Назначение: Управление историей сообщений с кэшированием.
+
+csharp
+// Ключевые функции:
+// - Хранение истории в БД + кэш в памяти для быстрого доступа
+// - Пагинация истории (limit/offset)
+// - Получение сообщений по диапазону дат
+// - Ограничение кэша (maxHistory = 1000 сообщений)
+
+public class MessageHistoryService
+{
+    private readonly Dictionary<string, List<ChatMessage>> _cache;
+    private readonly int _maxHistory = 1000;
+    
+    public async Task AddMessageAsync(string roomId, ChatMessage message);
+    public async Task<List<ChatMessage>> GetHistoryAsync(string roomId, int limit = 100, int offset = 0);
+    public async Task<ChatMessage> GetMessageAsync(string roomId, string messageId);
+    public async Task<int> GetMessageCountAsync(string roomId);
+    public async Task<bool> UpdateMessageAsync(string roomId, string messageId, string newContent);
+    public async Task<bool> DeleteMessageAsync(string roomId, string messageId);
+    public async Task ClearHistoryAsync(string roomId);
+    public async Task LoadHistoryToCacheAsync(string roomId, int limit = 100);
+}
+PrivateChatService.cs
+Назначение: Логика приватных чатов (личных сообщений).
+
+csharp
+// Ключевые функции:
+// - Создание/получение приватных чатов (уникальная пара)
+// - Отправка приватных сообщений (с проверкой блокировок и мута)
+// - Отметка сообщений как прочитанных
+// - Управление блокировками пользователей
+// - Heartbeat для отслеживания онлайн-статуса
+// - Прокси к UserService для модерации
+
+public class PrivateChatService
+{
+    public async Task<string> GetOrCreatePrivateChatAsync(string user1Id, string user2Id);
+    public async Task<PrivateMessageDto> SendPrivateMessageAsync(...);
+    public async Task<List<PrivateMessageDto>> GetPrivateMessagesAsync(string chatId, int limit = 50, int offset = 0);
+    public async Task<bool> MarkMessagesAsReadAsync(string chatId, string userId);
+    public async Task<bool> BlockUserAsync(string userId, string blockUserId);
+    public async Task<bool> UnblockUserAsync(string userId, string blockUserId);
+    public async Task<bool> UpdateHeartbeatAsync(string userId);
+    public async Task CheckInactiveUsersAsync();
+    
+    // Прокси к UserService (модерация)
+    public async Task<bool> MuteUserAsync(...);
+    public async Task<bool> BanUserAsync(...);
+    public async Task<bool> IsUserMutedAsync(string userId);
+}
+UserPresenceService.cs
+Назначение: Отслеживание присутствия пользователей в реальном времени.
+
+csharp
+// Ключевые функции:
+// - Отслеживание активности пользователей (LastSeen)
+// - Статус печатания (IsTyping) с автоматическим сбросом через 3 секунды
+// - Список активных пользователей в комнате
+// - Очистка неактивных пользователей (таймаут 5 минут)
+
+public class UserPresenceService
+{
+    private readonly ConcurrentDictionary<string, UserPresence> _users;
+    private readonly ConcurrentDictionary<string, HashSet<string>> _roomUsers;
+    private readonly ConcurrentDictionary<string, DateTime> _typingStatus;
+    private readonly TimeSpan _typingTimeout = TimeSpan.FromSeconds(3);
+    private readonly TimeSpan _inactiveTimeout = TimeSpan.FromMinutes(5);
+    
+    public async Task UpdateUserActivityAsync(string userId, string roomId);
+    public async Task SetTypingStatusAsync(string userId, string roomId, bool isTyping);
+    public async Task<bool> IsUserTypingAsync(string userId, string roomId);
+    public async Task<List<UserInfo>> GetActiveUsersInRoomAsync(string roomId);
+    public async Task CleanupInactiveUsersAsync();
+    public async Task<bool> IsUserActiveAsync(string userId);
+}
+ReactionService.cs
+Назначение: Управление реакциями на сообщения.
+
+csharp
+// Поддерживаемые реакции: 👍❤️😄😮😢😡🚀🔥⭐
+// Toggle-механизм: повторное нажатие удаляет реакцию
+
+public class ReactionService
+{
+    public async Task<bool> AddReactionAsync(string messageId, string userId, string reaction);
+    public async Task<bool> RemoveReactionAsync(string messageId, string userId);
+    public async Task<Dictionary<string, int>> GetReactionsAsync(string messageId);
+    public async Task<Dictionary<string, Dictionary<string, int>>> GetReactionsBatchAsync(IEnumerable<string> messageIds);
+    public async Task<string> GetUserReactionAsync(string messageId, string userId);
+}
+AttachmentService.cs
+Назначение: Работа с вложениями (файлами).
+
+csharp
+// Поддерживаемые форматы: JPEG, PNG, GIF, WebP, PDF, TXT, JSON
+// Максимальный размер: 10MB
+// Файлы сохраняются в wwwroot/uploads/
+
+public class AttachmentService
+{
+    private readonly string _uploadPath = "wwwroot/uploads/";
+    private readonly string[] _allowedTypes = { "image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "text/plain", "application/json" };
+    
+    public async Task<AttachmentUploadResult> UploadFileAsync(IFormFile file, string messageId);
+    public async Task<bool> DeleteFileAsync(string attachmentId);
+    public async Task<Attachment> GetAttachmentAsync(string attachmentId);
+    public async Task<string> GetFileContentAsBase64Async(string attachmentId);
+}
+MentionService.cs
+Назначение: Обработка упоминаний пользователей.
+
+csharp
+// Механизм: @username в тексте сообщения
+// Извлечение упоминаний с помощью регулярного выражения @(\w+)
+// Создание записей в таблице Mentions
+// Отметка прочитанных/непрочитанных
+
+public class MentionService
+{
+    public List<string> ExtractMentions(string text);
+    public async Task<User> GetUserByNameAsync(string name);
+    public async Task<List<Mention>> CreateMentionsAsync(string messageId, string content, string mentionedBy);
+    public async Task<List<Mention>> GetUnreadMentionsAsync(string userId);
+    public async Task<bool> MarkMentionsAsReadAsync(string userId, List<string> mentionIds = null);
+    public async Task<int> GetUnreadMentionsCountAsync(string userId);
+    public string HighlightMentions(string text, string currentUserId);
+}
+3. Database/ - Доступ к данным
+ChatDbContext.cs
+Назначение: Контекст Entity Framework Core для работы с БД.
+
+csharp
+// Поддерживаемые СУБД: SQL Server, PostgreSQL (в будущем), SQLite (в будущем)
+
+public class ChatDbContext : DbContext
+{
+    // Основные таблицы
+    public DbSet<User> Users { get; set; }
+    public DbSet<Room> Rooms { get; set; }
+    public DbSet<Message> Messages { get; set; }
+    public DbSet<PrivateChat> PrivateChats { get; set; }
+    public DbSet<PrivateMessage> PrivateMessages { get; set; }
+    public DbSet<UserRoom> UserRooms { get; set; }
+    public DbSet<BlockedUser> BlockedUsers { get; set; }
+    public DbSet<ModerationLog> ModerationLogs { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
+    
+    // Новые таблицы (v5.0)
+    public DbSet<MessageReaction> MessageReactions { get; set; }
+    public DbSet<Attachment> Attachments { get; set; }
+    public DbSet<Mention> Mentions { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // === УНИКАЛЬНЫЕ ИНДЕКСЫ ===
+        modelBuilder.Entity<User>().HasIndex(u => u.UserId).IsUnique();
+        modelBuilder.Entity<Room>().HasIndex(r => r.RoomId).IsUnique();
+        modelBuilder.Entity<Message>().HasIndex(m => m.MessageId).IsUnique();
+        
+        // === ИНДЕКСЫ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ ===
+        modelBuilder.Entity<Message>()
+            .HasIndex(m => new { m.RoomId, m.Timestamp });
+        modelBuilder.Entity<UserRoom>()
+            .HasIndex(ur => new { ur.UserId, ur.RoomId }).IsUnique();
+        modelBuilder.Entity<PrivateMessage>()
+            .HasIndex(pm => new { pm.ChatId, pm.Timestamp });
+        
+        // === ОТНОШЕНИЯ ===
+        // Каскадное удаление, ограничения целостности
+    }
+}
+DatabaseConfig.cs
+Назначение: Конфигурация и инициализация базы данных.
+
+csharp
+public static class DatabaseConfig
+{
+    public enum DatabaseType { SQLite, SqlServer, PostgreSQL }
+    
+    public class DatabaseSettings
+    {
+        public DatabaseType Type { get; set; } = DatabaseType.SqlServer;
+        public string ConnectionString { get; set; }
+        public string SQLitePath { get; set; } = "Data/chat.db";
+        public bool AutoMigrate { get; set; } = true;
+        public int CommandTimeout { get; set; } = 30;
+        public bool EnableSensitiveDataLogging { get; set; } = false;
+    }
+    
+    public static DatabaseSettings LoadSettings(IConfiguration configuration);
+    public static string GetConnectionString(DatabaseSettings settings);
+    public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration);
+    public static async Task EnsureDatabaseCreatedAsync(IServiceProvider serviceProvider);
+    
+    // Seed данных при инициализации
+    private static async Task SeedSystemSettingsAsync(ChatDbContext context);
+    private static async Task SeedAdminUserAsync(ChatDbContext context);
+    private static async Task SeedCommonRoomAsync(ChatDbContext context);
+}
+4. Models/ - Модели данных
+Entities/ - Сущности базы данных
+User.cs
+csharp
+[Table("Users")]
+public class User
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string UserId { get; set; }
+    [Required][MaxLength(100)] public string Name { get; set; }
+    [MaxLength(10)] public string Avatar { get; set; }
+    [MaxLength(7)] public string Color { get; set; }
+    [MaxLength(50)] public string Email { get; set; }
+    [MaxLength(50)] public string Role { get; set; } // Admin, Manager, User, Guest
+    public bool IsOnline { get; set; }
+    public string Status { get; set; } // online, away, busy, offline, banned
+    public string BanReason { get; set; }
+    public DateTime? BannedAt { get; set; }
+    public DateTime? MutedUntil { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastSeen { get; set; }
+    public int MessageCount { get; set; }
+    public int UnreadCount { get; set; }
+    
+    // Навигационные свойства
+    public virtual ICollection<PrivateChat> PrivateChats1 { get; set; }
+    public virtual ICollection<PrivateChat> PrivateChats2 { get; set; }
+    public virtual ICollection<Message> Messages { get; set; }
+    public virtual ICollection<UserRoom> UserRooms { get; set; }
+    public virtual ICollection<BlockedUser> BlockedUsers { get; set; }
+}
+Room.cs
+csharp
+[Table("Rooms")]
+public class Room
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string RoomId { get; set; }
+    [MaxLength(200)] public string Name { get; set; }
+    [MaxLength(500)] public string Description { get; set; }
+    public string CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastActivity { get; set; }
+    public int MessageCount { get; set; }
+    public bool IsPrivate { get; set; }
+    public bool IsActive { get; set; }
+    [MaxLength(50)] public string RoomType { get; set; } // "common", "private"
+    [MaxLength(50)] public string Model { get; set; }
+    public string SettingsJson { get; set; } // RoomSettings в JSON
+    public string MetadataJson { get; set; }
+    
+    public virtual ICollection<Message> Messages { get; set; }
+    public virtual ICollection<UserRoom> UserRooms { get; set; }
+}
+Message.cs
+csharp
+[Table("Messages")]
+public class Message
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string MessageId { get; set; }
+    [Required][MaxLength(50)] public string RoomId { get; set; }
+    [Required][MaxLength(50)] public string UserId { get; set; }
+    [MaxLength(100)] public string UserName { get; set; }
+    [MaxLength(10)] public string UserAvatar { get; set; }
+    [MaxLength(20)] public string Role { get; set; } // user, assistant, system
+    public string Content { get; set; }
+    public DateTime Timestamp { get; set; }
+    [MaxLength(50)] public string ReplyToId { get; set; }
+    public bool IsEdited { get; set; }
+    public DateTime? EditedAt { get; set; }
+    [MaxLength(50)] public string Model { get; set; }
+    public string AttachmentsJson { get; set; } // List<FileAttachment> в JSON
+    public string MetadataJson { get; set; }
+    
+    public virtual User User { get; set; }
+    public virtual Room Room { get; set; }
+}
+PrivateChat.cs & PrivateMessage.cs
+csharp
+[Table("PrivateChats")]
+public class PrivateChat
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string ChatId { get; set; }
+    [MaxLength(50)] public string User1Id { get; set; }
+    [MaxLength(50)] public string User2Id { get; set; }
+    public string LastMessage { get; set; }
+    public DateTime? LastMessageAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastActivity { get; set; }
+    public bool IsActive { get; set; }
+    
+    public virtual User User1 { get; set; }
+    public virtual User User2 { get; set; }
+    public virtual ICollection<PrivateMessage> PrivateMessages { get; set; }
+}
+
+[Table("PrivateMessages")]
+public class PrivateMessage
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string MessageId { get; set; }
+    [Required][MaxLength(50)] public string ChatId { get; set; }
+    [Required][MaxLength(50)] public string SenderId { get; set; }
+    [MaxLength(50)] public string ReceiverId { get; set; }
+    [MaxLength(100)] public string SenderName { get; set; }
+    [MaxLength(10)] public string SenderAvatar { get; set; }
+    public string Content { get; set; }
+    public DateTime Timestamp { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+    [MaxLength(50)] public string ReplyToId { get; set; }
+    public bool IsEdited { get; set; }
+    public DateTime? EditedAt { get; set; }
+    public string AttachmentsJson { get; set; }
+    
+    public virtual PrivateChat Chat { get; set; }
+    public virtual User Sender { get; set; }
+    public virtual User Receiver { get; set; }
+}
+Новые сущности (v5.0)
+MessageReaction.cs:
+
+csharp
+[Table("MessageReactions")]
+public class MessageReaction
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string MessageId { get; set; }
+    [Required][MaxLength(50)] public string UserId { get; set; }
+    [Required][MaxLength(10)] public string Reaction { get; set; } // 👍❤️😄😮😢😡🚀🔥⭐
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    
+    public virtual Message Message { get; set; }
+    public virtual User User { get; set; }
+}
+
+public static class ReactionTypes
+{
+    public const string Like = "👍";
+    public const string Heart = "❤️";
+    public const string Laugh = "😄";
+    public const string Surprise = "😮";
+    public const string Sad = "😢";
+    public const string Angry = "😡";
+    public const string Rocket = "🚀";
+    public const string Fire = "🔥";
+    public const string Star = "⭐";
+    public static readonly string[] All = { ... };
+    public static bool IsValid(string reaction) => All.Contains(reaction);
+}
+Attachment.cs:
+
+csharp[Table("Attachments")]
+public class Attachment
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string AttachmentId { get; set; }
+    [Required][MaxLength(50)] public string MessageId { get; set; }
+    [Required][MaxLength(255)] public string FileName { get; set; }
+    [Required][MaxLength(500)] public string FilePath { get; set; }
+    public long FileSize { get; set; }
+    [MaxLength(100)] public string MimeType { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public string MetadataJson { get; set; }
+    
+    public virtual Message Message { get; set; }
+}
+Mention.cs:
+
+csharp
+[Table("Mentions")]
+public class Mention
+{
+    [Key] public int Id { get; set; }
+    [Required][MaxLength(50)] public string MentionId { get; set; }
+    [Required][MaxLength(50)] public string MessageId { get; set; }
+    [Required][MaxLength(50)] public string UserId { get; set; } // Кто упомянут
+    [MaxLength(50)] public string MentionedBy { get; set; } // Кто упомянул
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    
+    public virtual Message Message { get; set; }
+    public virtual User User { get; set; }
+    public virtual User MentionedByUser { get; set; }
+}
+DTO - Data Transfer Objects
+PaginationDto.cs
+csharp
+public class PaginatedRequest
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+    public string SortBy { get; set; } = "Name";
+    public bool SortDescending { get; set; } = false;
+    public string SearchTerm { get; set; }
+}
+
+public class PaginatedResponse<T>
+{
+    public List<T> Items { get; set; }
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+    public bool HasPreviousPage { get; set; }
+    public bool HasNextPage { get; set; }
+}
+UserDtos.cs
+csharp
+public class UserInfoDto
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Avatar { get; set; }
+    public string Color { get; set; }
+    public bool IsTyping { get; set; }
+    public DateTime LastSeen { get; set; }
+    public string RoomId { get; set; }
+    public string Role { get; set; }
+    public string Status { get; set; }
+    public bool IsOnline { get; set; }
+    public string BanReason { get; set; }
+    public DateTime? BannedAt { get; set; }
+    public DateTime? MutedUntil { get; set; }
+    public int RoomCount { get; set; }
+    public int MessageCount { get; set; }
+    public int UnreadCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class UserPreviewDto
+{
+    public string UserId { get; set; }
+    public string Name { get; set; }
+    public string Avatar { get; set; }
+    public string Color { get; set; }
+    public string Status { get; set; }
+    public bool IsOnline { get; set; }
+}
+PrivateChatDtos.cs
+csharp
+public class PrivateChatDto
+{
+    public string ChatId { get; set; }
+    public string User1Id { get; set; }
+    public string User2Id { get; set; }
+    public string LastMessage { get; set; }
+    public DateTime? LastMessageAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastActivity { get; set; }
+    public bool IsActive { get; set; }
+    public UserPreviewDto User1 { get; set; }
+    public UserPreviewDto User2 { get; set; }
+    public List<PrivateMessageDto> PrivateMessages { get; set; }
+}
+
+public class PrivateMessageDto
+{
+    public string MessageId { get; set; }
+    public string ChatId { get; set; }
+    public string SenderId { get; set; }
+    public string ReceiverId { get; set; }
+    public string SenderName { get; set; }
+    public string SenderAvatar { get; set; }
+    public string Content { get; set; }
+    public DateTime Timestamp { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public string ReplyToId { get; set; }
+    public bool IsEdited { get; set; }
+    public DateTime? EditedAt { get; set; }
+    public List<FileAttachment> Attachments { get; set; }
+    public string AttachmentsJson { get; set; }
+}
+ReactionDtos.cs
+csharp
+public class ReactionDto
+{
+    public string Reaction { get; set; }
+    public int Count { get; set; }
+    public List<string> UserIds { get; set; }
+}
+5. Mappers/ - Мапперы
+UserMapper.cs
+csharp
+public static class UserMapper
+{
+    // Преобразование User -> UserInfoDto
+    public static UserInfoDto ToUserInfoDto(this User user);
+    // Преобразование User -> UserInfoBriefDto
+    public static UserInfoBriefDto ToUserInfoBriefDto(this User user);
+    // Преобразование коллекции -> List<UserInfoDto>
+    public static List<UserInfoDto> ToUserInfoDtos(this IEnumerable<User> users);
+}
+MessageMapper.cs
+csharp
+public static class MessageMapper
+{
+    // Message -> ChatMessage
+    public static ChatMessage ToChatMessage(this Message message);
+    // ChatMessage -> Message (сущность)
+    public static Message ToMessageEntity(this ChatMessage chatMessage);
+    // Коллекция -> List<ChatMessage>
+    public static List<ChatMessage> ToChatMessages(this IEnumerable<Message> messages);
+}
+RoomMapper.cs
+csharp
+public static class RoomMapper
+{
+    // Room -> RoomInfo
+    public static RoomInfo ToRoomInfo(this Room room);
+    // RoomInfo -> Room (сущность)
+    public static Room ToRoomEntity(this RoomInfo roomInfo);
+}
+PrivateChatMapper.cs
+csharp
+public static class PrivateChatMapper
+{
+    // PrivateMessage -> PrivateMessageDto
+    public static PrivateMessageDto ToPrivateMessageDto(this PrivateMessage message);
+    // PrivateChat -> PrivateChatDto
+    public static PrivateChatDto ToPrivateChatDto(this PrivateChat chat);
+    // Коллекции -> List<Dto>
+    public static List<PrivateMessageDto> ToPrivateMessageDtos(this IEnumerable<PrivateMessage> messages);
+    public static List<PrivateChatDto> ToPrivateChatDtos(this IEnumerable<PrivateChat> chats);
+}
+6. Hubs/ - SignalR Хабы
+ChatHub.cs
+csharp
+[Authorize] // Для будущей аутентификации
+public class ChatHub : Hub
+{
+    private readonly RoomManager _roomManager;
+    private readonly UserPresenceService _presenceService;
+    
+    // Методы, вызываемые клиентом
+    public async Task JoinRoom(string roomId, UserInfo user);
+    public async Task LeaveRoom(string roomId);
+    public async Task SendMessage(string roomId, ChatMessage message);
+    public async Task EditMessage(string roomId, string messageId, string newContent);
+    public async Task DeleteMessage(string roomId, string messageId);
+    public async Task Typing(string roomId, bool isTyping);
+    public async Task AddReaction(string messageId, string reaction);
+    
+    // События, отправляемые клиенту
+    // Clients.Group(roomId).SendAsync("NewMessage", message);
+    // Clients.Group(roomId).SendAsync("UserJoined", user);
+    // Clients.Group(roomId).SendAsync("UserLeft", userId);
+    // Clients.User(userId).SendAsync("Mentioned", message);
+}
+7. Program.cs & Startup.cs
+Program.cs - Точка входа
+csharp
+public class Program
+{
+    public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
+    
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureLogging((context, logging) =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+                logging.AddDebug();
+                
+                // Логирование в файл (logs/app-{Date}.log)
+                var logPath = Path.Combine("logs", $"app-{DateTime.Now:yyyy-MM-dd}.log");
+                logging.AddProvider(new FileLoggerProvider(logPath));
+                
+                logging.SetMinimumLevel(LogLevel.Information);
+                logging.AddFilter("Microsoft", LogLevel.Warning);
+                logging.AddFilter("System", LogLevel.Warning);
+            })
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+                webBuilder.UseIISIntegration();
+                webBuilder.UseUrls("http://127.0.0.1:8032");
+            });
+}
+Startup.cs - Конфигурация приложения
+csharp
+public class Startup
+{
+    public Startup(IConfiguration configuration) => Configuration = configuration;
+    public IConfiguration Configuration { get; }
+    
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddControllers();
+        services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = true;
+            options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+        });
+        
+        // CORS
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", builder =>
+            {
+                builder.WithOrigins("http://localhost:3000", "http://localhost:8034")
+                       .AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .AllowCredentials();
+            });
+        });
+        
+        services.AddMemoryCache();
+        services.AddHttpClient();
+        
+        // БД
+        services.AddDbContext<ChatDbContext>(options =>
+            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+        
+        // Сервисы
+        services.AddScoped<UserService>();
+        services.AddScoped<RoomManager>();
+        services.AddScoped<MessageHistoryService>();
+        services.AddScoped<PrivateChatService>();
+        services.AddScoped<UserPresenceService>();
+        services.AddScoped<ReactionService>();
+        services.AddScoped<AttachmentService>();
+        services.AddScoped<MentionService>();
+        
+        // Фоновые сервисы
+        services.AddHostedService<RoomCleanupService>();
+    }
+    
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
+        else app.UseExceptionHandler("/error");
+        
+        app.UseCors("AllowAll");
+        app.UseRouting();
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+        
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapHub<ChatHub>("/chatHub");
+        });
+        
+        // Инициализация БД
+        using var scope = app.ApplicationServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
+        dbContext.Database.EnsureCreated();
+    }
+}
+8. Конфигурационные файлы
+appsettings.json
+json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "ChatSettings": {
+    "MaxMessageLength": 10000,
+    "MaxHistoryMessages": 1000,
+    "MaxRoomUsers": 50,
+    "CleanupIntervalSeconds": 60,
+    "DefaultRoomTimeoutMinutes": 60,
+    "PollingTimeoutSeconds": 30,
+    "TypingTimeoutSeconds": 3,
+    "InactiveTimeoutMinutes": 5
+  },
+  "CorsSettings": {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:8034",
+      "http://222.1.1.31:8034"
+    ],
+    "AllowedMethods": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+    "AllowedHeaders": [ "Content-Type", "Authorization", "X-Requested-With" ]
+  },
+  "ConnectionStrings": {
+    "MSSQL": "Server=222.1.1.99;Database=InfocomChat;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;",
+    "DefaultConnection": "Server=222.1.1.99;Database=InfocomChat;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+  },
+  "Database": {
+    "Type": "SqlServer",
+    "SQLitePath": "Data/chat.db",
+    "AutoMigrate": true,
+    "CommandTimeout": 30,
+    "EnableSensitiveDataLogging": false
+  },
+  "Server": {
+    "Port": 8032,
+    "DefaultRole": "Admin",
+    "MaxUsersPerRoom": 50,
+    "MaxMessageLength": 10000,
+    "InactiveTimeoutMinutes": 5,
+    "MaxHistoryMessages": 1000,
+    "AllowGuestUsers": true,
+    "EnableRegistration": true
+  },
+  "LM": {
+    "IP": "222.1.1.31",
+    "Port": 8034,
+    "Timeout": 60,
+    "MaxTokens": 2048,
+    "ApiPath": "/v1/chat/completions"
+  }
+}
+9. Тестовый клиент
+Index.html
+Полноценный тестовый клиент для проверки всех 55+ API эндпоинтов.
+
+Функциональность:
+
+✅ Отображение всех API с методами и описаниями
+
+✅ Фильтрация по методу (GET/POST/PUT/DELETE)
+
+✅ Фильтрация по статусу (ожидает/успешно/ошибка/ручная)
+
+✅ Поиск по URL или описанию
+
+✅ Автоматическое тестирование (авто-тесты)
+
+✅ Ручное тестирование с редактированием тела запроса
+
+✅ Статистика выполнения тестов
+
+✅ Сохранение состояния в localStorage
+
+✅ Адаптивный дизайн (темная тема)
+
+✅ Горячие клавиши (Ctrl+Enter для запуска всех тестов)
+
+Структура тестов:
+
+javascript
+const API_DEFINITIONS = [
+    // Базовые (2)
+    // Пользователи (7)
+    // Приватные чаты (9)
+    // Комнаты (4)
+    // Сообщения (12)
+    // Реакции (4)
+    // Упоминания (4)
+    // Синхронизация (4)
+    // Администрирование (14)
+    // Итого: ~60 API эндпоинтов
+];
+Схема базы данных
+sql
+-- Пользователи
+Users (UserId, Name, Avatar, Color, Email, Role, IsOnline, Status, BanReason, BannedAt, MutedUntil, CreatedAt, LastSeen, MessageCount, UnreadCount)
+
+-- Комнаты
+Rooms (RoomId, Name, Description, CreatedBy, CreatedAt, LastActivity, MessageCount, IsPrivate, IsActive, RoomType, Model, SettingsJson, MetadataJson)
+
+-- Сообщения
+Messages (MessageId, RoomId, UserId, UserName, UserAvatar, Role, Content, Timestamp, ReplyToId, IsEdited, EditedAt, Model, AttachmentsJson, MetadataJson)
+
+-- Приватные чаты
+PrivateChats (ChatId, User1Id, User2Id, LastMessage, LastMessageAt, CreatedAt, LastActivity, IsActive)
+
+-- Приватные сообщения
+PrivateMessages (MessageId, ChatId, SenderId, ReceiverId, SenderName, SenderAvatar, Content, Timestamp, IsRead, ReadAt, ReplyToId, IsEdited, EditedAt, AttachmentsJson)
+
+-- Связь пользователь-комната
+UserRooms (UserId, RoomId, JoinedAt, LastActivity, IsActive)
+
+-- Блокировки
+BlockedUsers (UserId, BlockedUserId, BlockedAt)
+
+-- Логи модерации
+ModerationLogs (LogId, ModeratorId, TargetUserId, Action, Reason, Timestamp, DurationMinutes, DetailsJson)
+
+-- Системные настройки
+SystemSettings (Key, Value, Description, UpdatedAt)
+
+-- Реакции (НОВОЕ)
+MessageReactions (MessageId, UserId, Reaction, CreatedAt, UpdatedAt)
+
+-- Вложения (НОВОЕ)
+Attachments (AttachmentId, MessageId, FileName, FilePath, FileSize, MimeType, UploadedAt, MetadataJson)
+
+-- Упоминания (НОВОЕ)
+Mentions (MentionId, MessageId, UserId, MentionedBy, IsRead, ReadAt, CreatedAt)
+Зависимости проекта (NuGet)
+xml
+<PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.32" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.32" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.32" />
+<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
+<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.32" />
+<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.32" />
+<PackageReference Include="System.Text.Json" Version="6.0.10" />
+Рекомендации по дальнейшему развитию
+Аутентификация и авторизация: Добавить JWT-токены для защиты API
+
+WebSocket: Перейти с Long Polling на WebSocket (SignalR уже настроен)
+
+Миграции EF Core: Использовать миграции вместо EnsureCreated
+
+Кэширование: Добавить Redis для распределённого кэширования
+
+Мониторинг: Добавить Application Insights или Prometheus
+
+Docker: Контейнеризация приложения
+
+CI/CD: Настройка GitHub Actions или Azure DevOps
+
+API Documentation: Добавить Swagger/OpenAPI
+
+Unit Tests: Расширить покрытие тестами
+
+Rate Limiting: Защита от DDoS-атак

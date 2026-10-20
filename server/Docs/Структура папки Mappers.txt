@@ -1,0 +1,6 @@
+Mappers/
+├── UserMapper.cs          // Уже есть
+├── MessageMapper.cs       // НОВЫЙ: для преобразования Message <-> ChatMessage
+├── RoomMapper.cs          // НОВЫЙ: для преобразования Room <-> RoomInfo
+├── PrivateChatMapper.cs   // НОВЫЙ: для приватных чатов и сообщений
+└── DtoExtensions.cs       // НОВЫЙ: вспомогательные методы для коллекций

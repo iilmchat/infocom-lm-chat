@@ -1,0 +1,96 @@
+ПОЛНЫЙ СПИСОК API СЕРВЕРА (v5.0)
+🏠 Базовые эндпоинты
+Метод	URL	Описание
+GET	/api/sync/ping	Проверка доступности сервера
+GET	/api/admin/health	Health check сервера
+👤 Управление пользователями (User)
+Метод	URL	Описание	Тело запроса
+POST	/api/private/user	Создание/получение пользователя	{ userId, name, avatar, color }
+GET	/api/private/user/{userId}	Получение информации о пользователе	-
+GET	/api/private/users	Получение всех пользователей	-
+GET	/api/private/users/online	Получение онлайн-пользователей	-
+GET	/api/private/user/{userId}/unread	Количество непрочитанных сообщений	-
+POST	/api/private/heartbeat	Обновление активности пользователя	{ userId }
+POST	/api/private/user/block	Блокировка пользователя	{ userId, blockUserId }
+POST	/api/private/user/unblock	Разблокировка пользователя	{ userId, blockUserId }
+GET	/api/private/user/{userId}/blocked	Список заблокированных	-
+💬 Приватные чаты (PrivateChat)
+Метод	URL	Описание	Тело запроса
+POST	/api/private/chat/create	Создание приватного чата	{ user1Id, user2Id }
+GET	/api/private/user/{userId}/chats	Список чатов пользователя	-
+POST	/api/private/message/send	Отправка приватного сообщения	{ chatId, senderId, receiverId, content, replyToId? }
+GET	/api/private/chat/{chatId}/history	История приватного чата	?limit=50&offset=0
+POST	/api/private/chat/mark-read	Отметить сообщения как прочитанные	{ chatId, userId }
+DELETE	/api/private/message/{messageId}	Удаление приватного сообщения	?userId={userId}
+POST	/api/private/message/{messageId}	Редактирование приватного сообщения	{ userId, newContent }
+🚪 Комнаты (Room)
+Метод	URL	Описание	Тело запроса
+POST	/api/room/create	Создание комнаты	{ name, createdBy }
+POST	/api/room/join	Вход в комнату	{ roomId, user }
+POST	/api/room/leave	Выход из комнаты	{ roomId, userId }
+GET	/api/room/list	Список активных комнат	-
+GET	/api/room/info/{roomId}	Информация о комнате	-
+📨 Сообщения (Chat)
+Метод	URL	Описание	Тело запроса
+POST	/api/chat/send	Отправка сообщения в комнату	{ roomId, userId, userName, userAvatar, content, role?, replyToId?, model?, attachments? }
+GET	/api/chat/history/{roomId}	История сообщений	?limit=100&offset=0
+PUT	/api/chat/edit	Редактирование сообщения	{ roomId, messageId, userId, newContent }
+DELETE	/api/chat/delete/{roomId}/{messageId}/{userId}	Удаление сообщения	-
+🔄 Синхронизация (Sync - Long Polling)
+Метод	URL	Описание	Тело запроса
+POST	/api/sync/state	Получение текущего состояния	{ roomId, userId, lastSyncTime? }
+POST	/api/sync/poll	Long Polling - ожидание новых сообщений	{ roomId, userId, lastMessageCount?, timeoutSeconds? }
+POST	/api/sync/users	Синхронизация статусов пользователей	{ roomId, userId?, isTyping? }
+GET	/api/sync/status/{roomId}	Статус комнаты (пользователи + сообщения)	-
+POST	/api/sync/typing	Обновление статуса печатания	{ roomId, userId, isTyping }
+🛡️ Администрирование (Admin)
+Управление ролями
+Метод	URL	Описание	Тело запроса
+GET	/api/admin/default-role	Получение роли по умолчанию	-
+POST	/api/admin/default-role	Установка роли по умолчанию	{ role }
+GET	/api/admin/users	Список всех пользователей с ролями	-
+POST	/api/admin/user/{userId}/role	Изменение роли пользователя	{ role, moderatorId }
+GET	/api/admin/role-stats	Статистика по ролям	-
+GET	/api/admin/user/{userId}/isAdmin	Проверка, является ли пользователь админом	-
+GET	/api/admin/user/{userId}/isModerator	Проверка, является ли пользователь модератором	-
+Модерация
+Метод	URL	Описание	Тело запроса
+POST	/api/admin/user/{userId}/mute	Заглушить пользователя	{ minutes, moderatorId, reason? }
+POST	/api/admin/user/{userId}/kick	Кикнуть пользователя	{ roomId, moderatorId }
+POST	/api/admin/user/{userId}/ban	Забанить пользователя	{ moderatorId, reason? }
+POST	/api/admin/user/{userId}/unban	Разбанить пользователя	{ moderatorId }
+DELETE	/api/admin/user/{userId}/history	Очистить историю пользователя	-
+POST	/api/admin/user/{userId}/reset-unread	Сбросить непрочитанные	-
+Управление комнатами (админ)
+Метод	URL	Описание	Тело запроса
+GET	/api/admin/rooms	Список всех комнат	-
+GET	/api/admin/room/{roomId}	Информация о комнате	-
+GET	/api/admin/room/{roomId}/stats	Статистика комнаты	-
+DELETE	/api/admin/room/{roomId}	Удаление комнаты	-
+DELETE	/api/admin/room/{roomId}/history	Очистка истории комнаты	-
+POST	/api/admin/room/{roomId}/close	Закрытие комнаты	-
+GET	/api/admin/room/{roomId}/export	Экспорт комнаты	?format=json
+Управление сообщениями (админ)
+Метод	URL	Описание	Тело запроса
+DELETE	/api/admin/message/{messageId}	Удаление сообщения (админ)	-
+PUT	/api/admin/message/{messageId}	Редактирование сообщения (админ)	{ newContent, moderatorId }
+POST	/api/admin/messages/search	Поиск сообщений	{ query, roomId?, limit? }
+Статистика и логи
+Метод	URL	Описание	Тело запроса
+GET	/api/admin/stats	Общая статистика сервера	-
+GET	/api/admin/logs	Логи модерации	?userId={userId}
+DELETE	/api/admin/clear-all	Очистка всех данных (опасно!)	-
+GET	/api/admin/user/{userId}/stats	Статистика пользователя	-
+GET	/api/admin/users/online	Онлайн-пользователи	-
+POST	/api/admin/users/search	Поиск пользователей	{ query }
+GET	/api/admin/user/{userId}	Получение пользователя	-
+GET	/api/admin/user/{userId}/blocks	Блокировки пользователя	-
+📊 СТАТИСТИКА API
+Категория	Количество эндпоинтов
+Пользователи	9
+Приватные чаты	8
+Комнаты	5
+Сообщения	4
+Синхронизация	5
+Администрирование	24
+ИТОГО	~55 эндпоинтов

@@ -1,101 +1,191 @@
+// Services/SessionService.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using ProjectManager.API.Data;
-using ProjectManager.API.DTOs;
-using ProjectManager.API.Models;
-using ProjectManager.API.Services.Interfaces;
+using InfocomChat.Server.Database;
+using InfocomChat.Server.DTOs;
+using InfocomChat.Server.Models.Entities;
+using Microsoft.Extensions.Logging;
 
-namespace ProjectManager.API.Services
+namespace InfocomChat.Server.Services
 {
-    public class SessionService : ISessionService
+    /// <summary>
+    /// Сервис управления сессиями пользователей
+    /// </summary>
+    public class SessionService
     {
-        private readonly AppDbContext _context;
+        private readonly ChatDbContext _context;
+        private readonly ILogger<SessionService> _logger;
 
-        public SessionService(AppDbContext context)
+        public SessionService(ChatDbContext context, ILogger<SessionService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        public async Task<List<SessionDto>> GetUserSessionsAsync(int userId)
+        /// <summary>
+        /// Создание новой сессии
+        /// </summary>
+        public async Task<UserSession> CreateSessionAsync(string userId, string deviceName, string deviceType, string ipAddress, string userAgent)
         {
-            var sessions = await _context.Sessions
-                .Where(s => s.UserId == userId && s.IsActive && s.ExpiresAt > DateTime.UtcNow)
-                .OrderByDescending(s => s.CreatedAt)
-                .ToListAsync();
-
-            return sessions.Select(s => new SessionDto
+            try
             {
-                Id = s.Id,
-                TokenPreview = s.Token?.Length > 6 ? s.Token.Substring(0, 6) + "..." : "***",
-                CreatedAt = s.CreatedAt,
-                ExpiresAt = s.ExpiresAt,
-                IsActive = s.IsActive
-            }).ToList();
-        }
+                var session = new UserSession
+                {
+                    UserId = userId,
+                    DeviceName = deviceName,
+                    DeviceType = deviceType,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    CreatedAt = DateTime.UtcNow,
+                    LastActivity = DateTime.UtcNow,
+                    IsActive = true,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7) // сессия живёт 7 дней
+                };
 
-        /*
-        public async Task<List<SessionDto>> GetUserSessionsAsync(int userId)
-        {
-            var sessions = await _context.Sessions
-                .Where(s => s.UserId == userId && s.IsActive && s.ExpiresAt > DateTime.UtcNow)
-                .OrderByDescending(s => s.CreatedAt)
-                .ToListAsync();
+                await _context.UserSessions.AddAsync(session);
+                await _context.SaveChangesAsync();
 
-            return sessions.Select(s => new SessionDto
+                return session;
+            }
+            catch (Exception ex)
             {
-                Id = s.Id,
-                Token = s.Token,
-                CreatedAt = s.CreatedAt,
-                ExpiresAt = s.ExpiresAt,
-                IsActive = s.IsActive
-            }).ToList();
-        }
-        */
-
-        public async Task<bool> EndSessionAsync(int sessionId, int userId)
-        {
-            var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
-            if (session == null || !session.IsActive) return false;
-            session.IsActive = false;
-            await _context.SaveChangesAsync();
-            return true;
+                _logger.LogError(ex, $"Ошибка создания сессии для {userId}");
+                throw;
+            }
         }
 
-        public async Task<bool> EndAllSessionsAsync(int userId)
+        /// <summary>
+        /// Получение всех активных сессий пользователя
+        /// </summary>
+        public async Task<List<SessionDto>> GetUserSessionsAsync(string userId)
         {
-            var sessions = await _context.Sessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
-            if (!sessions.Any()) return false;
-            foreach (var s in sessions) s.IsActive = false;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task SaveSessionAsync(int userId, string token, DateTime expiresAt)
-        {
-            _context.Sessions.Add(new Session
+            try
             {
-                UserId = userId,
-                Token = token,
-                ExpiresAt = expiresAt,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            await _context.SaveChangesAsync();
+                var sessions = await _context.UserSessions
+                    .Where(s => s.UserId == userId && s.IsActive)
+                    .OrderByDescending(s => s.LastActivity)
+                    .ToListAsync();
+
+                return sessions.Select(s => new SessionDto
+                {
+                    SessionId = s.SessionId,
+                    DeviceName = s.DeviceName,
+                    DeviceType = s.DeviceType,
+                    IpAddress = s.IpAddress,
+                    CreatedAt = s.CreatedAt,
+                    LastActivity = s.LastActivity,
+                    IsActive = s.IsActive,
+                    ExpiresAt = s.ExpiresAt
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка получения сессий пользователя {userId}");
+                throw;
+            }
         }
 
-        public async Task<bool> IsTokenValidAsync(string token)
+        /// <summary>
+        /// Завершение сессии
+        /// </summary>
+        public async Task<bool> EndSessionAsync(string sessionId, string userId)
         {
-            var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Token == token && s.IsActive && s.ExpiresAt > DateTime.UtcNow);
-            return session != null;
+            try
+            {
+                var session = await _context.UserSessions
+                    .FirstOrDefaultAsync(s => s.SessionId == sessionId && s.UserId == userId);
+
+                if (session == null) return false;
+
+                session.IsActive = false;
+                session.ExpiresAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка завершения сессии {sessionId}");
+                return false;
+            }
         }
 
-        public async Task<int?> GetUserIdByTokenAsync(string token)
+        /// <summary>
+        /// Завершение всех сессий пользователя
+        /// </summary>
+        public async Task<bool> EndAllSessionsAsync(string userId)
         {
-            var session = await _context.Sessions.FirstOrDefaultAsync(s => s.Token == token && s.IsActive && s.ExpiresAt > DateTime.UtcNow);
-            return session?.UserId;
+            try
+            {
+                var sessions = await _context.UserSessions
+                    .Where(s => s.UserId == userId && s.IsActive)
+                    .ToListAsync();
+
+                foreach (var s in sessions)
+                {
+                    s.IsActive = false;
+                    s.ExpiresAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка завершения всех сессий для {userId}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Обновление времени последней активности сессии
+        /// </summary>
+        public async Task UpdateSessionActivityAsync(string sessionId)
+        {
+            try
+            {
+                var session = await _context.UserSessions
+                    .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+
+                if (session != null && session.IsActive)
+                {
+                    session.LastActivity = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка обновления активности сессии {sessionId}");
+            }
+        }
+
+        /// <summary>
+        /// Очистка просроченных сессий
+        /// </summary>
+        public async Task<int> CleanupExpiredSessionsAsync()
+        {
+            try
+            {
+                var expired = await _context.UserSessions
+                    .Where(s => s.IsActive && s.ExpiresAt < DateTime.UtcNow)
+                    .ToListAsync();
+
+                foreach (var s in expired)
+                {
+                    s.IsActive = false;
+                }
+
+                await _context.SaveChangesAsync();
+                return expired.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка очистки просроченных сессий");
+                return 0;
+            }
         }
     }
 }

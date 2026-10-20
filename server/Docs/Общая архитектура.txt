@@ -1,0 +1,37 @@
+InfocomChat.Server/
+├── 📁 Controllers/
+│   ├── AdminController.cs
+│   ├── ChatController.cs
+│   ├── PrivateChatController.cs
+│   ├── RoomController.cs
+│   └── SyncController.cs
+├── 📁 Database/
+│   ├── ChatDbContext.cs
+│   └── DatabaseConfig.cs
+├── 📁 Models/
+│   ├── Entities/
+│   │   └── User.cs (все сущности БД)
+│   ├── AdminModels.cs
+│   ├── ChatMessage.cs
+│   ├── PrivateMessage.cs
+│   ├── RoomInfo.cs
+│   └── UserInfo.cs
+├── 📁 Services/
+│   ├── MessageHistoryService.cs
+│   ├── PrivateChatService.cs
+│   ├── RoomManager.cs
+│   ├── UserPresenceService.cs
+│   └── UserService.cs
+├── 📁 DTOs/
+│   ├── RoomDto.cs
+│   ├── SendMessageDto.cs
+│   └── UserDto.cs
+├── 📁 Migrations/
+│   └── (создаются при миграциях)
+├── 📁 wwwroot/
+│   └── (статичные файлы)
+├── Program.cs
+├── Startup.cs
+├── appsettings.json
+├── web.config
+└── InfocomChat.Server.csproj

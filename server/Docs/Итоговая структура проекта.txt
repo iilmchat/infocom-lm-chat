@@ -1,0 +1,22 @@
+InfocomChat.Server/
+├── Controllers/
+│   ├── AdminController.cs          ← НОВЫЙ
+│   ├── ChatController.cs
+│   ├── PrivateChatController.cs    ← НОВЫЙ
+│   ├── RoomController.cs
+│   └── SyncController.cs
+├── Models/
+│   ├── AdminModels.cs              ← НОВЫЙ
+│   ├── ChatMessage.cs
+│   ├── PrivateMessage.cs           ← НОВЫЙ
+│   ├── RoomInfo.cs
+│   └── UserInfo.cs
+├── Services/
+│   ├── MessageHistoryService.cs
+│   ├── PrivateChatService.cs       ← НОВЫЙ
+│   ├── RoomManager.cs
+│   └── UserPresenceService.cs
+├── Startup.cs
+├── Program.cs
+├── appsettings.json
+└── web.config

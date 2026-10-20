@@ -1,0 +1,20 @@
+InfocomChat.Server/
+├── Controllers/
+│   ├── ChatController.cs        // HTTP API для чата
+│   ├── RoomController.cs        // Управление комнатами
+│   └── SyncController.cs        // Синхронизация состояния
+├── Hubs/
+│   └── ChatHub.cs               // SignalR Hub (реальное время)
+├── Models/
+│   ├── ChatMessage.cs
+│   ├── RoomInfo.cs
+│   └── UserInfo.cs
+├── Services/
+│   ├── RoomManager.cs           // Управление комнатами и состоянием
+│   ├── MessageHistoryService.cs // Хранение истории
+│   └── UserPresenceService.cs   // Отслеживание пользователей
+├── DTOs/                        // Data Transfer Objects
+│   ├── SendMessageDto.cs
+│   ├── RoomDto.cs
+│   └── UserDto.cs
+└── InfocomChat.Server.csproj

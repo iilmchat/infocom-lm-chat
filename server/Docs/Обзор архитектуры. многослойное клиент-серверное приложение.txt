@@ -1,0 +1,89 @@
+InfocomChat.Server/
+├── 📁 Properties/                      # Свойства проекта (launchSettings.json)
+├── 📁 bin/                             # Скомпилированные файлы
+├── 📁 obj/                             # Временные файлы сборки
+├── 📁 logs/                            # Логи приложения (автоматически создаётся)
+│   └── app-{yyyy-MM-dd}.log            # Ежедневные файлы логов
+├── 📁 wwwroot/                         # Статические файлы
+│   └── uploads/                        # Загруженные файлы (вложения)
+├── 📁 Controllers/                     # 🎯 КОНТРОЛЛЕРЫ (Слой представления)
+│   ├── AdminController.cs              # Административные функции (управление пользователями, модерация)
+│   ├── ChatController.cs               # Основной чат (отправка, редактирование, история)
+│   ├── MentionController.cs            # Управление упоминаниями (@username)
+│   ├── PrivateChatController.cs        # Приватные чаты (личные сообщения)
+│   ├── ReactionController.cs           # Реакции на сообщения (👍❤️😄)
+│   ├── RoomController.cs               # Управление комнатами (создание, вход, выход)
+│   └── SyncController.cs               # Синхронизация через Long Polling
+│
+├── 📁 Services/                        # ⚙️ БИЗНЕС-ЛОГИКА (Сервисный слой)
+│   ├── UserService.cs                  # Управление пользователями и ролями
+│   ├── RoomManager.cs                  # Менеджер комнат (основная логика)
+│   ├── MessageHistoryService.cs        # История сообщений (кэш + БД)
+│   ├── PrivateChatService.cs           # Приватные чаты (логика личных сообщений)
+│   ├── UserPresenceService.cs          # Отслеживание присутствия пользователей
+│   ├── ReactionService.cs              # Реакции на сообщения
+│   ├── AttachmentService.cs            # Работа с вложениями (файлы)
+│   └── MentionService.cs               # Обработка упоминаний
+│
+├── 📁 Database/                        # 🗄️ ДОСТУП К ДАННЫМ (Слой персистентности)
+│   ├── ChatDbContext.cs                # Контекст Entity Framework Core
+│   └── DatabaseConfig.cs               # Конфигурация БД (поддержка SQL Server, PostgreSQL, SQLite)
+│
+├── 📁 Models/                          # 📦 МОДЕЛИ ДАННЫХ
+│   ├── 📁 Entities/                    # Сущности базы данных (Entity Framework)
+│   │   ├── User.cs                     # Пользователь
+│   │   ├── Room.cs                     # Комната
+│   │   ├── Message.cs                  # Сообщение
+│   │   ├── PrivateChat.cs              # Приватный чат
+│   │   ├── PrivateMessage.cs           # Приватное сообщение
+│   │   ├── UserRoom.cs                 # Связь пользователь-комната
+│   │   ├── BlockedUser.cs              # Заблокированные пользователи
+│   │   ├── ModerationLog.cs            # Логи модерации
+│   │   ├── SystemSetting.cs            # Системные настройки
+│   │   ├── MessageReaction.cs          # Реакции на сообщения
+│   │   ├── Attachment.cs               # Вложения
+│   │   └── Mention.cs                  # Упоминания
+│   │
+│   ├── ChatMessage.cs                  # DTO для сообщений чата
+│   ├── PrivateMessage.cs               # DTO для приватных сообщений
+│   ├── RoomInfo.cs                     # Информация о комнате (с настройками)
+│   ├── UserInfo.cs                     # Информация о пользователе
+│   └── AdminModels.cs                  # Административные модели
+│
+├── 📁 DTOs/                            # 📨 DTO (Data Transfer Objects)
+│   ├── PaginationDto.cs                # Пагинация (запрос/ответ)
+│   ├── UserDtos.cs                     # DTO для пользователей
+│   ├── PrivateChatDtos.cs              # DTO для приватных чатов
+│   └── ReactionDtos.cs                 # DTO для реакций
+│
+├── 📁 Mappers/                         # 🔄 МАППЕРЫ (Преобразование Entity ↔ DTO)
+│   ├── UserMapper.cs                   # Маппер для пользователей
+│   ├── MessageMapper.cs                # Маппер для сообщений
+│   ├── RoomMapper.cs                   # Маппер для комнат
+│   ├── PrivateChatMapper.cs            # Маппер для приватных чатов
+│   └── DtoExtensions.cs                # Вспомогательные методы
+│
+├── 📁 Hubs/                            # 🔌 SIGNALR ХАБЫ (Реальное время)
+│   └── ChatHub.cs                      # Хаб для WebSocket/SignalR
+│
+├── 📁 Middleware/                      # 🔧 ПОСРЕДНИКИ (Middleware)
+│   └── ErrorHandlingMiddleware.cs      # Глобальная обработка ошибок
+│
+├── 📁 Extensions/                      # 🔩 МЕТОДЫ РАСШИРЕНИЯ
+│   ├── ServiceExtensions.cs            # Расширения для DI
+│   └── ModelBuilderExtensions.cs       # Расширения для Entity Framework
+│
+├── 📁 Configuration/                   # ⚙️ КОНФИГУРАЦИЯ
+│   ├── AppSettings.cs                  # Типизированные настройки
+│   └── CorsConfiguration.cs            # Настройки CORS
+│
+├── 📁 Validators/                      # ✅ ВАЛИДАТОРЫ
+│   └── CustomValidators.cs             # Кастомные валидаторы
+│
+├── Program.cs                          # 🚀 ТОЧКА ВХОДА (Настройка хоста и логирования)
+├── Startup.cs                          # ⚙️ КОНФИГУРАЦИЯ ПРИЛОЖЕНИЯ (DI, Middleware, CORS)
+├── appsettings.json                    # 📄 КОНФИГУРАЦИЯ (БД, CORS, настройки чата)
+├── appsettings.Development.json        # Конфигурация для разработки (переопределяет основные)
+├── web.config                          # Конфигурация IIS (для деплоя)
+├── InfocomChat.Server.csproj           # Файл проекта .NET Core
+└── Index.html                          # 🧪 ТЕСТОВЫЙ КЛИЕНТ (55+ API эндпоинтов)

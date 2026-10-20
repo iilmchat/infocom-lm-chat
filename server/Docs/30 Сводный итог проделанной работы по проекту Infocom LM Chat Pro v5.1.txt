@@ -1,0 +1,231 @@
+Сводный итог проделанной работы по проекту Infocom LM Chat Pro v5.1
+🎯 Общая цель
+Довести серверную часть проекта до состояния production-ready, исправив все выявленные критические и потенциальные проблемы, добавив недостающие функции и обеспечив полное покрытие API для будущей клиентской разработки.
+
+📦 Основные этапы и результаты
+1. Анализ существующего кода
+Проведён глубокий аудит всех модулей: контроллеров, сервисов, DTO, мапперов и контекста БД.
+
+Выявлены 14 критических и высокоприоритетных проблем, включая:
+
+Отсутствие проверки мута в ChatController.
+
+Ошибка сохранения из-за неотслеживаемых сущностей в UserService.
+
+Опасная CORS-политика.
+
+Утечка памяти в SyncController.
+
+XSS-уязвимость.
+
+Синхронная запись логов (блокировка потока).
+
+Дублирование статусов пользователей.
+
+Отсутствие глобальной обработки ошибок и CancellationToken.
+
+2. Исправление и оптимизация серверной части
+Внесены исправления во все перечисленные модули (полный код предоставлен в предыдущих ответах):
+
+Файл	Исправление
+ChatController.cs	Добавлена проверка мута, усилена XSS-защита.
+UserService.cs	Разделены методы для работы с сущностями и DTO, добавлены CancellationToken, вынесены повторяющиеся проверки.
+Startup.cs	Добавлен глобальный middleware обработки ошибок.
+SyncController.cs	Исправлена утечка памяти (удаление запросов из _pendingPolls в finally).
+Program.cs	Заменён синхронный логгер на асинхронный с BlockingCollection.
+PrivateChatService.cs	Удалён дублирующий _userHeartbeats, теперь используется UserPresenceService.
+AdminController.cs	Удалены закомментированные конструкторы, исправлен метод ExportRoom (убрано dynamic).
+Все DTO	Закомментировано поле ExtraData (помечено как удалённое в v5.2), добавлены комментарии.
+3. Добавление новых функций и API
+Реализованы 10 новых групп эндпоинтов (полный код контроллеров, сервисов, DTO и сущностей предоставлен):
+
+Аналитика – активность пользователя, вовлечённость в комнате, глобальная статистика.
+
+Уведомления – получение, отметка прочитанных, количество непрочитанных.
+
+Вложения – загрузка, скачивание, удаление, список вложений сообщения.
+
+Системные настройки – CRUD для настроек (админ).
+
+Закреплённые сообщения – закрепить/открепить, список закреплённых.
+
+Жалобы на сообщения – создание жалобы, список (админ), разрешение.
+
+Экспорт/импорт – экспорт данных пользователя (GDPR), импорт комнаты (заглушка).
+
+Боты – отправка сообщений, вход в комнату, список комнат бота (с API-ключом).
+
+Управление сессиями – список активных сессий, завершение сессии, выход из всех устройств.
+
+Поиск комнат – по названию/описанию.
+
+Добавлены новые сущности: PinnedMessage, Report, Notification, UserSession, BotAccount.
+
+4. Обновление тестового клиента (Index.html)
+Создана полная карта API – более 70 эндпоинтов сгруппированы по разделам.
+
+Добавлены все пропущенные методы: реакции, упоминания, администрирование, расширенные чаты и приватные чаты.
+
+Исправлена проблема с AbortSignal.timeout – реализован ручной таймаут через AbortController для совместимости со старыми браузерами.
+
+Добавлена автоматическая подстановка динамических параметров ({roomId}, {chatId}, {messageId}) в URL и теле.
+
+Сохранение состояния в localStorage для удобства повторного тестирования.
+
+5. Версионирование и обратная совместимость
+Все новые методы добавлены с отдельными маршрутами (например, /v2 или новые пути).
+
+Старые методы помечены атрибутом [Obsolete], где необходимо.
+
+Никакие существующие контракты не нарушены – старые клиенты продолжают работать.
+
+📋 Полный список REST API сервера (для клиентской разработки)
+🔹 1. Базовые / служебные
+Метод	Путь	Описание
+GET	/api/sync/ping	Проверка доступности сервера
+GET	/api/admin/health	Health check
+🔹 2. Пользователи (профиль, приватные чаты, блокировка)
+Метод	Путь	Описание
+POST	/api/private/user	Создание/получение пользователя (или обновление)
+GET	/api/private/user/{userId}	Получить профиль пользователя
+GET	/api/private/users	Список всех пользователей
+GET	/api/private/users/online	Список онлайн-пользователей
+GET	/api/private/user/{userId}/unread	Количество непрочитанных приватных сообщений
+POST	/api/private/user/block	Блокировка пользователя
+POST	/api/private/user/unblock	Разблокировка
+GET	/api/private/user/{userId}/blocked	Список заблокированных
+POST	/api/private/heartbeat	Обновление активности (онлайн-статус)
+🔹 3. Приватные чаты
+Метод	Путь	Описание
+POST	/api/private/chat/create	Создать приватный чат между двумя пользователями
+GET	/api/private/user/{userId}/chats	Получить все чаты пользователя
+POST	/api/private/message/send	Отправить приватное сообщение
+GET	/api/private/chat/{chatId}/history	История приватного чата (пагинация)
+POST	/api/private/chat/mark-read	Отметить сообщения как прочитанные
+POST	/api/private/message/{messageId}	Редактировать приватное сообщение
+DELETE	/api/private/message/{messageId}	Удалить приватное сообщение
+🔹 4. Общие комнаты
+Метод	Путь	Описание
+POST	/api/room/create	Создать комнату
+POST	/api/room/join	Войти в комнату
+POST	/api/room/leave	Выйти из комнаты
+GET	/api/room/list	Список активных комнат
+GET	/api/room/info/{roomId}	Информация о комнате
+GET	/api/room/search?query=...	Поиск комнат по названию/описанию
+🔹 5. Сообщения в комнатах
+Метод	Путь	Описание
+POST	/api/chat/send	Отправить сообщение (с упоминаниями)
+GET	/api/chat/history/{roomId}	История сообщений (пагинация)
+POST	/api/chat/edit	Редактировать сообщение
+DELETE	/api/chat/delete/{roomId}/{messageId}/{userId}	Удалить сообщение
+GET	/api/chat/last/{roomId}	Последнее сообщение в комнате
+GET	/api/chat/range/{roomId}	Сообщения по диапазону дат
+GET	/api/chat/stats/{roomId}	Статистика сообщений в комнате
+GET	/api/chat/after/{roomId}/{lastMessageId}	Сообщения после указанного ID
+GET	/api/chat/search/{roomId}	Поиск сообщений по тексту
+DELETE	/api/chat/clear/{roomId}	Очистить историю комнаты (админ)
+POST	/api/chat/pin/{messageId}	Закрепить сообщение в комнате
+DELETE	/api/chat/pin/{messageId}	Открепить сообщение
+GET	/api/chat/pinned/{roomId}	Получить закреплённые сообщения комнаты
+POST	/api/chat/report/{messageId}	Пожаловаться на сообщение
+🔹 6. Реакции
+Метод	Путь	Описание
+POST	/api/Reaction/add	Добавить/изменить реакцию (toggle)
+DELETE	/api/Reaction/remove	Удалить реакцию
+GET	/api/Reaction/message/{messageId}	Все реакции на сообщение
+GET	/api/Reaction/message/{messageId}/user/{userId}	Реакция конкретного пользователя
+🔹 7. Упоминания
+Метод	Путь	Описание
+GET	/api/Mention/unread/{userId}	Непрочитанные упоминания пользователя
+POST	/api/Mention/mark-read	Отметить упоминания как прочитанные
+GET	/api/Mention/count/{userId}	Количество непрочитанных упоминаний
+POST	/api/Mention/extract	Извлечь упоминания из текста (@username)
+🔹 8. Синхронизация (Long Polling)
+Метод	Путь	Описание
+POST	/api/sync/state	Текущее состояние комнаты (пользователи, новые сообщения)
+POST	/api/sync/poll	Долгий опрос (ожидание новых сообщений)
+POST	/api/sync/users	Синхронизация статусов пользователей (печатание и т.п.)
+GET	/api/sync/status/{roomId}	Статус комнаты (кто онлайн, количество сообщений)
+POST	/api/sync/typing	Обновить статус печатания
+🔹 9. Аналитика
+Метод	Путь	Описание
+GET	/api/analytics/user/{userId}/activity	Активность пользователя за период
+GET	/api/analytics/room/{roomId}/engagement	Вовлечённость в комнате
+GET	/api/analytics/global	Глобальная статистика (DAU, MAU, сообщения в день)
+🔹 10. Уведомления
+Метод	Путь	Описание
+GET	/api/notifications/user/{userId}	Получить уведомления пользователя
+POST	/api/notifications/mark-read	Отметить уведомления как прочитанные
+GET	/api/notifications/count/{userId}	Количество непрочитанных уведомлений
+🔹 11. Вложения (файлы)
+Метод	Путь	Описание
+POST	/api/attachment/upload	Загрузить файл (возвращает ID вложения)
+GET	/api/attachment/{attachmentId}	Скачать файл
+DELETE	/api/attachment/{attachmentId}	Удалить файл
+GET	/api/attachment/message/{messageId}	Получить все вложения сообщения
+🔹 12. Администрирование (роли, пользователи, комнаты, сообщения, логи)
+Роли и настройки
+Метод	Путь	Описание
+GET	/api/admin/default-role	Получить роль по умолчанию
+POST	/api/admin/default-role	Установить роль по умолчанию
+GET	/api/admin/role-stats	Статистика по ролям
+Пользователи (админ)
+Метод	Путь	Описание
+GET	/api/admin/users	Список всех пользователей с ролями
+GET	/api/admin/users/paginated	Пагинированный список с фильтрацией
+GET	/api/admin/user/{userId}	Получить пользователя
+GET	/api/admin/user/{userId}/isAdmin	Проверка, админ ли
+GET	/api/admin/user/{userId}/isModerator	Проверка, модератор ли
+GET	/api/admin/user/{userId}/stats	Статистика пользователя
+GET	/api/admin/user/{userId}/blocks	Список блокировок
+PUT	/api/admin/user/{userId}/profile	Обновить профиль пользователя
+POST	/api/admin/user/{userId}/role	Изменить роль
+POST	/api/admin/user/{userId}/mute	Заглушить (мут)
+POST	/api/admin/user/{userId}/kick	Кикнуть из комнаты
+POST	/api/admin/user/{userId}/ban	Забанить
+POST	/api/admin/user/{userId}/unban	Разбанить
+DELETE	/api/admin/user/{userId}/history	Очистить историю пользователя
+POST	/api/admin/user/{userId}/reset-unread	Сбросить счётчик непрочитанных
+Комнаты (админ)
+Метод	Путь	Описание
+GET	/api/admin/rooms	Список всех комнат
+GET	/api/admin/room/{roomId}	Информация о комнате
+GET	/api/admin/room/{roomId}/stats	Статистика комнаты
+DELETE	/api/admin/room/{roomId}	Удалить комнату
+DELETE	/api/admin/room/{roomId}/history	Очистить историю комнаты
+POST	/api/admin/room/{roomId}/close	Закрыть комнату
+GET	/api/admin/room/{roomId}/export	Экспорт комнаты в JSON
+PUT	/api/admin/room/{roomId}/settings	Обновить настройки комнаты
+POST	/api/admin/room/{roomId}/transfer	Передать владение комнатой
+Сообщения (админ)
+Метод	Путь	Описание
+DELETE	/api/admin/message/{messageId}	Удалить сообщение
+POST	/api/admin/message/{messageId}	Редактировать сообщение
+POST	/api/admin/messages/search	Поиск сообщений по всем комнатам
+Логи и общая статистика
+Метод	Путь	Описание
+GET	/api/admin/stats	Общая статистика сервера
+GET	/api/admin/logs	Логи модерации
+DELETE	/api/admin/clear-all	Очистить все данные (ОПАСНО!)
+Системные настройки
+Метод	Путь	Описание
+GET	/api/admin/settings	Все настройки
+GET	/api/admin/settings/{key}	Получить настройку по ключу
+PUT	/api/admin/settings/{key}	Обновить настройку
+POST	/api/admin/settings	Создать новую настройку
+DELETE	/api/admin/settings/{key}	Удалить настройку
+🔹 13. Управление сессиями (для аутентификации)
+Метод	Путь	Описание
+GET	/api/auth/sessions	Активные сессии текущего пользователя
+DELETE	/api/auth/sessions/{sessionId}	Завершить сессию
+POST	/api/auth/logout-all	Выйти из всех устройств
+🔹 14. Боты (интеграция)
+Метод	Путь	Описание
+POST	/api/bot/message	Отправить сообщение от бота (требуется API-ключ)
+GET	/api/bot/rooms	Комнаты, где присутствует бот
+POST	/api/bot/join	Бот входит в комнату
+🔹 15. Экспорт/импорт
+Метод	Путь	Описание
+GET	/api/export/room/{roomId}/pdf	Экспорт комнаты в PDF (заглушка)
+GET	/api/export/user/{userId}/data	Экспорт всех данных пользователя (GDPR)
+POST	/api/import/room	Импорт комнаты из JSON (админ)

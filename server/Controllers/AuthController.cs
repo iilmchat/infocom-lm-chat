@@ -1,12 +1,13 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using ProjectManager.API.DTOs;
-using ProjectManager.API.Services.Interfaces;
-using System.Security.Claims;
+// Controllers/AuthController.cs
 
-namespace ProjectManager.API.Controllers
+using System;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using InfocomChat.Server.DTOs;
+using InfocomChat.Server.Services;
+using Microsoft.Extensions.Logging;
+
+namespace InfocomChat.Server.Controllers
 {
     /// <summary>
     /// Контроллер аутентификации и управления сессиями
@@ -15,145 +16,54 @@ namespace ProjectManager.API.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
-        private readonly ISessionService _sessionService;
+        private readonly SessionService _sessionService;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(
-            IAuthService authService,
-            ISessionService sessionService,
-            ILogger<AuthController> logger)
+        public AuthController(SessionService sessionService, ILogger<AuthController> logger)
         {
-            _authService = authService;
             _sessionService = sessionService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Регистрация нового пользователя
-        /// </summary>
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var response = await _authService.RegisterAsync(request);
-                _logger.LogInformation($"Зарегистрирован новый пользователь: {response.Username} (ID: {response.UserId})");
-                return Ok(new { success = true, data = response });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при регистрации пользователя");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
-            }
-        }
-
-        /// <summary>
-        /// Вход в систему
-        /// </summary>
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var response = await _authService.LoginAsync(request);
-                _logger.LogInformation($"Пользователь {response.Username} (ID: {response.UserId}) выполнил вход");
-                return Ok(new { success = true, data = response });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { success = false, message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при входе пользователя");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
-            }
-        }
-
-        /// <summary>
-        /// Получение активных сессий пользователя (только для владельца или админа).
-        /// </summary>
-        /// <param name="userId">Опциональный идентификатор пользователя. Если не указан, берётся текущий.</param>
-        /// <returns>Список сессий.</returns>
-        [HttpGet("sessions")]
-        public async Task<IActionResult> GetSessions([FromQuery] int? userId)
-        {
-            try
-            {
-                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                var isAdmin = User.IsInRole("Admin");
-
-                // Если указан userId и он не совпадает с текущим, то только админ может запрашивать чужие сессии
-                if (userId.HasValue && userId.Value != currentUserId && !isAdmin)
-                    return Forbid("Вы не можете просматривать сессии другого пользователя.");
-
-                var targetUserId = userId ?? currentUserId;
-                var sessions = await _sessionService.GetUserSessionsAsync(targetUserId);
-                return Ok(new { success = true, data = sessions });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Ошибка получения сессий для userId={userId}");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
-            }
-        }
-
-        /*
-        /// <summary>
-        /// Получение активных сессий пользователя (только для владельца или админа)
+        /// Получение активных сессий пользователя
         /// </summary>
         [HttpGet("sessions")]
-        public async Task<IActionResult> GetSessions([FromQuery] int userId)
+        public async Task<IActionResult> GetSessions([FromQuery] string userId)
         {
             try
             {
-                // Здесь должна быть проверка прав: только сам пользователь или админ
-                // Пока пропускаем, позже добавим авторизацию
+                if (string.IsNullOrWhiteSpace(userId))
+                    return BadRequest(new { error = "UserId обязателен" });
 
                 var sessions = await _sessionService.GetUserSessionsAsync(userId);
-                return Ok(new { success = true, data = sessions });
+                return Ok(new { success = true, sessions });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка получения сессий для userId={userId}");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
+                _logger.LogError(ex, $"Ошибка получения сессий для {userId}");
+                return StatusCode(500, new { error = ex.Message });
             }
         }
-        */
 
         /// <summary>
-        /// Завершение конкретной сессии (POST вместо DELETE)
+        /// Завершение сессии
         /// </summary>
-        [HttpPost("sessions/end")]
-        public async Task<IActionResult> EndSession([FromBody] EndSessionRequest request, [FromQuery] int sessionId)
+        [HttpDelete("sessions/{sessionId}")]
+        public async Task<IActionResult> EndSession(string sessionId, [FromQuery] string userId)
         {
             try
             {
-                if (sessionId <= 0)
-                    return BadRequest(new { success = false, message = "Неверный идентификатор сессии." });
+                if (string.IsNullOrWhiteSpace(userId))
+                    return BadRequest(new { error = "UserId обязателен" });
 
-                var result = await _sessionService.EndSessionAsync(sessionId, request.UserId);
-                if (!result)
-                    return NotFound(new { success = false, message = "Сессия не найдена или уже завершена." });
-
-                _logger.LogInformation($"Сессия {sessionId} завершена для пользователя {request.UserId}");
-                return Ok(new { success = true });
+                var result = await _sessionService.EndSessionAsync(sessionId, userId);
+                return Ok(new { success = result });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Ошибка завершения сессии {sessionId}");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
+                return StatusCode(500, new { error = ex.Message });
             }
         }
 
@@ -165,17 +75,16 @@ namespace ProjectManager.API.Controllers
         {
             try
             {
-                var result = await _sessionService.EndAllSessionsAsync(request.UserId);
-                if (!result)
-                    return NotFound(new { success = false, message = "Пользователь не найден или нет активных сессий." });
+                if (request == null || string.IsNullOrWhiteSpace(request.UserId))
+                    return BadRequest(new { error = "UserId обязателен" });
 
-                _logger.LogInformation($"Все сессии пользователя {request.UserId} завершены");
-                return Ok(new { success = true });
+                var result = await _sessionService.EndAllSessionsAsync(request.UserId);
+                return Ok(new { success = result });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка выхода из всех устройств для userId={request.UserId}");
-                return StatusCode(500, new { success = false, message = "Внутренняя ошибка сервера." });
+                _logger.LogError(ex, $"Ошибка выхода из всех устройств для {request?.UserId}");
+                return StatusCode(500, new { error = ex.Message });
             }
         }
     }

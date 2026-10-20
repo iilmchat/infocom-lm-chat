@@ -1,5 +1,6 @@
 <!-- Добавлено в 6.2: ARCHITECTURE.md (Фаза 4) -->
 <!-- Изменено в 6.2: монорепозиторий client/ + server/, добавлен бэкенд (KI-052) -->
+<!-- Изменено в 6.2: §8 актуализирован под InfocomChat.Server (EF Core, SignalR, MS SQL); KI-030 -->
 # Архитектура Infocom LM Chat Pro
 
 > Краткий обзор клиентской и серверной архитектуры v6.2. Детали — в коде
@@ -12,7 +13,7 @@
 
 - `client/` — SPA на vanilla JS и ES-модулях, без сборщика. Точка входа —
   `client/index.html`, который загружает `client/src/app.js` (`class App`).
-- `server/` — ASP.NET Core Web API (`.NET Core`), MS SQL Server.
+- `server/` — ASP.NET Core Web API (`netcoreapp3.1`) + SignalR, MS SQL Server.
 
 Клиент работает с тремя внешними сервисами:
 
@@ -104,35 +105,45 @@
 ## 8. Бэкенд (`server/`)
 
 `server/` — ASP.NET Core Web API (`netcoreapp3.1`), проект
-`ProjectManager.API`. Хранилище — MS SQL Server через EF Core
-(`Microsoft.EntityFrameworkCore.SqlServer`), точка входа — `Program.cs`
-(`UseStartup<Startup>`).
+`InfocomChat.Server` (версия `6.0.0`). Хранилище — MS SQL Server через
+EF Core 3.1 (`Microsoft.EntityFrameworkCore.SqlServer`). Точка входа —
+`Program.cs` (`Host.CreateDefaultBuilder`, `UseStartup<Startup>`,
+`http://127.0.0.1:8032`), регистрация сервисов, middleware и маршрутов —
+`Startup.cs`.
 
 Слоистая архитектура:
 
 | Слой | Папка | Ответственность |
 |---|---|---|
-| API / Controllers | `server/Controllers/` | REST-эндпоинты, маршрутизация, коды ответов |
-| Services | `server/Services/` | бизнес-логика, интеграция с LM Studio |
-| Data | `server/Data/` | `DbContext`, конфигурация EF Core |
+| API / Controllers | `server/Controllers/` | REST-эндпоинты (`api/[controller]`), валидация запросов, коды ответов |
+| Services | `server/Services/` | бизнес-логика: комнаты, сообщения, приватные чаты, пользователи, присутствие, уведомления, вложения, сессии, боты, аналитика |
+| Database | `server/Database/` | `ChatDbContext` (DbSet, связи, индексы), `DatabaseConfig` (EF Core, строка подключения) |
 | Migrations | `server/Migrations/` | миграции схемы БД |
-| Models / DTOs | `server/Models/`, `server/DTOs/` | доменные сущности и контракты API |
-
-Дополнительно: `server/Auth/` (JWT), `server/Middleware/` (обработка
-ошибок, rate limiting), `server/Exceptions/`, `server/Helpers/`,
-`server/Extensions/`.
+| Models / Entities | `server/Models/`, `server/Models/Entities/` | доменные модели и EF-сущности |
+| DTOs | `server/DTOs/` | контракты API |
+| Mappers | `server/Mappers/` | преобразование сущностей в DTO |
+| Hubs | `server/Hubs/` | `ChatHub` — SignalR, эндпоинт `/chatHub` |
+| Middleware | `server/Middleware/` | `ErrorHandlingMiddleware` — глобальная обработка ошибок |
 
 Поток запроса на сервере:
 
 1. Контроллер принимает HTTP-запрос и валидирует DTO.
-2. `Service` выполняет бизнес-логику (в т.ч. вызовы LM Studio на `8034`).
-3. `Data`/`DbContext` читает и пишет данные в MS SQL Server.
-4. Контроллер возвращает DTO или ошибку через middleware.
+2. `Service` выполняет бизнес-логику (например, `RoomManager` — комнаты
+   и сообщения, `NotificationService` — уведомления).
+3. Сервис читает и пишет данные через `ChatDbContext` в MS SQL Server.
+4. `Mapper` преобразует сущности в DTO; контроллер возвращает ответ или
+   ошибку через `ErrorHandlingMiddleware`.
+5. Для real-time `ChatHub` рассылает события (`NewMessage`, `UserJoined`,
+   `UserLeft`, `UserTyping`) клиентам SignalR через `/chatHub`.
 
-Конфигурация — `server/appsettings.json`: строка подключения
-(`ConnectionStrings:DefaultConnection`), `Jwt`, `LmStudio`,
-`ProjectStorage`, `RateLimiting`. Миграции применяются через
-`dotnet ef database update --project server/ProjectManager.API.csproj`.
+Конфигурация — `server/appsettings.json`: `ChatSettings` (лимиты
+сообщений, комнат, истории), `CorsSettings` (разрешённые origin, methods,
+headers), `ConnectionStrings:DefaultConnection` и `ConnectionStrings:MSSQL`,
+`Database` (тип БД, таймауты), `Server` (порт, роли, лимиты), `LM`
+(IP/порт LM Studio). Схема БД создаётся при старте —
+`Database.EnsureCreated()` в `Startup.Configure`; миграции при
+необходимости применяются через
+`dotnet ef database update --project server/InfocomChat.Server.csproj`.
 
 ## 9. Ограничения
 
@@ -141,5 +152,5 @@
   нормализации (KI-005).
 - `StatsModule` пока рисует заглушки (KI-006).
 - Нет graceful degradation без бэкенда `8032` (KI-025).
-- `server/` — отдельный .NET-проект со своей версией (`2.4`), не связанный
-  с версией клиента (`6.2`) общей сборкой (KI-052).
+- `server/` — отдельный .NET-проект (`InfocomChat.Server`) со своей версией
+  (`6.0.0`), не связанный с версией клиента (`6.2`) общей сборкой (KI-052).

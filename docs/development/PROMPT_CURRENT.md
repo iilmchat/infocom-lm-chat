@@ -111,8 +111,8 @@ High Open:
   не работают — только `client/...`.
 - Статика раздаётся из `client/`, а не из корня (KI-052).
 - `server/bin` и `server/obj` — в `.gitignore`, не коммитить.
-- `server/appsettings.json` содержит строку подключения и JWT-ключ:
-  перед коммитом `server/` проверить секреты.
+- `server/appsettings.json` содержит строку подключения и параметры
+  `Server`/`LM`: перед коммитом `server/` проверить секреты.
 - Офлайн-режим (KI-025): при выключенном `8032` клиент работает как
   одиночный чат; ровно один `ERR_CONNECTION_REFUSED` в консоли — это
   штатный `pingBackend()`.
@@ -129,7 +129,7 @@ High Open:
 
 1. Запустить статику из `client/` на `8033` (или `tools/scripts/start-python.sh`),
    LM Studio на `8034`; API `8032` — опционально
-   (`dotnet run --project server/ProjectManager.API.csproj --urls http://localhost:8032`).
+   (`dotnet run --project server/InfocomChat.Server.csproj --urls http://localhost:8032`).
 2. Открыть `/`, `/private`, `/admin`, `/games`, `/profile`, `/settings`, `/stats`.
 3. Проверить консоль, переключение тем, профиль (модалку и страницу),
    уведомления, ресайз sidebar.
