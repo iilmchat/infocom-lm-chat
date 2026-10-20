@@ -16,6 +16,16 @@ export class AdminModule {
      * Инициализация модуля – создание экземпляра AdminPanel и открытие
      */
     init() {
+        /* Изменено в 6.2 (KI-053): в офлайн-режиме AdminPanel не создаём и не открываем —
+           иначе панель сразу шлёт запросы на недоступный бэкенд (ERR_CONNECTION_REFUSED). */
+        if (this.app.offlineMode) {
+            const container = document.getElementById('app-admin');
+            if (container) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary);">🛑 Панель администратора недоступна в офлайн-режиме (нет связи с сервером).</div>';
+            }
+            return;
+        }
+
         if (!this.adminPanel) {
             this.adminPanel = new AdminPanel(this.app);
         }

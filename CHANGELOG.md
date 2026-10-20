@@ -37,6 +37,7 @@
 - `ChatModule` теперь отвечает только за `ChatView` (KI-013)
 
 ### Fixed
+- Устранены сетевые запросы в офлайн-режиме на страницах /admin и /stats (KI-053)
 - `SyntaxError: Unexpected identifier 'assert'` в `src/services/i18n.js` (KI-001)
 - Уведомления в приватных чатах: устранён спам уведомлений при каждой загрузке истории (KI-027)
 - `NotificationManager.markRead()` корректно обрабатывает локальные ID (KI-004)

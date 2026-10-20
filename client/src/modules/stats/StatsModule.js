@@ -78,6 +78,16 @@ export class StatsModule {
     }
 
     async loadStats() {
+        /* Изменено в 6.2 (KI-053): в офлайн-режиме не запрашиваем getAdminStats() —
+           показываем заглушку вместо спама ERR_CONNECTION_REFUSED. */
+        if (this.app.offlineMode) {
+            const offlineGrid = document.getElementById('statsGrid');
+            if (offlineGrid) {
+                offlineGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-secondary);">🛑 Статистика недоступна в офлайн-режиме.</div>';
+            }
+            return;
+        }
+
         try {
             // Показываем индикатор загрузки
             const grid = document.getElementById('statsGrid');
